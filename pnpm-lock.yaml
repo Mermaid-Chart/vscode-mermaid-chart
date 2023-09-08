@@ -5,9 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
-  axios:
-    specifier: ^1.4.0
-    version: 1.4.0
+  '@mermaidchart/sdk':
+    specifier: ^0.1.0
+    version: 0.1.0
   uuid:
     specifier: ^9.0.0
     version: 9.0.0
@@ -62,6 +62,11 @@ packages:
     resolution: {integrity: sha512-1Yjs2SvM8TflER/OD3cOjhWWOZb58A2t7wpE2S9XfBYTiIl+XFhQG2bjy4Pu1I+EAlCNUzRDYDdFwFYUKvXcIA==}
     engines: {node: '>=0.10.0'}
     dev: true
+
+  /@badgateway/oauth2-client@2.2.4:
+    resolution: {integrity: sha512-R9MJWnf9gT5a38hNmAN4CFBB9yshvEVNYPb9iPgX7JIUAaqHjl3csivDcJESH3riRJMFVOEOqV4BsjamyYbsBg==}
+    engines: {node: '>= 14'}
+    dev: false
 
   /@esbuild/android-arm64@0.18.13:
     resolution: {integrity: sha512-j7NhycJUoUAG5kAzGf4fPWfd17N6SM3o1X6MlXVqfHvs2buFraCJzos9vbeWjLxOyBKHyPOnuCuipbhvbYtTAg==}
@@ -317,6 +322,16 @@ packages:
   /@humanwhocodes/object-schema@1.2.1:
     resolution: {integrity: sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==}
     dev: true
+
+  /@mermaidchart/sdk@0.1.0:
+    resolution: {integrity: sha512-aWQinjdRCz4FuiRmURnUA/Y7AGVSJ1fIgbtNjUNSARklSS5ioh3lBbIN551lbXcWzquXEdYKRwKfq/iwe2zOug==}
+    dependencies:
+      '@badgateway/oauth2-client': 2.2.4
+      axios: 1.5.0
+      uuid: 9.0.0
+    transitivePeerDependencies:
+      - debug
+    dev: false
 
   /@nodelib/fs.scandir@2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -627,8 +642,8 @@ packages:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
     dev: false
 
-  /axios@1.4.0:
-    resolution: {integrity: sha512-S4XCWMEmzvo64T9GfvQDOXgYRDJ/wsSZc7Jvdgx5u1sd0JwsuPLqb3SYmusag+edF6ziyMensPVqLTSc1PiSEA==}
+  /axios@1.5.0:
+    resolution: {integrity: sha512-D4DdjDo5CY50Qms0qGQTTw6Q44jl7zRwY7bthds06pUGfChBCTcQs+N743eFWGEd6pRTMd6A+I87aWyFV5wiZQ==}
     dependencies:
       follow-redirects: 1.15.2
       form-data: 4.0.0

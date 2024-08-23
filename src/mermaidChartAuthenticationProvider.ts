@@ -205,7 +205,7 @@ export class MermaidChartAuthenticationProvider
     scopes: readonly string[]
   ) => PromiseAdapter<Uri, string> =
     (scopes) => async (uri, resolve, reject) => {
-      await this.mcAPI.handleAuthorizationResponse(uri.query);
+      await this.mcAPI.handleAuthorizationResponse(`?${uri.query}`);
       resolve("done");
     };
 

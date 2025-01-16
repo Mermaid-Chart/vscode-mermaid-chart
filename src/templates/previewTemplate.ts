@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 
-export function getWebviewHTML(panel: vscode.WebviewPanel, extensionPath: string, theme:string): string {
+export function getWebviewHTML(panel: vscode.WebviewPanel, extensionPath: string): string {
   const scriptUri = panel.webview.asWebviewUri(
     vscode.Uri.file(path.join(extensionPath, "out", "svelte", "bundle.js"))
   );
@@ -14,11 +14,11 @@ export function getWebviewHTML(panel: vscode.WebviewPanel, extensionPath: string
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Svelte Mermaid Preview</title>
       <script type="module" src="${scriptUri}"></script>
+      <script>
+          const vscode = acquireVsCodeApi();
+          window.vscode = vscode;
+        </script>
       <style>
-        body{
-          background-color: ${theme === 'dark' ? '#1e1e1e' : '#ffffff'};
-          color: ${theme === 'dark' ? '#ffffff' : '#000000'};
-        }
         #app {
           height:100vh;
         }

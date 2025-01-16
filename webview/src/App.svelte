@@ -5,12 +5,14 @@
   import panIcon from './assets/pan.svg';
   import zoominIcon from './assets/zoom-in.svg';
   import zoomoutIcon from './assets/zoom-out.svg';
-
+ 
+  let vscode: any;
   let diagramContent: string = '';
   let errorMessage = "";
 
   let panzoomInstance: ReturnType<typeof Panzoom> | null = null;
   let panEnabled = false;
+  let isErrorOccured= false;
 
   async function renderDiagram() {
     const element = document.getElementById("mermaid-diagram");
@@ -39,9 +41,20 @@
 
           updateCursorStyle();
         }
+        if(isErrorOccured){
+          vscode.postMessage({
+            type: "clearError", 
+          });
+          isErrorOccured = false
+        }
       } catch (error) {
         console.error("Error rendering Mermaid diagram:", error);
         errorMessage = `Syntax error in text: ${error.message || error}`;
+        vscode.postMessage({
+          type: "error",
+          message: errorMessage,
+        });
+        isErrorOccured = true
       }
     }
   }
@@ -84,6 +97,7 @@
   });
 
   onMount(() => {
+    vscode = (window as any).vscode;
     renderDiagram();
   });
 </script>

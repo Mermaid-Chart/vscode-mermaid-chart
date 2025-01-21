@@ -55,7 +55,11 @@ export class PreviewPanel {
       }
     }, this.disposables);
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor && editor.document) {
+      if (
+        editor && 
+        editor?.document && 
+        (editor?.document?.fileName.endsWith('.mmd') || editor.document.fileName.endsWith('.mermaid') || editor.document.languageId.startsWith('mermaid'))
+      ) {
         this.document = editor.document; 
         debouncedUpdate(); 
       }

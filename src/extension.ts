@@ -6,14 +6,17 @@ import {
   editMermaidChart,
   ensureConfigBlock,
   extractIdFromCode,
+  extractMermaidCode,
   findComments,
   findMermaidChartTokens,
   insertMermaidChartToken,
+  syncMarkdownFile,
   viewMermaidChart,
 } from "./util";
 import { MermaidChartCodeLensProvider } from "./mermaidChartCodeLensProvider";
 import { createMermaidFile, getPreview } from "./commands/createFile";
 import { handleTextDocumentChange } from "./eventHandlers";
+import path = require("path");
 
 let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWords.json');
 let isExtensionStarted = false;
@@ -153,6 +156,19 @@ export async function activate(context: vscode.ExtensionContext) {
         createMermaidFile(processedCode);
       } else {
         vscode.window.showErrorMessage("Diagram not found for the given UUID.");
+      }
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mermaid.editAuxFile', async (uri: vscode.Uri) => {
+      const document = await vscode.workspace.openTextDocument(uri);
+      const content = document.getText();  
+       const fileExt = path.extname(document.fileName);
+      vscode.window.showInformationMessage(`Editing AuxFile: ${uri.fsPath}`);
+      const mermaidCode = extractMermaidCode(content,fileExt).join("\n\n");
+      const editor = await createMermaidFile(mermaidCode);
+      if (editor) {
+        syncMarkdownFile(editor.document.uri.toString(), uri);
       }
     })
   );

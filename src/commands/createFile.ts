@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { PreviewPanel } from "../panels/previewPanel";
 
-export function createMermaidFile(diagramContent: string | null) {
+export async function createMermaidFile(diagramContent: string | null) {
   const exampleContent = `flowchart TD
     %% Nodes
         A("fab:fa-youtube Starter Guide")
@@ -30,13 +30,19 @@ export function createMermaidFile(diagramContent: string | null) {
 
     %% You can add notes with two "%" signs in a row!`;
 
-  vscode.workspace.openTextDocument({ language: "mermaid", content: diagramContent ? diagramContent : exampleContent}).then((document) => {
-    vscode.window.showTextDocument(document).then((editor) => {
-      if (editor?.document) {
-        PreviewPanel.createOrShow(editor.document);
-      }
+    const document = await vscode.workspace.openTextDocument({
+      language: "mermaid",
+      content: diagramContent ? diagramContent : exampleContent,
     });
-  });
+  
+    const editor = await vscode.window.showTextDocument(document, vscode.ViewColumn.One);
+    if (editor?.document) {
+      const docUri = document.uri.toString();
+     
+      PreviewPanel.createOrShow(editor.document);
+      return editor; 
+    }
+    return undefined;
 }
 
 function showSyncNotification() {

@@ -305,3 +305,130 @@ export function extractIdFromCode(code: string): string | null {
   }
   return null; // Return null if no ID is found
 }
+
+export  function extractMermaidCode(content: string, fileExt: string): string[] {
+  const patterns: Record<string, RegExp> = {
+    ".md": /```mermaid([\s\S]*?)```/g,
+    ".html": /<div class=["']mermaid["']>([\s\S]*?)<\/div>/g,
+    ".hugo": /{{<mermaid[^>]*>}}([\s\S]*?){{<\/mermaid>}}/g,
+     ".rst": /\.\. mermaid::(?:[ \t]*)?$(?:(?:\n[ \t]+:(?:(?:\\:\s)|[^:])+:[^\n]*$)+\n)?((?:\n(?:[ \t][^\n]*)?$)+)?/gm, 
+  };
+
+  const mermaidRegex = patterns[fileExt];
+  if (!mermaidRegex) return [];
+
+  const matches: string[] = [];
+  let match;
+  while ((match = mermaidRegex.exec(content)) !== null) {
+    matches.push(match[1].trim());
+  }
+
+  return matches;
+}
+
+const activeListeners = new Map<string, vscode.Disposable>();
+export function syncMarkdownFile(docUri: string, markdownUri: vscode.Uri) {
+  console.log(" Attaching listener for:", docUri);
+  
+  if (activeListeners.has(docUri)) {
+    console.log(" Removing stale listener for:", docUri);
+    activeListeners.get(docUri)?.dispose();
+    activeListeners.delete(docUri);
+  }
+
+  const disposable = vscode.workspace.onDidChangeTextDocument((event) => {
+    if (event.document.uri.toString() === docUri) {
+      console.log("✍️ Updating markdown with new mermaid code.");
+      updateMarkdownWithMermaid(markdownUri, event.document.getText());
+    }
+  });
+
+  activeListeners.set(docUri, disposable);
+
+  vscode.workspace.onDidCloseTextDocument((closedDoc) => {
+    if (closedDoc.uri.toString() === docUri) {
+      console.log(" Closed Mermaid file, checking if it reopens...");
+
+      setTimeout(() => {
+        const isReopened = vscode.workspace.textDocuments.some(
+          (doc) => doc.uri.toString() === docUri
+        );
+
+        if (!isReopened) {
+          console.log(" Removing listener as file is fully closed.");
+          activeListeners.get(docUri)?.dispose();
+          activeListeners.delete(docUri);
+        } else {
+          console.log(" File reopened, keeping listener active.");
+        }
+      }, 500);
+    }
+  });
+}
+
+export function updateMarkdownWithMermaid(
+  fileUri: vscode.Uri,
+  mermaidCode: string
+) {
+  if (!mermaidCode || mermaidCode.trim() === "") {
+    return;
+  }
+
+  vscode.workspace.openTextDocument(fileUri).then((doc) => {
+    const text = doc.getText();
+    const fileExt = fileUri.fsPath.split('.').pop()?.toLowerCase();
+
+    
+    const patterns: Record<string, RegExp> = {
+      "md": /```mermaid([\s\S]*?)```/g,
+      "html": /<div class=["']mermaid["']>([\s\S]*?)<\/div>/g,
+      "hugo": /{{<mermaid[^>]*>}}([\s\S]*?){{<\/mermaid>}}/g,
+      "rst": /\.\. mermaid::(?:[ \t]*)?$(?:(?:\n[ \t]+:(?:(?:\\:\s)|[^:])+:[^\n]*$)+\n)?((?:\n(?:[ \t][^\n]*)?$)+)?/gm
+    };
+
+    const startTags: Record<string, string> = {
+      "md": "```mermaid\n",
+      "html": '<div class="mermaid">\n',
+      "hugo": "{{<mermaid>}}\n",
+      "rst": ".. mermaid::\n  " 
+    };
+
+    const endTags: Record<string, string> = {
+      "md": "\n```",
+      "html": "\n</div>",
+      "hugo": "\n{{</mermaid>}}",
+      "rst": "" 
+    };
+
+    if (!fileExt || !patterns[fileExt]) {
+      vscode.window.showErrorMessage(`Unsupported file type: .${fileExt}`);
+      return;
+    }
+
+    const regex = patterns[fileExt];
+    let match = regex.exec(text);
+
+    if (match) {
+      
+      const start = match.index;
+      const end = start + match[0].length;
+
+      const range = new vscode.Range(
+        doc.positionAt(start),
+        doc.positionAt(end)
+      );
+
+      const workspaceEdit = new vscode.WorkspaceEdit();
+      workspaceEdit.replace(
+        fileUri,
+        range,
+        `${startTags[fileExt]}${mermaidCode}${endTags[fileExt]}`
+      );
+
+      vscode.workspace.applyEdit(workspaceEdit);
+    } else {
+      vscode.window.showWarningMessage(`No existing Mermaid block found in ${fileUri.fsPath}`);
+    }
+  });
+}
+

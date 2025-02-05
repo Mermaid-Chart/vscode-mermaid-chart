@@ -44,7 +44,10 @@ export class PreviewPanel {
   
     const initialContent = this.document.getText() || " ";
     const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
-    const currentTheme = isDarkTheme ? "neo-dark" : "neo";
+    const config = vscode.workspace.getConfiguration();
+    const darkTheme = config.get<string>("mermaid.vscode.dark", "NA");
+    const lightTheme = config.get<string>("mermaid.vscode.light", "NA");
+    const currentTheme = isDarkTheme   ? (darkTheme !== "NA" ? darkTheme : "neo-dark"): (lightTheme !== "NA" ? lightTheme : "neo");
   
     if (!this.panel.webview.html) {
       this.panel.webview.html = getWebviewHTML(this.panel, extensionPath, initialContent, currentTheme);

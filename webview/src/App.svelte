@@ -99,12 +99,7 @@
         const currentPan = panzoomInstance?.getPan() || { x: 0, y: 0 };
         const { svg } = await mermaid.render("diagram-graph", diagramContent);
         element.innerHTML = svg;
-        if (theme && (theme === "dark" || theme === "neo-dark" )) {
-          element.style.backgroundColor= "#1e1e1e"
-        } else {
-          element.style.backgroundColor =  "white"
-        }
-
+        applyThemeStyles(element)
         const svgElement = element.querySelector("svg");
 
         if (svgElement) {
@@ -116,6 +111,7 @@
             maxScale: 5,
             minScale: 0.5,
             contain: "outside",
+            disablePan: !panEnabled
           });
 
           element.addEventListener("wheel", (event) => {
@@ -131,6 +127,7 @@
             maxScale: 5,
             minScale: 0.5,
             contain: "outside",
+            disablePan: !panEnabled
           });
 
           element.addEventListener("wheel", (event) => {
@@ -159,10 +156,19 @@
           message: errorMessage,
         });
         isErrorOccured = true
+        element.innerHTML= " "
+        applyThemeStyles(element)
       }
     }
   }
-
+  
+  function applyThemeStyles(element: HTMLElement) {
+  if (theme && (theme === "dark" || theme === "neo-dark")) {
+    element.style.backgroundColor = "#1e1e1e";
+  } else {
+    element.style.backgroundColor = "white";
+  }
+}
   function handleToggleClick() {
       if (isToggled) {
         panzoomInstance?.reset();
@@ -343,7 +349,6 @@ svg {
   width: 100%;
   height: 100vh;
   background: white;
-  gap: 10px;
 }
 
 #error-message {

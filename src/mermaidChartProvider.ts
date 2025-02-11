@@ -176,25 +176,49 @@ export class MermaidChartProvider
   }
 
   async getChildren(element?: MCTreeItem): Promise<MCTreeItem[]> {
-    const allTreeViewProjects: Project[] = [];
-
+    const allTreeViewProjects: Project[] = [];    
+    
     if (!element) {
       if (allTreeViewProjectsCache.length > 0) {
         return Promise.resolve(allTreeViewProjectsCache);
       }
-      // Fetch all projects and associated documents
-      // and build a tree view
       const mermaidChartProjects = await this.mcAPI.getProjects();
+      const projectMap = new Map<string, Project>();
+  
       for (const project of mermaidChartProjects) {
-        const projectDocuments = [];
+        projectMap.set(
+          project.id,
+          new Project(
+            project.id,
+            new vscode.Range(0, 0, 0, 1),
+            project.title,
+            "",
+            vscode.TreeItemCollapsibleState.Collapsed,
+            []
+          )
+        );
+      }
+  
+      for (const project of mermaidChartProjects) {
+        const projectInstance = projectMap.get(project.id);
+        if (!projectInstance) continue;
+        if (project.parentID) {
+          const parentProject = projectMap.get(project.parentID);
+          if (parentProject) {
+            parentProject.children?.push(projectInstance);
+          }
+        } else {
+          allTreeViewProjects.push(projectInstance);
+        }
+      }
+      for (const project of mermaidChartProjects) {
+        const projectInstance = projectMap.get(project.id);
+        if (!projectInstance) continue;
         const mermaidChartDocuments = await this.mcAPI.getDocuments(project.id);
-
-        // Get all documents for a project and insert as children of project
         for (const document of mermaidChartDocuments) {
-          if (document.title === null) {
+          if (!document.title) {
             document.title = "Untitled Diagram";
           }
-
           const treeViewDocument = new Document(
             document.documentID,
             new vscode.Range(0, 0, 0, 1),
@@ -202,27 +226,13 @@ export class MermaidChartProvider
             document.code,
             vscode.TreeItemCollapsibleState.None
           );
-          projectDocuments.push(treeViewDocument);
+          projectInstance.children?.push(treeViewDocument);
         }
-        const treeViewProject = new Project(
-          project.id,
-          new vscode.Range(0, 0, 0, 1),
-          project.title,
-          "",
-          vscode.TreeItemCollapsibleState.None,
-          projectDocuments
-        );
-
-        allTreeViewProjects.push(treeViewProject);
       }
-
-      if (allTreeViewProjectsCache.length === 0) {
-        allTreeViewProjectsCache.push(...allTreeViewProjects);
-      }
+      allTreeViewProjectsCache = allTreeViewProjects;
       return Promise.resolve(allTreeViewProjects);
     } else {
-      // Get the children of the element
-      return element.children!;
+      return element.children ?? [];
     }
   }
 }

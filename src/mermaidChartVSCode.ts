@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { MermaidChart } from "./mermaidAPI";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
+import { defaultBaseURL } from "./util";
 
 export class MermaidChartVSCode extends MermaidChart {
   constructor() {
@@ -89,7 +90,7 @@ export class MermaidChartVSCode extends MermaidChart {
   }
 }
 
-const defaultBaseURL = "https://www.mermaidchart.com";
+
 
 export function getBaseUrl(): string | undefined {
   const config = vscode.workspace.getConfiguration("mermaidChart");

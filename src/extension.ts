@@ -199,6 +199,7 @@ context.subscriptions.push(
 
   context.subscriptions.push(
   vscode.commands.registerCommand('mermaid.connectDiagram',async(uri: vscode.Uri, range:vscode.Range)=>{
+    try{
       const document = await vscode.workspace.openTextDocument(uri);
       const content = document.getText();
       const fileExt = path.extname(document.fileName);
@@ -223,6 +224,13 @@ context.subscriptions.push(
        if(editor){
         syncAuxFile(editor.document.uri.toString(), uri,range);
       }
+    } catch(error){
+      if (error instanceof Error && error.message.includes("402")) {
+        vscode.window.showErrorMessage("Upgrade Required: Please upgrade your plan to connect more Mermaid diagrams.");
+      } else {
+        vscode.window.showErrorMessage(`Error: ${error instanceof Error ? error.message : "Unknown error occurred."}`);
+      }
+    }
     })
   )
 

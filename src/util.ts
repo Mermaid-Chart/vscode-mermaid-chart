@@ -10,6 +10,9 @@ import path = require("path");
 
 const configIdPattern = /^---\s*config:\s*([\s\S]*?)id:\s*(\S+)\s*\n/m;
 const activeListeners = new Map<string, vscode.Disposable>();
+const config = vscode.workspace.getConfiguration();
+export const defaultBaseURL = config.get<string>('mermaidChart.baseUrl', 'https://www.mermaidchart.com');
+
 
 
 export const pattern : Record<string, RegExp> = {

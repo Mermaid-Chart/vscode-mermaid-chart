@@ -2,8 +2,9 @@
 import { v4 as uuid } from "uuid";
 import defaultAxios, { AxiosInstance } from "axios";
 import { createHash } from "crypto";
+import { defaultBaseURL } from "./util";
 
-const defaultBaseURL = "https://www.mermaidchart.com"; // "http://127.0.0.1:5174"
+
 const authorizationURLTimeout = 60_000;
 
 export interface InitParams {
@@ -34,6 +35,7 @@ export interface MCUser {
 export interface MCProject {
   id: string;
   title: string;
+  parentID:string;
 }
 
 export interface MCDocument {

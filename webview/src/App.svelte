@@ -42,12 +42,12 @@
   let panzoomInstance: ReturnType<typeof Panzoom> | null = null;
   let panEnabled = false;
   let isErrorOccured= false;
-  let theme: "default" | "base" | "dark" | "forest" | "neutral" | "neo" | "neo-dark" | "mc" | "null" = "neo"; 
-  $: sidebarBackgroundColor = theme === "dark" || theme === "neo-dark" ? "#4d4d4d" : "white";
-  $: iconBackgroundColor = theme === "dark" || theme === "neo-dark" ? "#4d4d4d" : "white";
-  $: svgColor = theme === "neo-dark" || theme === "dark" ? "white" : "#2329D6";
+  let theme: "default" | "base" | "dark" | "forest" | "neutral" | "neo" | "neo-dark" | "mc" |"redux-dark" |"redux"| "null" = "neo"; 
+  $: sidebarBackgroundColor = theme === "dark" || theme === "neo-dark" || theme==='redux-dark' ? "#4d4d4d" : "white";
+  $: iconBackgroundColor = theme === "dark" || theme === "neo-dark" || theme==="redux-dark"? "#4d4d4d" : "white";
+  $: svgColor = theme === "neo-dark" || theme === "dark" || theme=== 'redux-dark' ? "white" : "#2329D6";
   $: shadowColor =
-    theme === "dark" || theme === "neo-dark" ? "#6b6b6b" : "#A3BDFF";
+    theme === "dark" || theme === "neo-dark" || theme==="redux-dark" ? "#6b6b6b" : "#A3BDFF";
 
 
   async function initializeMermaid() {
@@ -99,7 +99,7 @@
         const currentPan = panzoomInstance?.getPan() || { x: 0, y: 0 };
         const { svg } = await mermaid.render("diagram-graph", diagramContent);
         element.innerHTML = svg;
-        if (theme && (theme === "dark" || theme === "neo-dark" )) {
+        if (theme && (theme === "dark" || theme === "neo-dark" || theme === 'redux-dark' )) {
           element.style.backgroundColor= "#1e1e1e"
         } else {
           element.style.backgroundColor =  "white"

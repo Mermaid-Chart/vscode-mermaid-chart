@@ -23,6 +23,7 @@ import path = require("path");
 import { TempFileCache } from "./cache/tempFileCache";
 import { PreviewPanel } from "./panels/previewPanel";
 import { getSnippetsBasedOnDiagram } from "./constants/condSnippets";
+import { customErrorMessage } from "./constants/errorMessages";
 
 let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWords.json');
 let isExtensionStarted = false;
@@ -225,15 +226,17 @@ context.subscriptions.push(
         syncAuxFile(editor.document.uri.toString(), uri,range);
       }
     } catch(error){
-      if (error instanceof Error && error.message.includes("402")) {
-        vscode.window.showErrorMessage("Upgrade Required: Please upgrade your plan to connect more Mermaid diagrams.");
+      if (error instanceof Error ) {
+      const errMessage = error.message; 
+      const matchedError = Object.keys(customErrorMessage).find((key) =>errMessage.includes(key));
+      vscode.window.showErrorMessage(matchedError ? customErrorMessage[matchedError] : `Error: ${errMessage}`);
       } else {
-        vscode.window.showErrorMessage(`Error: ${error instanceof Error ? error.message : "Unknown error occurred."}`);
+      vscode.window.showErrorMessage("Unknown error occurred.");
       }
     }
     })
   )
-
+ 
   vscode.workspace.onWillSaveTextDocument(async (event) => {
     if (event.document.languageId.startsWith("mermaid")) {
       event.waitUntil(Promise.resolve([]));

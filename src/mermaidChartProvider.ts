@@ -161,15 +161,9 @@ export class MermaidChartProvider
     } else {
       collapsibleState = vscode.TreeItemCollapsibleState.None;
     }
-
+ 
     const treeItem = new vscode.TreeItem(`${element.title}`, collapsibleState);
-
-    treeItem.command = {
-      command: "mermaidChart.insertUuidIntoEditor",
-      title: "Insert UUID into Editor",
-      arguments: [element.uuid],
-    };
-
+ 
     treeItem.contextValue = element.children ? "project" : "document";
 
     return treeItem;

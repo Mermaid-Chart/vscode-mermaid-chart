@@ -449,9 +449,15 @@
       ],
       "view/item/context": [
         {
+          "command": "mermaidChart.insertUuidIntoEditor",
+          "when": "viewItem == document",
+          "group": "inline@01"
+          
+        },
+        {
           "command": "mermaidChart.downloadDiagram",
           "when": "viewItem == document",
-          "group": "inline"
+          "group": "inline@02"
         }
       ],
       "editor/context": [
@@ -481,6 +487,10 @@
       }
     ],
     "commands": [
+      {
+        "command": "mermaidChart.insertUuidIntoEditor",
+        "title": "Link to Diiagram"
+      },
       {
         "command": "mermaidChart.downloadDiagram",
         "title": "Download"

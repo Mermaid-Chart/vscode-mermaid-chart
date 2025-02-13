@@ -367,12 +367,13 @@ context.subscriptions.push(
   );
   context.subscriptions.push(disposable);
 
-  const insertUuidIntoEditorDisposable = vscode.commands.registerCommand(
-    "mermaidChart.insertUuidIntoEditor",
-    (uuid: string) => {
-      return insertMermaidChartToken(uuid, mermaidChartProvider);
-    }
-  );
+const insertUuidIntoEditorDisposable = vscode.commands.registerCommand(
+  "mermaidChart.insertUuidIntoEditor",
+  ({ uuid }: MCTreeItem) =>
+      uuid ? insertMermaidChartToken(uuid, mermaidChartProvider) 
+           : vscode.window.showErrorMessage("Invalid item selected. No UUID found.")
+);
+
   context.subscriptions.push(insertUuidIntoEditorDisposable);
 
   context.subscriptions.push(

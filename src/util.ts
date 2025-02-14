@@ -153,12 +153,17 @@ export function findMermaidChartTokensFromAuxFiles(document: vscode.TextDocument
 export function applyMermaidChartTokenHighlighting(
   editor: vscode.TextEditor,
   mermaidChartTokens: MermaidChartToken[],
-  mermaidChartTokenDecoration: vscode.TextEditorDecorationType
+  mermaidChartTokenDecoration: vscode.TextEditorDecorationType,
+  mermaidChartGutterIconDecoration: vscode.TextEditorDecorationType
 ) {
-  editor.setDecorations(
-    mermaidChartTokenDecoration,
-    mermaidChartTokens.map((token) => token.range)
-  );
+  const fullBlockDecorations: vscode.DecorationOptions[] = mermaidChartTokens.map(token => ({
+    range: token.range, 
+  }));
+  const gutterIconDecorations: vscode.DecorationOptions[] = mermaidChartTokens.map(token => ({
+    range: new vscode.Range(token.range.start, token.range.start), // Only first line for gutter icon
+  }));
+  editor.setDecorations(mermaidChartTokenDecoration, fullBlockDecorations);
+  editor.setDecorations(mermaidChartGutterIconDecoration, gutterIconDecorations);
 }
 
 export function findComments(document: vscode.TextDocument): vscode.Range[] {

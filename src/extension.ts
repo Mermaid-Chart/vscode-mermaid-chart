@@ -24,6 +24,7 @@ import { TempFileCache } from "./cache/tempFileCache";
 import { PreviewPanel } from "./panels/previewPanel";
 import { getSnippetsBasedOnDiagram } from "./constants/condSnippets";
 import { customErrorMessage } from "./constants/errorMessages";
+import { MermaidWebviewProvider } from "./panels/loginPanel";
 
 let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWords.json');
 let isExtensionStarted = false;
@@ -70,15 +71,21 @@ export async function activate(context: vscode.ExtensionContext) {
   const mermaidChartProvider: MermaidChartProvider = new MermaidChartProvider(
     mcAPI
   );
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+        'mermaidWebview', 
+        new MermaidWebviewProvider(context) 
+    )
+);
 
   const mermaidChartTokenDecoration =
     vscode.window.createTextEditorDecorationType({
-      backgroundColor: "rgba(255, 71, 123, 0.3)", // Adjust the background color as desired
-      color: "rgb(255, 255, 255)", // Adjust the text color as desired
-      gutterIconPath: vscode.Uri.file(
-        context.asAbsolutePath("images/mermaid-icon-16.png")
-      ), // Add the icon file path
-      gutterIconSize: "8x8", // Adjust the icon size as desired
+      backgroundColor: "#FDE0EE", // Adjust the background color as desired
+      color: "#1E1A2E", // Adjust the text color as desired
+    });
+    const mermaidChartGutterIconDecoration = vscode.window.createTextEditorDecorationType({
+      gutterIconPath: vscode.Uri.file(context.asAbsolutePath("images/mermaid-icon-16.png")), // Add the icon file path
+      gutterIconSize: "8x8",// Adjust the icon size as desired
     });
   let codeLensProvider: MermaidChartCodeLensProvider | undefined;
 
@@ -99,7 +106,8 @@ export async function activate(context: vscode.ExtensionContext) {
       applyMermaidChartTokenHighlighting(
         activeEditor,
         mermaidChartTokens,
-        mermaidChartTokenDecoration
+        mermaidChartTokenDecoration,
+        mermaidChartGutterIconDecoration
       );
 
       if (!codeLensProvider) {

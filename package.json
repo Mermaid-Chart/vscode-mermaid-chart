@@ -430,12 +430,23 @@
       }
       }
     },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "myExtensionActivityBar",
+          "title": "Mermaid Plugin",
+          "icon": "images/mermaid-icon-32-preview.png"
+        }
+      ]
+    },
  
     "views": {
-      "explorer": [
+      "myExtensionActivityBar": [
         {
-          "id": "mermaidChart",
-          "name": "mermaidChart"
+          "id": "mermaidWebview",
+          "name": "Mermaid Plugin",
+          "type": "webview"
+          
         }
       ]
     },

@@ -7,6 +7,8 @@ import {
   ITEM_TYPE_DOCUMENT,
 } from "./mermaidChartProvider";
 import path = require("path");
+import { MermaidWebviewProvider } from "./panels/loginPanel";
+
 
 const configIdPattern = /^---\s*config:\s*([\s\S]*?)id:\s*(\S+)\s*\n/m;
 const activeListeners = new Map<string, vscode.Disposable>();
@@ -278,11 +280,12 @@ export async function insertMermaidChartToken(
     );
   });
 }
-export function updateViewVisibility(isLoggedIn: boolean) {
+export function updateViewVisibility(isLoggedIn: boolean,webviewProvider?: MermaidWebviewProvider) {
   vscode.commands.executeCommand("setContext", "mermaid.showChart", isLoggedIn);
   vscode.commands.executeCommand("setContext", "mermaid.showWebview", !isLoggedIn);
+  if (!isLoggedIn) webviewProvider?.refresh()
+ 
 }
-
 
 
 const getCommentLine = (editor: vscode.TextEditor, uuid: string): string => {

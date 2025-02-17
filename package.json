@@ -41,11 +41,7 @@
     ]
   },
   "activationEvents": [
-    "onLanguage",
-    "onView:mermaidChart",
-    "onView:mermaidWebview",
-    "onCommand:mermaidChart.login",
-    "onCommand:mermaidChart.logout"
+    "onLanguage"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -449,12 +445,14 @@
     {
       "id": "mermaidChart",
       "name": "Mermaid Chart",
+      "contextualOnly": true,
       "when": "mermaid.showChart"
     },
     {
       "id": "mermaidWebview",
       "name": "Mermaid Plugin",
       "type": "webview",
+      "contextualOnly": true,
       "when": "mermaid.showWebview"
     }
   ]

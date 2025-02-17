@@ -32,18 +32,23 @@ let isExtensionStarted = false;
 
 
 export async function activate(context: vscode.ExtensionContext) {
- 
-
   console.log("Activating Mermaid Chart extension");
+
+  const isUserLoggedIn = context.globalState.get<boolean>("isUserLoggedIn", false);
+  const mermaidWebviewProvider = new MermaidWebviewProvider(context);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("mermaidWebview", mermaidWebviewProvider)
+  );
+  updateViewVisibility(isUserLoggedIn);
+
+ 
 
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.preview', getPreview)
   );
  
-  const isUserLoggedIn = context.globalState.get<boolean>("isUserLoggedIn", false);
-  // Ensure correct view is shown on activation
-  updateViewVisibility(isUserLoggedIn);
 
+ 
 
   const activeEditor = vscode.window.activeTextEditor;
     if (activeEditor && !isExtensionStarted) {
@@ -57,13 +62,17 @@ export async function activate(context: vscode.ExtensionContext) {
   vscode.window.onDidChangeActiveTextEditor((event) =>
     handleTextDocumentChange(event, diagramMappings, true)
   );
+
+  
   vscode.commands.registerCommand('mermaidChart.createMermaidFile', async () => {
     createMermaidFile(context, null, false)
   })
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.logout', async () => {
       mcAPI.logout(context);
-      
+      const userLoggedIn = false; 
+
+      await context.globalState.update("isUserLoggedIn", userLoggedIn);
       updateViewVisibility(false);
     })
   );
@@ -75,7 +84,6 @@ export async function activate(context: vscode.ExtensionContext) {
       const userLoggedIn = true; 
 
   await context.globalState.update("isUserLoggedIn", userLoggedIn);
- 
   updateViewVisibility(true);
 
     })
@@ -86,12 +94,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const mermaidChartProvider: MermaidChartProvider = new MermaidChartProvider(
     mcAPI
   );
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-        'mermaidWebview', 
-        new MermaidWebviewProvider(context) 
-    )
-);
+
+
 
   const mermaidChartTokenDecoration =
     vscode.window.createTextEditorDecorationType({
@@ -444,7 +448,7 @@ const insertUuidIntoEditorDisposable = vscode.commands.registerCommand(
 
 context.subscriptions.push(provider);
 
- 
+  console.log("Mermaid Charts view registered");
 }
 
 // This method is called when your extension is deactivated

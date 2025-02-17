@@ -14,6 +14,7 @@ import {
   insertMermaidChartToken,
   isAuxFile,
   syncAuxFile,
+  updateViewVisibility,
   viewMermaidChart,
 } from "./util";
 import { MermaidChartCodeLensProvider } from "./mermaidChartCodeLensProvider";
@@ -31,12 +32,18 @@ let isExtensionStarted = false;
 
 
 export async function activate(context: vscode.ExtensionContext) {
+ 
 
   console.log("Activating Mermaid Chart extension");
 
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.preview', getPreview)
   );
+ 
+  const isUserLoggedIn = context.globalState.get<boolean>("isUserLoggedIn", false);
+  // Ensure correct view is shown on activation
+  updateViewVisibility(isUserLoggedIn);
+
 
   const activeEditor = vscode.window.activeTextEditor;
     if (activeEditor && !isExtensionStarted) {
@@ -56,6 +63,8 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.logout', async () => {
       mcAPI.logout(context);
+      
+      updateViewVisibility(false);
     })
   );
 
@@ -63,6 +72,12 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.login', async () => {
       await mcAPI.login();
+      const userLoggedIn = true; 
+
+  await context.globalState.update("isUserLoggedIn", userLoggedIn);
+ 
+  updateViewVisibility(true);
+
     })
   );
 
@@ -361,6 +376,7 @@ context.subscriptions.push(
   context.subscriptions.push(
     vscode.commands.registerCommand("mermaidChart.refresh", () => {
       mermaidChartProvider.refresh();
+ 
     })
   );
 
@@ -428,7 +444,7 @@ const insertUuidIntoEditorDisposable = vscode.commands.registerCommand(
 
 context.subscriptions.push(provider);
 
-  console.log("Mermaid Charts view registered");
+ 
 }
 
 // This method is called when your extension is deactivated

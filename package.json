@@ -41,7 +41,11 @@
     ]
   },
   "activationEvents": [
-    "onLanguage"
+    "onLanguage",
+    "onView:mermaidChart",
+    "onView:mermaidWebview",
+    "onCommand:mermaidChart.login",
+    "onCommand:mermaidChart.logout"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -440,16 +444,22 @@
       ]
     },
  
-    "views": {
-      "myExtensionActivityBar": [
-        {
-          "id": "mermaidWebview",
-          "name": "Mermaid Plugin",
-          "type": "webview"
-          
-        }
-      ]
+  "views": {
+  "myExtensionActivityBar": [
+    {
+      "id": "mermaidChart",
+      "name": "Mermaid Chart",
+      "when": "mermaid.showChart"
     },
+    {
+      "id": "mermaidWebview",
+      "name": "Mermaid Plugin",
+      "type": "webview",
+      "when": "mermaid.showWebview"
+    }
+  ]
+},
+
     "menus": {
       "view/title": [
         {

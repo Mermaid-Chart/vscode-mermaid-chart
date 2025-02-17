@@ -15,6 +15,7 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
       ],
     };
 
+
     webviewView.webview.html = generateWebviewContent(
       webviewView.webview,
       this.context.extensionUri

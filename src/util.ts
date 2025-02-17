@@ -278,6 +278,12 @@ export async function insertMermaidChartToken(
     );
   });
 }
+export function updateViewVisibility(isLoggedIn: boolean) {
+  vscode.commands.executeCommand("setContext", "mermaid.showChart", isLoggedIn);
+  vscode.commands.executeCommand("setContext", "mermaid.showWebview", !isLoggedIn);
+}
+
+
 
 const getCommentLine = (editor: vscode.TextEditor, uuid: string): string => {
   const languageId = editor.document.languageId;

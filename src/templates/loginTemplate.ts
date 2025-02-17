@@ -101,7 +101,9 @@ export function generateWebviewContent(
             height: 50px;
             padding: 12px;
             border-radius: 12px;
-            background: #e6007a;
+            background: #E0095F;
+            
+
             color: white;
             border: none;
             cursor: pointer;

@@ -14,6 +14,13 @@ export function setAllTreeViewProjectsCache(projects: Project[]): void {
 export function getAllTreeViewProjectsCache(): Project[] {
   return allTreeViewProjectsCache;
 }
+export function getProjectIdForDocument(diagramId: string): string {
+  return (
+    allTreeViewProjectsCache.find((project) =>
+      project?.children?.some((child) => child.uuid === diagramId)
+    )?.uuid || ""
+  );
+}
 
 export class MCTreeItem extends vscode.TreeItem {
   uuid: string;
@@ -42,7 +49,7 @@ export class MCTreeItem extends vscode.TreeItem {
   }
 }
 
-class Document implements MCTreeItem {
+export class Document implements MCTreeItem {
   uuid: string;
   range: vscode.Range;
   title: string;
@@ -169,6 +176,9 @@ export class MermaidChartProvider
       title: "Insert UUID into Editor",
       arguments: [element.uuid],
     };
+
+    treeItem.contextValue = element.children ? "project" : "document";
+
     return treeItem;
   }
 
@@ -196,7 +206,7 @@ export class MermaidChartProvider
             document.documentID,
             new vscode.Range(0, 0, 0, 1),
             document.title,
-            document.code,
+            document.code || "",
             vscode.TreeItemCollapsibleState.None
           );
           projectDocuments.push(treeViewDocument);

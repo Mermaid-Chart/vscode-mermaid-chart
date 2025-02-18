@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      axios:
-        specifier: ^1.4.0
-        version: 1.7.9
+      '@mermaidchart/sdk':
+        specifier: ^0.2.0
+        version: 0.2.0
       uuid:
         specifier: ^9.0.0
         version: 9.0.1
@@ -163,6 +163,10 @@ packages:
   '@azure/msal-node@2.16.2':
     resolution: {integrity: sha512-An7l1hEr0w1HMMh1LU+rtDtqL7/jw74ORlc9Wnh06v7TU/xpG39/Zdr1ZJu3QpjUfKJ+E0/OXMW8DRSWTlh7qQ==}
     engines: {node: '>=16'}
+
+  '@badgateway/oauth2-client@2.4.2':
+    resolution: {integrity: sha512-70Fmzlmn8EfCjjssls8N6E94quBUWnLhu4inPZU2pkwpc6ZvbErkLRvtkYl81KFCvVcuVC0X10QPZVNwjXo2KA==}
+    engines: {node: '>= 14'}
 
   '@braintree/sanitize-url@7.1.1':
     resolution: {integrity: sha512-i1L7noDNxtFyL5DmZafWy1wRVhGehQmzZaz1HiN5e7iylJMSZR7ekOV7NsIqa5qBldlLrsKv4HbgFUVlQrz8Mw==}
@@ -545,6 +549,10 @@ packages:
 
   '@mermaid-js/parser@0.3.1-rc.1':
     resolution: {integrity: sha512-gYXEGLui3Cfp+P37TBz2no4LuoEY2fEnK1MTh9YPbuAta7kVbZXPpTeay9ahtV7Zi6GkfW3yAUGM9fJ1KkoiWA==}
+
+  '@mermaidchart/sdk@0.2.0':
+    resolution: {integrity: sha512-ghIeLxw9FH6WAmw3lDjwGdk0ZCtd08DSEti5OJVKCDi1iIFa/MT8M0tnzBiQvVs/YOeBwW7lzqU+rkT0lxh43g==}
+    engines: {node: ^18.18.0 || >= 20.0.0}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -2756,6 +2764,8 @@ snapshots:
       jsonwebtoken: 9.0.2
       uuid: 8.3.2
 
+  '@badgateway/oauth2-client@2.4.2': {}
+
   '@braintree/sanitize-url@7.1.1': {}
 
   '@chevrotain/cst-dts-gen@11.0.3':
@@ -3035,6 +3045,14 @@ snapshots:
   '@mermaid-js/parser@0.3.1-rc.1':
     dependencies:
       langium: 3.0.0
+
+  '@mermaidchart/sdk@0.2.0':
+    dependencies:
+      '@badgateway/oauth2-client': 2.4.2
+      axios: 1.7.9
+      uuid: 9.0.1
+    transitivePeerDependencies:
+      - debug
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:

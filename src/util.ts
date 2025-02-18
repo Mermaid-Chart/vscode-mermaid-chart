@@ -9,6 +9,7 @@ import {
 import path = require("path");
 import { extractIdFromCode } from "./frontmatter";
 
+const configIdPattern = /^---\s*config:\s*([\s\S]*?)id:\s*(\S+)\s*\n/m;
 const activeListeners = new Map<string, vscode.Disposable>();
 const REOPEN_CHECK_DELAY_MS = 500; // Delay before checking if temp file is reopened
 
@@ -210,8 +211,8 @@ export async function viewMermaidChart(
   const svgContent = await mcAPI.getRawDocument(
     {
       documentID: uuid,
-      major: "0",
-      minor: "1",
+      major: 0,
+      minor: 1,
     },
     themeParameter
   );
@@ -235,17 +236,23 @@ export async function editMermaidChart(
   uuid: string,
   provider: MermaidChartProvider
 ) {
-  // const project = provider.getProjectOfDocument(uuid);
-  // const projectUuid = project?.uuid;
-  // if (!projectUuid) {
-  //   vscode.window.showErrorMessage(
-  //     "Diagram not found in project. Diagram might have moved to a different project."
-  //   );
-  //   return;
-  // }
+  // Retrieve the document details to get the required fields
+  const document = await mcAPI.getDocument({ documentID: uuid });
+
+  if (!document || !document.projectID) {
+    vscode.window.showErrorMessage(
+      "Document details not found. Unable to edit the chart."
+    );
+    return;
+  }
+
   const editUrl = await mcAPI.getEditURL({
-    documentID: uuid,
+    documentID: document.documentID,
+    major: document.major,
+    minor: document.minor,
+    projectID: document.projectID,
   });
+
   vscode.env.openExternal(vscode.Uri.parse(editUrl));
 }
 

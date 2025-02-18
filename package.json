@@ -45,6 +45,9 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "completionProvider": {
+        "triggerCharacters": ["m"]
+    },
     "languages": [
       {
         "id": "mermaid",
@@ -429,9 +432,21 @@
           "when": "view == mermaidChart"
         }
       ],
+      "view/item/context": [
+        {
+          "command": "mermaidChart.downloadDiagram",
+          "when": "viewItem == document",
+          "group": "inline"
+        }
+      ],
       "editor/context": [
         {
           "command": "mermaidChart.preview",
+          "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/",
+          "group": "navigation"
+        },
+        {
+          "command": "mermaidChart.connectDiagramToMermaidChart",
           "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/",
           "group": "navigation"
         }
@@ -448,9 +463,18 @@
         "command": "mermaidChart.syncDiagramWithMermaid",
         "when": "editorLangId =~ /^mermaid/",
         "mac": "cmd+s"
+      },
+      {
+        "command": "mermaidChart.showCompletions",
+        "key": "ctrl+shift+k",
+        "when": "editorLangId =~ /^mermaid/"
       }
     ],
     "commands": [
+      {
+        "command": "mermaidChart.downloadDiagram",
+        "title": "Download"
+      },
       {
         "command": "mermaidChart.syncDiagramWithMermaid",
         "title": "MermaidChart: Sync Diagram"
@@ -483,6 +507,14 @@
       {
         "command": "mermaidChart.refresh",
         "title": "Refresh"
+      },
+      {
+        "command": "mermaidChart.connectDiagramToMermaidChart",
+        "title": "MermaidChart: Connect Diagram"
+      },
+      {
+        "command": "mermaidChart.showCompletions",
+        "title": "Trigger Mermaid Completions"
       }
     ]
   },
@@ -514,8 +546,9 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
-    "axios": "^1.4.0",
     "uuid": "^9.0.0",
+    "@mermaidchart/sdk": "^0.2.0",
     "yaml": "^2.7.0"
-  }
+  },
+  "packageManager": "pnpm@9.7.1+sha512.faf344af2d6ca65c4c5c8c2224ea77a81a5e8859cbc4e06b1511ddce2f0151512431dd19e6aff31f2c6a8f5f2aced9bd2273e1fed7dd4de1868984059d2c4247"
 }

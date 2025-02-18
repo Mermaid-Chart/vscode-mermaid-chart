@@ -14,6 +14,12 @@ const configIdPattern = /^---\s*config:\s*([\s\S]*?)id:\s*(\S+)\s*\n/m;
 const activeListeners = new Map<string, vscode.Disposable>();
 const config = vscode.workspace.getConfiguration();
 export const defaultBaseURL = config.get<string>('mermaidChart.baseUrl', 'https://www.mermaidchart.com');
+// Constants for decoration colors
+const DARK_BACKGROUND = "rgba(176, 19, 74, 0.5)"; // #B0134A with 50% opacity
+const LIGHT_BACKGROUND = "#FDE0EE";
+const DARK_COLOR = "#FFFFFF";
+const LIGHT_COLOR = "#1E1A2E";
+
 
 
 
@@ -284,8 +290,23 @@ export function updateViewVisibility(isLoggedIn: boolean,webviewProvider?: Merma
   vscode.commands.executeCommand("setContext", "mermaid.showChart", isLoggedIn);
   vscode.commands.executeCommand("setContext", "mermaid.showWebview", !isLoggedIn);
   if (!isLoggedIn) webviewProvider?.refresh()
- 
 }
+
+export function getMermaidChartTokenDecoration(): vscode.TextEditorDecorationType {
+
+  // Determine the current theme
+  const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
+
+  // Set the decoration type based on the theme
+  const backgroundColor = isDarkTheme ? DARK_BACKGROUND : LIGHT_BACKGROUND;
+  const color = isDarkTheme ? DARK_COLOR : LIGHT_COLOR;
+
+  return vscode.window.createTextEditorDecorationType({
+    backgroundColor,
+    color,
+  });
+}
+  
 
 
 const getCommentLine = (editor: vscode.TextEditor, uuid: string): string => {

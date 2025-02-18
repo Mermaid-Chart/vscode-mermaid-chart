@@ -10,6 +10,7 @@ import {
   findComments,
   findMermaidChartTokens,
   findMermaidChartTokensFromAuxFiles,
+  getMermaidChartTokenDecoration,
   hasConfigId,
   insertMermaidChartToken,
   isAuxFile,
@@ -31,6 +32,7 @@ let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWo
 let isExtensionStarted = false;
 
 
+
 export async function activate(context: vscode.ExtensionContext) {
   console.log("Activating Mermaid Chart extension");
 
@@ -48,7 +50,6 @@ export async function activate(context: vscode.ExtensionContext) {
   );
  
 
- 
 
   const activeEditor = vscode.window.activeTextEditor;
     if (activeEditor && !isExtensionStarted) {
@@ -85,6 +86,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await context.globalState.update("isUserLoggedIn", userLoggedIn);
   updateViewVisibility(true);
+  mermaidChartProvider.refresh()
 
     })
   );
@@ -95,13 +97,15 @@ export async function activate(context: vscode.ExtensionContext) {
     mcAPI
   );
 
+ let  mermaidChartTokenDecoration: vscode.TextEditorDecorationType;
+  mermaidChartTokenDecoration = getMermaidChartTokenDecoration();
+  vscode.window.onDidChangeActiveColorTheme(() => {
+    mermaidChartTokenDecoration.dispose(); 
+    mermaidChartTokenDecoration = getMermaidChartTokenDecoration(); 
+  });
+  
 
 
-  const mermaidChartTokenDecoration =
-    vscode.window.createTextEditorDecorationType({
-      backgroundColor: "#FDE0EE", // Adjust the background color as desired
-      color: "#1E1A2E", // Adjust the text color as desired
-    });
     const mermaidChartGutterIconDecoration = vscode.window.createTextEditorDecorationType({
       gutterIconPath: vscode.Uri.file(context.asAbsolutePath("images/mermaid-icon-16.png")), // Add the icon file path
       gutterIconSize: "8x8",// Adjust the icon size as desired

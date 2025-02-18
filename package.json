@@ -60,8 +60,8 @@
           ".mermaid"
         ],
         "icon": {
-          "light": "./images/mermaid-icon.png",
-          "dark": "./images/mermaid-icon.png"
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
         },
         "configuration": "./language-configuration.json"
       },
@@ -72,8 +72,8 @@
           "mermaid flowchart"
         ],
         "icon": {
-          "light": "./images/mermaid-icon.png",
-          "dark": "./images/mermaid-icon.png"
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
         },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
@@ -84,6 +84,10 @@
           "Mermaid Sequence Diagram",
           "mermaid sequence diagram"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -93,6 +97,10 @@
           "Mermaid Er Diagram",
           "mermaid er diagram"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -102,6 +110,10 @@
           "Mermaid C4 Diagram",
           "mermaid c4 diagram"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -112,8 +124,8 @@
           "mermaid class diagram"
         ],
         "icon": {
-          "light": "./images/seti.png",
-          "dark": "./images/seti.png"
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
         },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
@@ -124,6 +136,10 @@
           "Mermaid Gantt",
           "mermaid gantt"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -133,6 +149,10 @@
           "Mermaid GitGraph",
           "mermaid gitgraph"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -142,6 +162,10 @@
           "Mermaid Info",
           "mermaid info"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -151,6 +175,10 @@
           "Mermaid Journey",
           "mermaid journey"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -160,6 +188,10 @@
           "Mermaid Pie",
           "mermaid pie"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -169,6 +201,10 @@
           "Mermaid Requirement Diagram",
           "mermaid requirement diagram"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -178,6 +214,10 @@
           "Mermaid State Diagram",
           "mermaid state diagram"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -187,6 +227,10 @@
           "Mermaid quadrantChart",
           "mermaid QuadrantChart"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -196,6 +240,10 @@
           "Mermaid mindmap",
           "mermaid Mindmap"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -205,6 +253,10 @@
           "Mermaid timeline",
           "mermaid Timeline"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -214,6 +266,10 @@
           "Mermaid sankey",
           "mermaid SankeyDiagram"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -223,6 +279,10 @@
           "Mermaid xychart",
           "mermaid Xychart"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -232,6 +292,10 @@
           "Mermaid kanban",
           "mermaid Kanban"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -241,6 +305,10 @@
           "Mermaid blockDiagram",
           "mermaid BlockDiagram"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -250,6 +318,10 @@
           "Mermaid architecture",
           "mermaid Architecture"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -259,6 +331,10 @@
           "Mermaid packet",
           "mermaid Packet"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       },
@@ -268,6 +344,10 @@
           "Mermaid zenuml",
           "mermaid Zenuml"
         ],
+        "icon": {
+          "light": "./images/VS-code-file-icon.svg",
+          "dark": "./images/VS-code-file-icon.svg"
+        },
         "extensions": [".mmd", ".mermaid"],
         "configuration": "./language-configuration.json"
       }

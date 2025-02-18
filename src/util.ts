@@ -551,3 +551,62 @@ export function isAuxFile(fileName: string): boolean {
 
   return allowedExt.includes(fileExt);
 }
+export const getHelpUrl = (diagramType: string) => {
+  switch (diagramType) {
+    case 'erdiagram': {
+      diagramType = 'entityRelationshipDiagram';
+
+      break;
+    }
+    case 'gitgraph': {
+      diagramType = 'gitgraph';
+
+      break;
+    }
+    case 'journey': {
+      diagramType = 'userJourney';
+
+      break;
+    }
+    case 'classdiagram': {
+      diagramType = 'classDiagram';
+
+      break;
+    }
+  
+    case 'statediagram': {
+      diagramType = 'stateDiagram';
+
+      break;
+    }
+    case 'sequencediagram': {
+      diagramType = 'sequenceDiagram';
+
+      break;
+    }
+    case 'requirementdiagram': {
+      diagramType = 'requirementDiagram';
+
+      break;
+    }
+    case 'xychart': {
+      diagramType = 'xyChart';
+
+      break;
+    }
+    case 'quadrantchart':{
+      diagramType = 'quadrantChart';
+
+      break;
+    }
+    case 'c4context':{
+      diagramType = 'c4';
+
+      break;
+    }
+    // No default
+  }
+  return diagramType
+    ? (`https://mermaid.js.org/syntax/${diagramType}.html` as const)
+    : ('https://mermaid.js.org/intro/' as const);
+};

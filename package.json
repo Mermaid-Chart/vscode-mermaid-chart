@@ -544,7 +544,13 @@
           "command": "mermaidChart.refresh",
           "group": "navigation",
           "when": "view == mermaidChart"
+        },
+        {
+          "command": "myExtension.diagramHelp",
+          "when": "view == mermaidChart",
+          "group": "navigation"
         }
+
       ],
       "view/item/context": [
         {
@@ -587,8 +593,12 @@
     ],
     "commands": [
       {
+        "command": "myExtension.diagramHelp",
+        "title": "Diagram help"
+      },
+      {
         "command": "mermaidChart.insertUuidIntoEditor",
-        "title": "Link to Diiagram"
+        "title": "Link to Diagram"
       },
       {
         "command": "mermaidChart.downloadDiagram",

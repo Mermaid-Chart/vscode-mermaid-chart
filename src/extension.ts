@@ -10,6 +10,7 @@ import {
   findComments,
   findMermaidChartTokens,
   findMermaidChartTokensFromAuxFiles,
+  getHelpUrl,
   getMermaidChartTokenDecoration,
   hasConfigId,
   insertMermaidChartToken,
@@ -27,6 +28,7 @@ import { PreviewPanel } from "./panels/previewPanel";
 import { getSnippetsBasedOnDiagram } from "./constants/condSnippets";
 import { customErrorMessage } from "./constants/errorMessages";
 import { MermaidWebviewProvider } from "./panels/loginPanel";
+import { getFirstWord } from "./syntaxHighlighter";
 
 let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWords.json');
 let isExtensionStarted = false;
@@ -415,6 +417,28 @@ const insertUuidIntoEditorDisposable = vscode.commands.registerCommand(
   );
 
   mermaidChartProvider.refresh();
+
+
+
+
+context.subscriptions.push(
+  vscode.commands.registerCommand("myExtension.diagramHelp", () => {
+      const activeEditor = vscode.window.activeTextEditor;
+      if (activeEditor) {
+          const documentText = activeEditor.document.getText();
+          const firstWord = getFirstWord(documentText);
+
+          if (firstWord) {
+              const helpUrl = getHelpUrl(firstWord);
+              vscode.env.openExternal(vscode.Uri.parse(helpUrl));
+          } else {
+              vscode.window.showWarningMessage("Unable to determine diagram type.");
+          }
+      } else {
+          vscode.window.showWarningMessage("No active editor found.");
+      }
+  })
+);
 
   const provider = vscode.languages.registerCompletionItemProvider(
     [

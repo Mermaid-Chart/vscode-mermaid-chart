@@ -89,6 +89,14 @@
       {
         "command": "mermaidChart.refresh",
         "title": "Refresh"
+      },
+      {
+        "command": "mermaidChart.login",
+        "title": "Sign in to MermaidChart"
+      },
+      {
+        "command": "mermaidChart.logout",
+        "title": "Sign out from MermaidChart"
       }
     ]
   },

@@ -14,7 +14,6 @@ export class MermaidChartVSCode extends MermaidChart {
 
   public async initialize(context: vscode.ExtensionContext) {
     await this.registerListeners(context);
-    await this.setupAPI();
   }
 
   private async registerListeners(context: vscode.ExtensionContext) {
@@ -36,7 +35,16 @@ export class MermaidChartVSCode extends MermaidChart {
     context.subscriptions.push(
       vscode.authentication.onDidChangeSessions(async (e) => {
         if (e.provider.id === MermaidChartAuthenticationProvider.id) {
-          await this.setupAPI();
+          const session = await vscode.authentication.getSession(
+            MermaidChartAuthenticationProvider.id,
+            [],
+            { createIfNone: false }
+          );
+          if (session) {
+            this.setAccessToken(session.accessToken);
+          } else {
+            this.setAccessToken("");
+          }
         }
       })
     );
@@ -49,17 +57,6 @@ export class MermaidChartVSCode extends MermaidChart {
         this.refreshBaseURL();
       }
     });
-  }
-
-  private async setupAPI() {
-    const session = await vscode.authentication.getSession(
-      MermaidChartAuthenticationProvider.id,
-      [],
-      {
-        createIfNone: true,
-      }
-    );
-    this.setAccessToken(session.accessToken);
   }
 
   private async refreshBaseURL() {

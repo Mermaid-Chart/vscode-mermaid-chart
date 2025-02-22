@@ -2,6 +2,7 @@
 import {
   AuthenticationProvider,
   AuthenticationProviderAuthenticationSessionsChangeEvent,
+  AuthenticationProviderSessionOptions,
   AuthenticationSession,
   Disposable,
   env,
@@ -31,10 +32,6 @@ export class MermaidChartAuthenticationProvider
   private _sessionChangeEmitter =
     new EventEmitter<AuthenticationProviderAuthenticationSessionsChangeEvent>();
   private _disposable: Disposable;
-  private _codeExchangePromises = new Map<
-    string,
-    { promise: Promise<string>; cancel: EventEmitter<void> }
-  >();
   private _uriHandler = new UriEventHandler();
 
   constructor(
@@ -63,15 +60,13 @@ export class MermaidChartAuthenticationProvider
    * @returns
    */
   public async getSessions(
-    scopes?: string[]
-  ): Promise<readonly AuthenticationSession[]> {
-    // return [];
+    scopes?: readonly string[],
+    options?: AuthenticationProviderSessionOptions
+  ): Promise<AuthenticationSession[]> {
     const allSessions = await this.context.secrets.get(this.sessionsKey);
-
     if (allSessions) {
-      return JSON.parse(allSessions) as AuthenticationSession[];
+      return JSON.parse(allSessions);
     }
-
     return [];
   }
 
@@ -85,8 +80,9 @@ export class MermaidChartAuthenticationProvider
       await this.login(scopes);
       const token = await this.mcAPI.getAccessToken();
       if (!token) {
-        throw new Error(`MermaidChart login failure`);
+        throw new Error('Failed to get access token');
       }
+
       const user = await this.getUserInfo();
       const session: AuthenticationSession = {
         id: uuid(),
@@ -95,7 +91,7 @@ export class MermaidChartAuthenticationProvider
           label: user.fullName,
           id: user.emailAddress,
         },
-        scopes: [],
+        scopes: scopes,
       };
 
       await this.context.secrets.store(
@@ -109,11 +105,10 @@ export class MermaidChartAuthenticationProvider
         changed: [],
       });
 
-      window.showInformationMessage(`Signed in with ${session.account.id}`);
       return session;
     } catch (e) {
-      window.showErrorMessage(`Sign in failed: ${e}`);
-      throw e;
+      const message = e instanceof Error ? e.message : 'Unknown error';
+      throw new Error(`Sign in failed: ${message}`);
     }
   }
 
@@ -124,11 +119,11 @@ export class MermaidChartAuthenticationProvider
   public async removeSession(sessionId: string): Promise<void> {
     const allSessions = await this.context.secrets.get(this.sessionsKey);
     if (allSessions) {
-      let sessions = JSON.parse(allSessions) as AuthenticationSession[];
+      const sessions = JSON.parse(allSessions) as AuthenticationSession[];
       const sessionIdx = sessions.findIndex((s) => s.id === sessionId);
       const session = sessions[sessionIdx];
       sessions.splice(sessionIdx, 1);
-      this.mcAPI.resetAccessToken();
+      
       await this.context.secrets.store(
         this.sessionsKey,
         JSON.stringify(sessions)
@@ -147,52 +142,41 @@ export class MermaidChartAuthenticationProvider
   /**
    * Dispose the registered services
    */
-  public async dispose() {
+  public dispose() {
     this._disposable.dispose();
   }
 
   /**
    * Log in to MermaidChart
    */
-  private async login(scopes: string[] = []) {
-    return await window.withProgress<string>(
+  private async login(scopes: string[] = []): Promise<string> {
+    return await window.withProgress(
       {
         location: ProgressLocation.Notification,
         title: "Signing in to MermaidChart...",
         cancellable: true,
       },
       async (_, token) => {
-        const authData = await this.mcAPI.getAuthorizationData();
-        const uri = Uri.parse(authData.url);
-        await env.openExternal(uri);
+        try {
+          const authData = await this.mcAPI.getAuthorizationData();
+          const uri = Uri.parse(authData.url);
+          await env.openExternal(uri);
 
-        let codeExchangePromise = this._codeExchangePromises.get(
-          authData.scope
-        );
-        if (!codeExchangePromise) {
-          codeExchangePromise = promiseFromEvent(
+          const codeExchangePromise = promiseFromEvent(
             this._uriHandler.event,
             this.handleUri(scopes)
           );
-          this._codeExchangePromises.set(authData.scope, codeExchangePromise);
-        }
 
-        try {
           return await Promise.race([
             codeExchangePromise.promise,
-            new Promise<string>((_, reject) =>
-              setTimeout(() => reject("Cancelled"), 60000)
-            ),
-            promiseFromEvent<any, any>(
-              token.onCancellationRequested,
-              (_, __, reject) => {
-                reject("User Cancelled");
-              }
-            ).promise,
+            new Promise<string>((_, reject) => {
+              token.onCancellationRequested(() => {
+                reject(new Error('Sign in cancelled'));
+              });
+            })
           ]);
-        } finally {
-          codeExchangePromise?.cancel.fire();
-          this._codeExchangePromises.delete(authData.scope);
+        } catch (e) {
+          throw new Error(e instanceof Error ? e.message : 'Sign in failed');
         }
       }
     );
@@ -203,14 +187,16 @@ export class MermaidChartAuthenticationProvider
    * @param scopes
    * @returns
    */
-  private handleUri: (
-    scopes: readonly string[]
-  ) => PromiseAdapter<Uri, string> =
+  private handleUri: (scopes: readonly string[]) => PromiseAdapter<Uri, string> =
     (scopes) => async (uri, resolve, reject) => {
-      await this.mcAPI.handleAuthorizationResponse(
-        new URLSearchParams(uri.query)
-      );
-      resolve("done");
+      try {
+        await this.mcAPI.handleAuthorizationResponse(
+          new URLSearchParams(uri.query)
+        );
+        resolve('success');
+      } catch (e) {
+        reject(e instanceof Error ? e.message : 'Failed to handle authorization response');
+      }
     };
 
   private async getUserInfo() {

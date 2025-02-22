@@ -10,11 +10,45 @@ import {
   viewMermaidChart,
 } from "./util";
 import { MermaidChartCodeLensProvider } from "./mermaidChartCodeLensProvider";
+import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("Activating Mermaid Chart extension");
   const mcAPI = new MermaidChartVSCode();
   await mcAPI.initialize(context);
+
+  // Add login command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mermaidChart.login', async () => {
+      try {
+        const session = await vscode.authentication.getSession(
+          MermaidChartAuthenticationProvider.id,
+          [],
+          { createIfNone: true }
+        );
+        if (session) {
+          vscode.window.showInformationMessage(`Signed in as ${session.account.label}`);
+        }
+      } catch (e) {
+        vscode.window.showErrorMessage(`Failed to sign in: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      }
+    })
+  );
+
+  // Add logout command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mermaidChart.logout', async () => {
+      try {
+        const sessions = await vscode.authentication.getSession(MermaidChartAuthenticationProvider.id, []);
+        if (sessions) {
+          // await vscode.authentication.removeSession(MermaidChartAuthenticationProvider.id, sessions[0].id);
+          vscode.window.showInformationMessage('Signed out successfully');
+        }
+      } catch (e) {
+        vscode.window.showErrorMessage(`Failed to sign out: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      }
+    })
+  );
 
   const mermaidChartProvider: MermaidChartProvider = new MermaidChartProvider(
     mcAPI

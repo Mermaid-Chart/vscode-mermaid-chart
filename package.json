@@ -549,7 +549,7 @@
       "properties": {
         "mermaidChart.baseUrl": {
           "type": "string",
-          "default": "https://test.mermaidchart.com",
+          "default": "http://localhost:5174",
           "description": "Base URL for Mermaid Chart"
         },
         "mermaid.vscode.dark": {
@@ -747,7 +747,11 @@
     "uuid": "^9.0.0",
     "yaml": "^2.7.0",
     "@fontsource-variable/recursive": "^5.1.1",
-    "@fontsource/recursive": "^5.1.1"
+    "@fontsource/recursive": "^5.1.1",
+    "yjs": "^13.6.18",
+    "y-protocols": "^1.0.6",
+    "lib0": "^0.2.87",
+    "@supabase/supabase-js": "^2.47.12"
   },
   "packageManager": "pnpm@9.7.1+sha512.faf344af2d6ca65c4c5c8c2224ea77a81a5e8859cbc4e06b1511ddce2f0151512431dd19e6aff31f2c6a8f5f2aced9bd2273e1fed7dd4de1868984059d2c4247"
 }

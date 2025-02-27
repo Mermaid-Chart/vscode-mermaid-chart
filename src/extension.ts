@@ -18,7 +18,7 @@ import {
   viewMermaidChart,
 } from "./util";
 import { MermaidChartCodeLensProvider } from "./mermaidChartCodeLensProvider";
-import { createMermaidFile, getPreview } from "./commands/createFile";
+import { createMermaidFile, getPreview, initializeDocumentManager } from "./commands/createFile";
 import { handleTextDocumentChange } from "./eventHandlers";
 import { TempFileCache } from "./cache/tempFileCache";
 import { PreviewPanel } from "./panels/previewPanel";
@@ -224,6 +224,10 @@ context.subscriptions.push(
     const document = await vscode.workspace.openTextDocument(uri);
     const content = document.getText();
     const blockContent = content.substring(document.offsetAt(range.start), document.offsetAt(range.end)).trim();
+    if (MermaidChartProvider.isSyncing) {
+      vscode.window.showInformationMessage('Please wait, diagrams are being synchronized...');
+      await MermaidChartProvider.waitForSync();
+    }
     const projects = getAllTreeViewProjectsCache();
 
     const selectedProject = await vscode.window.showQuickPick(
@@ -376,6 +380,7 @@ context.subscriptions.push(
       return;
     }
 
+
     const content = document.getText();
     const id = extractIdFromCode(content);
     
@@ -383,6 +388,11 @@ context.subscriptions.push(
     if (id) {
       vscode.window.showWarningMessage("This diagram is already connected to Mermaid Chart.");
       return;
+    }
+
+    if (MermaidChartProvider.isSyncing) {
+      vscode.window.showInformationMessage('Please wait, diagrams are being synchronized...');
+      await MermaidChartProvider.waitForSync();
     }
 
     const projects = getAllTreeViewProjectsCache();
@@ -572,6 +582,14 @@ context.subscriptions.push(
       analytics.trackException(new Error('Unhandled rejection'));
     }
   });
+
+  // Initialize document manager with Supabase client
+  if (mcAPI.supabase) {
+    const docManager = initializeDocumentManager(mcAPI.supabase);
+    context.subscriptions.push({
+      dispose: () => docManager.dispose()
+    });
+  }
 }
 
 // This method is called when your extension is deactivated

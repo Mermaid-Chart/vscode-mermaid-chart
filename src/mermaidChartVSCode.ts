@@ -3,8 +3,15 @@ import { MermaidChart } from "@mermaidchart/sdk";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
 import { defaultBaseURL, updateViewVisibility } from "./util";
 import { MermaidWebviewProvider } from "./panels/loginPanel";
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export class MermaidChartVSCode extends MermaidChart {
+  private _supabase: SupabaseClient | null = null;
+
+  get supabase() {
+    return this._supabase;
+  }
+
   constructor() {
     const baseURL = getBaseUrl();
     const clientID = `469e30a6-2602-4022-aff8-2ab36842dc57`;
@@ -17,6 +24,7 @@ export class MermaidChartVSCode extends MermaidChart {
   public async initialize(context: vscode.ExtensionContext, mermaidWebviewProvider?: MermaidWebviewProvider) {
     await this.registerListeners(context, mermaidWebviewProvider);
     await this.setupAPI();
+    await this.initializeSupabase(context);
   }
 
   public async login() {
@@ -118,6 +126,29 @@ export class MermaidChartVSCode extends MermaidChart {
   private async refreshBaseURL() {
     const baseURL = getBaseUrl();
     this.setBaseURL(baseURL);
+  }
+
+  private async initializeSupabase(context: vscode.ExtensionContext) {
+    try {
+      // Use the same Supabase URL and anon key as your web app
+      // const supabaseUrl = process.env.PUBLIC_SUPABASE_BASE_URL;
+      // const supabaseKey = process.env.PUBLIC_SUPABASE_ANON;
+      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
+      const supabaseUrl = "http://localhost:543";
+       
+
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase configuration is missing');
+      }
+
+      // Initialize Supabase client - this matches your web app's setup
+      this._supabase = createClient(supabaseUrl, supabaseKey);
+
+    } catch (error) {
+      console.error('Failed to initialize Supabase:', error);
+      vscode.window.showErrorMessage('Failed to initialize Mermaid Chart: Supabase initialization failed');
+      throw error;
+    }
   }
 }
 

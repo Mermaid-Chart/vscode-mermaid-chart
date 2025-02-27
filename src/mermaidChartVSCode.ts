@@ -133,7 +133,7 @@ export class MermaidChartVSCode extends MermaidChart {
       // Use the same Supabase URL and anon key as your web app
       // const supabaseUrl = process.env.PUBLIC_SUPABASE_BASE_URL;
       // const supabaseKey = process.env.PUBLIC_SUPABASE_ANON;
-      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
+      const supabaseKey = "key";
       const supabaseUrl = "http://localhost:543";
        
 

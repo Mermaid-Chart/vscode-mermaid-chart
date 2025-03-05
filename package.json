@@ -723,7 +723,7 @@
   "scripts": {
     "vscode:prepublish": "pnpm compile",
     "precompile": "pnpm --filter ./webview build",
-    "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --sourcemap --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts ./src/test/runTest.ts ./src/test/suite/index.ts ./src/test/suite/extension.test.ts --sourcemap --bundle --outdir=out --external:vscode --format=cjs --platform=node",
     "watch": "tsc -p ./ --noEmit --watch",
     "pretest": "pnpm compile && pnpm lint",
     "lint": "eslint src --ext ts",
@@ -736,6 +736,7 @@
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "18.x",
+    "@types/sinon": "^17.0.4",
     "@types/uuid": "^9.0.2",
     "@types/vscode": "^1.77.0",
     "@typescript-eslint/eslint-plugin": "^5.56.0",
@@ -746,15 +747,16 @@
     "eslint": "^8.36.0",
     "glob": "^8.1.0",
     "mocha": "^10.2.0",
+    "sinon": "^19.0.2",
     "typescript": "^4.9.5"
   },
   "dependencies": {
+    "@fontsource-variable/recursive": "^5.1.1",
+    "@fontsource/recursive": "^5.1.1",
     "@mermaidchart/sdk": "^0.2.0",
     "axios": "^1.7.9",
     "uuid": "^9.0.0",
-    "yaml": "^2.7.0",
-    "@fontsource-variable/recursive": "^5.1.1",
-    "@fontsource/recursive": "^5.1.1"
+    "yaml": "^2.7.0"
   },
   "packageManager": "pnpm@9.7.1+sha512.faf344af2d6ca65c4c5c8c2224ea77a81a5e8859cbc4e06b1511ddce2f0151512431dd19e6aff31f2c6a8f5f2aced9bd2273e1fed7dd4de1868984059d2c4247"
 }

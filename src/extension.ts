@@ -211,8 +211,12 @@ context.subscriptions.push(
     try {
       const document = await vscode.workspace.openTextDocument(uri);
       const content = document.getText();
+      console.log("The Content is ",content)
       const blockContent = content.substring(document.offsetAt(range.start), document.offsetAt(range.end));
+      console.log("The Block Content is",blockContent);
+
       const normalizedContent = normalizeMermaidText(blockContent);
+      console.log("The normalizedContent is",normalizedContent);
       
       if (!normalizedContent) {
         vscode.window.showErrorMessage("No valid Mermaid diagram found in the selected range.");
@@ -617,6 +621,7 @@ context.subscriptions.push(
     () => {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
+          console.log("It is Called")
             vscode.commands.executeCommand('editor.action.triggerSuggest');
         }
     }

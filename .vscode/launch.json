@@ -1,3 +1,4 @@
+
 // A launch configuration that compiles the extension and then opens it inside a new window
 // Use IntelliSense to learn about possible attributes.
 // Hover to view descriptions of existing attributes.
@@ -26,9 +27,26 @@
 				"--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
 			],
 			"outFiles": [
-				"${workspaceFolder}/out/test/**/*.js"
+				"${workspaceFolder}/out/**/*.js"
 			],
 			"preLaunchTask": "${defaultBuildTask}"
+		},
+		{
+			"name": "Run Single Test",
+			"type": "extensionHost",
+			"request": "launch",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}",
+				"--extensionTestsPath=${workspaceFolder}/out/test/suite/index",
+				"--test-grep=Should login successfully"
+			],
+			"outFiles": [
+				"${workspaceFolder}/out/**/*.js"
+			],
+			"preLaunchTask": "${defaultBuildTask}",
+			"env": {
+				"MOCHA_GREP": "Mermaid Chart Commands"
+			}
 		}
 	]
 }

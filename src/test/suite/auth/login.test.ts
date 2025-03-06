@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 
 // suite('Authentication Tests', () => {
     test('Should login successfully', async () => {
-        debugger;
         // Your login test
         console.log('Testing login...');
     });

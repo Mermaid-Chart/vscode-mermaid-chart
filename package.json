@@ -723,7 +723,7 @@
   "scripts": {
     "vscode:prepublish": "pnpm compile",
     "precompile": "pnpm --filter ./webview build",
-    "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts ./src/test/runTest.ts ./src/test/suite/index.ts ./src/test/suite/extension.test.ts --sourcemap --bundle --outdir=out --external:vscode --format=cjs --platform=node",
+    "compile": "node scripts/build.js",
     "watch": "tsc -p ./ --noEmit --watch",
     "pretest": "pnpm compile && pnpm lint",
     "lint": "eslint src --ext ts",

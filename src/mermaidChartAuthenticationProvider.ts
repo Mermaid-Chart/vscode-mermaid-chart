@@ -16,6 +16,7 @@ import {
 import { v4 as uuid } from "uuid";
 import { PromiseAdapter, promiseFromEvent } from "./util";
 import { MermaidChartVSCode } from "./mermaidChartVSCode";
+import analytics from "./analytics";
 
 class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
   public handleUri(uri: Uri) {
@@ -108,7 +109,7 @@ export class MermaidChartAuthenticationProvider
         id: uuid(),
         accessToken: token,
         account: {
-          label: user.fullName,
+          label: user.fullName ? user.fullName:user.emailAddress,
           id: user.emailAddress,
         },
         scopes: [],
@@ -129,6 +130,7 @@ export class MermaidChartAuthenticationProvider
       return session;
     } catch (e) {
       window.showErrorMessage(`Sign in failed: ${e}`);
+      analytics.trackException(e);
       throw e;
     }
   }
@@ -182,15 +184,14 @@ export class MermaidChartAuthenticationProvider
         const uri = Uri.parse(authData.url);
         await env.openExternal(uri);
 
-        let codeExchangePromise = this._codeExchangePromises.get(
-          authData.scope
-        );
+        const scope = authData.scope.join(" ");
+        let codeExchangePromise = this._codeExchangePromises.get(scope);
         if (!codeExchangePromise) {
           codeExchangePromise = promiseFromEvent(
             this._uriHandler.event,
             this.handleUri(scopes)
           );
-          this._codeExchangePromises.set(authData.scope, codeExchangePromise);
+          this._codeExchangePromises.set(scope, codeExchangePromise);
         }
 
         try {
@@ -208,7 +209,7 @@ export class MermaidChartAuthenticationProvider
           ]);
         } finally {
           codeExchangePromise?.cancel.fire();
-          this._codeExchangePromises.delete(authData.scope);
+          this._codeExchangePromises.delete(scope);
         }
       }
     );
@@ -223,9 +224,7 @@ export class MermaidChartAuthenticationProvider
     scopes: readonly string[]
   ) => PromiseAdapter<Uri, string> =
     (scopes) => async (uri, resolve, reject) => {
-      await this.mcAPI.handleAuthorizationResponse(
-        new URLSearchParams(uri.query)
-      );
+      await this.mcAPI.handleAuthorizationResponse(`?${uri.query}`);
       resolve("done");
     };
 

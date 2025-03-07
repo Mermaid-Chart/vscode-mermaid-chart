@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
 import { debounce } from "../utils/debounce";
 import { getWebviewHTML } from "../templates/previewTemplate";
+import { isAuxFile } from "../util";
 const DARK_THEME_KEY = "mermaid.vscode.dark";
 const LIGHT_THEME_KEY = "mermaid.vscode.light";
-const DEFAULT_DARK_THEME = "neo-dark";
-const DEFAULT_LIGHT_THEME = "neo";
+
 export class PreviewPanel {
   private static currentPanel: PreviewPanel | undefined;
   private readonly panel: vscode.WebviewPanel;
@@ -12,6 +12,8 @@ export class PreviewPanel {
   private readonly disposables: vscode.Disposable[] = [];
   private isFileChange = false;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
+  private lastContent: string = " ";
+
 
 
   private constructor(panel: vscode.WebviewPanel, document: vscode.TextDocument) {
@@ -29,7 +31,7 @@ export class PreviewPanel {
       PreviewPanel.currentPanel.panel.reveal();
       return;
     }
-
+  
     const panel = vscode.window.createWebviewPanel(
       "mermaidPreview",
       "Mermaid Preview",
@@ -41,7 +43,8 @@ export class PreviewPanel {
 
   private update() {
     const extensionPath = vscode.extensions.getExtension("MermaidChart.vscode-mermaid-chart")?.extensionPath;
-
+    const activeEditor = vscode.window.activeTextEditor;
+    
     if (!extensionPath) {
       throw new Error("Unable to resolve the extension path");
     }
@@ -53,15 +56,19 @@ export class PreviewPanel {
     const config = vscode.workspace.getConfiguration();
 
     // Get the theme settings from configuration
-    const darkTheme = config.get<string>(DARK_THEME_KEY, "NA");
-    const lightTheme = config.get<string>(LIGHT_THEME_KEY, "NA");
+    const darkTheme = config.get<string>(DARK_THEME_KEY, "dark");
+    const lightTheme = config.get<string>(LIGHT_THEME_KEY, "default");
 
     // Determine the current theme based on the user's preference and the active color theme
-    const currentTheme = isDarkTheme
-      ? (darkTheme !== "NA" ? darkTheme : DEFAULT_DARK_THEME)
-      : (lightTheme !== "NA" ? lightTheme : DEFAULT_LIGHT_THEME);
+    const currentTheme = isDarkTheme ? darkTheme : lightTheme;
+ 
+    const isPreviewable = activeEditor && !isAuxFile(activeEditor.document.fileName);
 
-    // Initial content to be used (defaults to a single space if empty)
+    if (isPreviewable) {
+      this.lastContent = this.document.getText() || " ";
+    }
+
+// Initial content to be used (defaults to a single space if empty)
     const initialContent = this.document.getText() || " ";
   
     if (!this.panel.webview.html) {
@@ -70,7 +77,7 @@ export class PreviewPanel {
 
     this.panel.webview.postMessage({
       type: "update",
-      content: this.document.getText() || " ",
+      content:this.lastContent,
       currentTheme: currentTheme,
       isFileChange: this.isFileChange,
     });
@@ -79,23 +86,22 @@ export class PreviewPanel {
 
   private setupListeners() {
     const debouncedUpdate = debounce(() => this.update(), 300);
-
     vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.document === this.document) {
         debouncedUpdate();
       }
     }, this.disposables);
+
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (
-        editor && 
-        editor?.document && 
-        (editor?.document?.fileName.endsWith('.mmd') || editor.document.fileName.endsWith('.mermaid') || editor.document.languageId.startsWith('mermaid')) && editor.document.uri.toString() !== this.document.uri.toString()
-      ) {
+      if (editor?.document?.languageId.startsWith('mermaid')) {
+        if (editor.document.uri.toString() !== this.document?.uri.toString()) {
           this.document = editor.document; 
           this.isFileChange = true; 
-          debouncedUpdate(); 
-      }
+          debouncedUpdate();
+        }
+      } 
     }, this.disposables);
+
     vscode.window.onDidChangeActiveColorTheme(() => {
       this.update(); 
   }, this.disposables);

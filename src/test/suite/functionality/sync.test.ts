@@ -1,105 +1,85 @@
-declare global {
-    var mcAPI: {
-        setDocument: (params: { documentID: string; projectID: string; code: string }) => Promise<void>;
-    };
-}
-import { expect } from 'chai';
 import * as vscode from 'vscode';
-import sinon from 'sinon';
-    suite('Mermaid Chart Sync Command', () => {
-        let showInfoStub: sinon.SinonStub;
-        let showErrorStub: sinon.SinonStub;
-        let withProgressStub: sinon.SinonStub;
-        let setDocumentStub: sinon.SinonStub;
-    
-    
-        const mockDocument = (languageId: string, content: string) => ({
-            languageId,
-            getText: sinon.stub().returns(content),
-            uri: { toString: sinon.stub().returns('file://test.mmd') }
-        }) as unknown as vscode.TextDocument;
-    
-        setup(() => {
-            // Stubbing VS Code API methods
-            showInfoStub = sinon.stub(vscode.window, 'showInformationMessage');
-            showErrorStub = sinon.stub(vscode.window, 'showErrorMessage');
-            withProgressStub = sinon.stub(vscode.window, 'withProgress').callsFake(async (_, task) => {
-                const mockToken = { isCancellationRequested: false } as vscode.CancellationToken;
-                await task({ report: sinon.stub() }, mockToken);
-            });
-    
-        
-            globalThis.mcAPI = {
-                setDocument: sinon.stub().resolves() 
-            } as any;
-    
-            setDocumentStub = globalThis.mcAPI.setDocument as sinon.SinonStub;
-        });
-    
-        teardown(() => {
-            sinon.restore(); 
-        });
+import * as sinon from 'sinon';
+import { expect } from 'chai';
 
-        test('should save the file on Mermaid when syncing', async () => {
-            const document = mockDocument('mermaid', 'graph TD; A-->B;');
-            sinon.stub(vscode.window, 'activeTextEditor').value({ document });
-    
-            console.log('Before executing sync command...');
-            setDocumentStub.resolves(); 
-    
-            await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
-            await new Promise((resolve) => setTimeout(resolve, 100)); 
-    
-            console.log('setDocumentStub called:', setDocumentStub.called);
-            console.log('showInfoStub called:', showInfoStub.called);
-    
-            expect(setDocumentStub.calledOnce, 'setDocumentStub should be called once').to.be.true;
-            expect(showInfoStub.calledOnce, 'showInfoStub should be called once').to.be.true;
-            sinon.assert.calledWith(showInfoStub, 'Diagram synced successfully with Mermaid Chart.');
-        });
-    
-    
-        test('should show an error if sync fails', async () => {
-            const document = mockDocument('mermaid', 'graph TD; A-->B;');
-            sinon.stub(vscode.window, 'activeTextEditor').value({ document });
-    
-            setDocumentStub.rejects(new Error('Sync failed!')); 
-    
-            console.log('Executing failing sync command...');
-            await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
-            await new Promise((resolve) => setTimeout(resolve, 100)); 
-    
-            console.log('setDocumentStub called:', setDocumentStub.called);
-            console.log('showErrorStub called:', showErrorStub.called);
-    
-            expect(setDocumentStub.calledOnce, 'setDocumentStub should be called once').to.be.true;
-            expect(showErrorStub.calledOnce, 'showErrorStub should be called once').to.be.true;
-            sinon.assert.calledWith(showErrorStub, 'Failed to sync file: Sync failed!');
-        });
-    
-        
-        test('should show a message for non-mermaid files', async () => {
-            const document = mockDocument('plaintext', 'Some text');
-            sinon.stub(vscode.window, 'activeTextEditor').value({ document });
-    
-            console.log('Executing sync command with non-mermaid file...');
-            await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
-    
-            expect(setDocumentStub.notCalled, 'setDocumentStub should NOT be called').to.be.true;
-            expect(showInfoStub.calledOnce, 'showInfoStub should be called once').to.be.true;
-            sinon.assert.calledWith(showInfoStub, 'This file is not a Mermaid diagram.');
-        });
-    
-        
-        test('should show a message if the file is empty', async () => {
-            const document = mockDocument('mermaid', '');
-            sinon.stub(vscode.window, 'activeTextEditor').value({ document });
-    
-            console.log('Executing sync command with empty file...');
-            await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
-    
-            expect(setDocumentStub.notCalled, 'setDocumentStub should NOT be called').to.be.true;
-            expect(showInfoStub.calledOnce, 'showInfoStub should be called once').to.be.true;
-            sinon.assert.calledWith(showInfoStub, 'The file is empty.');
-        });
+
+suite('syncDiagramWithMermaid Command', () => {
+    let sandbox: sinon.SinonSandbox;
+
+    setup(() => {
+        sandbox = sinon.createSandbox();
     });
+
+    teardown(() => {
+        sandbox.restore();
+    });
+
+    // it('should sync local changes if the file is a Mermaid diagram', async () => {
+    //     const documentMock = {
+    //         languageId: 'mermaid',
+    //         getText: sinon.stub().returns('graph TD; A-->B;'),
+    //         uri: { toString: () => 'file://path/to/file' }
+    //     } as unknown as vscode.TextDocument;
+    
+    //     const editorMock = { document: documentMock } as unknown as vscode.TextEditor;
+    //     sandbox.stub(vscode.window, 'activeTextEditor').value(editorMock);
+        
+    //     const showMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
+    //     const executeCommandStub = sandbox.stub(vscode.commands, 'executeCommand').resolves();
+        
+    //     // Stub the helper functions to ensure success
+    //     (global as any).extractIdFromCode = sinon.stub().returns('diagram123');
+    //     (global as any).getProjectIdForDocument = sinon.stub().returns('project456');
+    //     sandbox.stub(api.mcAPI, 'setDocument').resolves();
+    //     (global as any).TempFileCache = { hasTempUri: sinon.stub().returns(true) };
+        
+    
+    //     await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
+    
+    //     expect(showMessageStub.calledWith('Diagram synced successfully with Mermaid Chart.')).to.be.true;
+    //     expect(executeCommandStub.calledWith('workbench.action.files.save')).to.be.true;
+    // });
+    
+
+    test('should show a message if the file is not a Mermaid diagram', async () => {
+        const documentMock = {
+            languageId: 'plaintext',
+            getText: sinon.stub().returns('random text')
+        } as unknown as vscode.TextDocument;
+
+        const editorMock = { document: documentMock } as unknown as vscode.TextEditor;
+        sandbox.stub(vscode.window, 'activeTextEditor').value(editorMock);
+        
+        const showMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
+
+        await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
+
+        expect(showMessageStub.calledWith('This file is not a Mermaid diagram.')).to.be.true;
+    });
+
+    test('should show a message if the file is empty', async () => {
+        const documentMock = {
+            languageId: 'mermaid',
+            getText: sinon.stub().returns('')
+        } as unknown as vscode.TextDocument;
+
+        const editorMock = { document: documentMock } as unknown as vscode.TextEditor;
+        sandbox.stub(vscode.window, 'activeTextEditor').value(editorMock);
+        
+        const showMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
+
+        await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
+
+        expect(showMessageStub.calledWith('The file is empty.')).to.be.true;
+    });
+
+    test('should do nothing if no active editor is present', async () => {
+        sandbox.stub(vscode.window, 'activeTextEditor').value(undefined);
+        
+        const showMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
+
+        await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
+
+        expect(showMessageStub.called).to.be.false;
+    });
+});

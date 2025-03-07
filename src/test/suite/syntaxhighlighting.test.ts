@@ -1,58 +1,65 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
-import * as sinon from 'sinon';
+import * as assert from 'assert';
 import { expect } from 'chai';
 import { applySyntaxHighlighting } from '../../syntaxHighlighter';
 
+const diagramMappings: Record<string, string[]> = {
+  c4Diagram: ["C4Context", "C4Container", "C4Component", "C4Dynamic", "C4Deployment"],
+  classDiagram: ["classDiagram", "classDiagram-v2"],
+  erDiagram: ["erDiagram"],
+  flowchart: ["flowchart", "flowchart-v2", "flowchart-elk", "graph"],
+  gantt: ["gantt", "section"],
+  gitGraph: ["gitGraph"],
+  info: ["info"],
+  journey: ["journey"],
+  pie: ["pie"],
+  requirementDiagram: ["requirement", "requirementDiagram"],
+  sequenceDiagram: ["sequenceDiagram"],
+  quadrantChart: ["quadrantChart"],
+  mindmap: ["mindmap"],
+  timeline: ["timeline"],
+  xychart: ["xychart", "xychart-beta"],
+  sankeyDiagram: ["sankey", "sankey-beta"],
+  stateDiagram: ["stateDiagram", "stateDiagram-v2"],
+  kanban: ["kanban"],
+  block: ["block-beta", "block", "blockDiagram"],
+  architecture: ["architecture"],
+  packet: ["packet", "packet-beta"],
+};
 
-// suite('applySyntaxHighlighting', () => {
-//   let setTextDocumentLanguageStub: sinon.SinonStub;
-//   let loadTmLanguageStub: sinon.SinonStub;
-//   let consoleErrorStub: sinon.SinonStub;
+suite('Mermaid Syntax Highlighting Tests', () => {
+  const syntaxesDir = path.join(__dirname, '../../../syntaxes');
 
-//   const mockDocument = {
-//     languageId: 'plaintext',
-//     getText: sinon.stub().returns('mock content'),
-//     uri: { toString: sinon.stub().returns('file://test.mmd') },
-//   } as unknown as vscode.TextDocument;
+  for (const diagramType of Object.keys(diagramMappings)) {
+    test(`should have a grammar file for ${diagramType}`, () => {
+      const grammarPath = path.join(syntaxesDir, `mermaid-${diagramType}.tmLanguage.json`);
+      const fileExists = fs.existsSync(grammarPath);
 
-//   setup(() => {
-//     setTextDocumentLanguageStub = sinon.stub(vscode.languages, 'setTextDocumentLanguage').resolves();
-//     loadTmLanguageStub = sinon.stub();
-//     consoleErrorStub = sinon.stub(console, 'error');
-//   });
+      expect(fileExists, `Grammar file missing for ${diagramType}: ${grammarPath}`).to.be.true;
+    });
 
-//   teardown(() => {
-//     sinon.restore();
-//   });
+    test(`should load and apply syntax highlighting for ${diagramType}`, async () => {
+      const content = `%% Example ${diagramType} diagram`;
+      const document = await vscode.workspace.openTextDocument({ content });
 
-//   test('should apply syntax highlighting if tmLanguage is loaded', async () => {
-//     loadTmLanguageStub.returns({ name: 'mermaid' });
+      const grammarPath = path.join(syntaxesDir, `mermaid-${diagramType}.tmLanguage.json`);
+      console.log(`Resolved path for ${diagramType}:`, grammarPath);
 
-//     applySyntaxHighlighting(mockDocument, 'path/to/tmLanguage');
+     
+      const grammarExists = fs.existsSync(grammarPath);
+      assert.strictEqual(grammarExists, true, `Grammar file missing for ${diagramType}: ${grammarPath}`);
 
-//     sinon.assert.calledOnce(loadTmLanguageStub);
-//     sinon.assert.calledWith(setTextDocumentLanguageStub, mockDocument, 'mermaid.mermaid');
+     
+      await applySyntaxHighlighting(document, grammarPath);
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-//     expect(setTextDocumentLanguageStub.called).to.be.true;
-//   });
+    
+      const expectedLanguageId = `mermaid.${diagramType}`;
+      assert.strictEqual(document.languageId, expectedLanguageId, `Expected ${expectedLanguageId} but got ${document.languageId}`);
+    });
+  }
+});
 
-//   test('should not apply syntax highlighting if tmLanguage is not loaded', async () => {
-//     loadTmLanguageStub.returns(null);
 
-//     applySyntaxHighlighting(mockDocument, 'path/to/tmLanguage');
-
-//     sinon.assert.notCalled(setTextDocumentLanguageStub);
-//   });
-
-//   test('should log an error if setting language fails', async () => {
-//     loadTmLanguageStub.returns({ name: 'mermaid' });
-//     setTextDocumentLanguageStub.rejects(new Error('Language setting failed'));
-
-//     applySyntaxHighlighting(mockDocument, 'path/to/tmLanguage');
-
-//     await new Promise((resolve) => setTimeout(resolve, 10)); // Wait for promise rejection
-
-//     sinon.assert.calledOnce(consoleErrorStub);
-//     sinon.assert.calledWith(consoleErrorStub, 'Failed to apply syntax highlighting:', sinon.match.instanceOf(Error));
-//   });
-// });

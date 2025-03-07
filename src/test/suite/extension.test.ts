@@ -1,21 +1,6 @@
-declare global {
-    var mcAPI: {
-        setDocument: (params: { documentID: string; projectID: string; code: string }) => Promise<void>;
-    };
-}
 
 import * as assert from 'assert';
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
 import * as vscode from 'vscode';
-import { MermaidChartVSCode } from '../../mermaidChartVSCode';
-import * as myExtension from '../../extension';
-import { PreviewPanel } from '../../panels/previewPanel';
-import sinon from 'sinon';
-import { expect } from 'chai';
-
-
-
 
 suite('Extension Tests', () => {
 	test('Extension should be present and activate', async () => {

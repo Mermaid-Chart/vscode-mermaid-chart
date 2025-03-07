@@ -39,6 +39,7 @@ export interface MCProject {
 export interface MCDocument {
   documentID: string;
   projectID: string;
+  code: string;
   major: string;
   minor: string;
   title: string;
@@ -230,6 +231,19 @@ export class MermaidChart {
     return raw.data;
   }
 
+  public async saveDocumentCode(code: string, documentID: string): Promise<MCDocument> {
+      const response = await this.axios.patch(this.URLS.rest.documents.patch(documentID), {
+        code: code,
+      });
+      return response.data;
+  }
+  public async createDocumentWithDiagram(code: string, projectID: string): Promise<MCDocument> {
+    const response = await this.axios.post(this.URLS.rest.projects.get(projectID).documents, {
+      code : code
+    });
+    return response.data;
+}
+
   private URLS = {
     oauth: {
       authorize: (params: OAuthAuthorizationParams) =>
@@ -246,6 +260,9 @@ export class MermaidChart {
         get: (documentID: string) => {
           return `/rest-api/documents/${documentID}`;
         },
+        patch: (documentID : string) => {
+          return `/rest-api/documents/${documentID}`;
+        }
       },
       projects: {
         list: `/rest-api/projects`,
@@ -271,7 +288,7 @@ export class MermaidChart {
       // const base = `/app/projects/${d.projectID}/diagrams/${d.documentID}/version/v${d.major}.${d.minor}`;
       return {
         // self: base,
-        edit: `/app/diagrams/${d.documentID}?ref=vscode`,
+        edit: `/app/diagrams/${d.documentID}`,
         // view: base + "/view",
       } as const;
     },

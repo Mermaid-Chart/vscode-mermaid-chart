@@ -2,6 +2,7 @@
 import {
   AuthenticationProvider,
   AuthenticationProviderAuthenticationSessionsChangeEvent,
+  AuthenticationProviderSessionOptions,
   AuthenticationSession,
   Disposable,
   env,
@@ -37,6 +38,21 @@ export class MermaidChartAuthenticationProvider
   >();
   private _uriHandler = new UriEventHandler();
 
+  private static instance: MermaidChartAuthenticationProvider | null = null;
+
+  static getInstance(
+    mcAPI: MermaidChartVSCode,
+    context: ExtensionContext
+  ): MermaidChartAuthenticationProvider {
+    if (!MermaidChartAuthenticationProvider.instance) {
+      MermaidChartAuthenticationProvider.instance = new MermaidChartAuthenticationProvider(
+        mcAPI,
+        context
+      );
+    }
+    return MermaidChartAuthenticationProvider.instance;
+  }
+
   constructor(
     private readonly mcAPI: MermaidChartVSCode,
     private readonly context: ExtensionContext
@@ -63,9 +79,9 @@ export class MermaidChartAuthenticationProvider
    * @returns
    */
   public async getSessions(
-    scopes?: string[]
-  ): Promise<readonly AuthenticationSession[]> {
-    // return [];
+    scopes: readonly string[] | undefined,
+    options: AuthenticationProviderSessionOptions
+  ): Promise<AuthenticationSession[]> {
     const allSessions = await this.context.secrets.get(this.sessionsKey);
 
     if (allSessions) {

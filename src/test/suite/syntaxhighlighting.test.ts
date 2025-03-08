@@ -45,7 +45,7 @@ suite('Mermaid Syntax Highlighting Tests', () => {
       const document = await vscode.workspace.openTextDocument({ content });
 
       const grammarPath = path.join(syntaxesDir, `mermaid-${diagramType}.tmLanguage.json`);
-      console.log(`Resolved path for ${diagramType}:`, grammarPath);
+     
 
      
       const grammarExists = fs.existsSync(grammarPath);

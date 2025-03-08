@@ -32,7 +32,7 @@ suite('getPreview', () => {
   test('should create or show a preview if the file is a Mermaid file', () => {
     const mockDocument = {
       fileName: 'example.mmd',
-      languageId: 'mermaid',
+
     } as vscode.TextDocument;
 
     sinon.stub(vscode.window, 'activeTextEditor').value({ document: mockDocument });

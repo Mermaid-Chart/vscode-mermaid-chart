@@ -1,6 +1,6 @@
 # Mermaid Chart extension for Visual Studio Code
 
-This extension is a Tool for visualizing and editing Mermaid diagrams in Visual Studio Code.The extension enables developers to view and edit diagrams stored in Mermaid Chart from Visual Studio Code. With the integration to the Mermaid Chart service, this extension allows users to attach diagrams to their code and to gain quick access to updating diagrams.
+This extension is a Tool for visualizing and editing Mermaid diagrams in Visual Studio Code. The extension enables developers to view and edit diagrams stored in Mermaid Chart from Visual Studio Code. With the integration to the Mermaid Chart service, this extension allows users to attach diagrams to their code and to gain quick access to updating diagrams.
 
 Simplify your development workflow with the Mermaid Chart extension.
 

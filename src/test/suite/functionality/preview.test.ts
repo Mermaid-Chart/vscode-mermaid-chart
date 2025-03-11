@@ -4,46 +4,49 @@ import * as sinon from 'sinon';
 import { PreviewPanel } from '../../../panels/previewPanel';
 import { getPreview } from '../../../commands/createFile';
 
-
 suite('getPreview', () => {
-  let showErrorMessageStub: sinon.SinonStub;
-  let createOrShowStub: sinon.SinonStub;
+    let showErrorMessageStub: sinon.SinonStub;
+    let createOrShowStub: sinon.SinonStub;
+    let activeTextEditorStub: sinon.SinonStub;
 
- setup(() => {
-    showErrorMessageStub = sinon.stub(vscode.window, 'showErrorMessage');
-    createOrShowStub = sinon.stub(PreviewPanel, 'createOrShow');
-  });
+    setup(() => {
+        showErrorMessageStub = sinon.stub(vscode.window, 'showErrorMessage');
+        createOrShowStub = sinon.stub(PreviewPanel, 'createOrShow');
+        activeTextEditorStub = sinon.stub(vscode.window, 'activeTextEditor');
+    });
 
-  teardown(() => {
-    sinon.restore();
-  });
+    teardown(() => {
+        sinon.restore();
+    });
 
-  test('should show an error message if no active editor', () => {
-    sinon.stub(vscode.window, 'activeTextEditor').value(undefined);
+    const setActiveEditor = (fileName: string | null) => {
+        activeTextEditorStub.value(
+            fileName
+                ? { document: { fileName } as vscode.TextDocument }
+                : undefined
+        );
+    };
 
-    getPreview();
+    test('should show an error message if no active editor', () => {
+        setActiveEditor(null);
 
-    expect(showErrorMessageStub.calledOnce).to.be.true;
-    expect(showErrorMessageStub.calledWith("No active editor. Open a .mmd file to preview.")).to.be.true;
-    expect(createOrShowStub.called).to.be.false;
-  });
+        getPreview();
 
+        expect(showErrorMessageStub.calledOnceWith("No active editor. Open a .mmd file to preview.")).to.be.true;
+        expect(createOrShowStub.called).to.be.false;
+    });
 
-  test('should create or show a preview if the file is a Mermaid file', () => {
-    const mockDocument = {
-      fileName: 'example.mmd',
+    test('should create or show a preview if the file is a Mermaid file', () => {
+        setActiveEditor('example.mmd');
 
-    } as vscode.TextDocument;
+        getPreview();
 
-    sinon.stub(vscode.window, 'activeTextEditor').value({ document: mockDocument });
-
-    getPreview();
-
-    expect(createOrShowStub.calledOnce).to.be.true;
-    expect(createOrShowStub.calledWith(mockDocument)).to.be.true;
-    expect(showErrorMessageStub.called).to.be.false;
-  });
+        expect(createOrShowStub.calledOnce).to.be.true;
+        expect(createOrShowStub.calledWithMatch({ fileName: 'example.mmd' })).to.be.true;
+        expect(showErrorMessageStub.called).to.be.false;
+    });
 });
+
 
 
 

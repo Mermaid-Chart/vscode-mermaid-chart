@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as assert from 'assert';
 import { expect } from 'chai';
 import { applySyntaxHighlighting } from '../../syntaxHighlighter';
 
@@ -32,34 +31,36 @@ const diagramMappings: Record<string, string[]> = {
 suite('Mermaid Syntax Highlighting Tests', () => {
   const syntaxesDir = path.join(__dirname, '../../../syntaxes');
 
-  for (const diagramType of Object.keys(diagramMappings)) {
-    test(`should have a grammar file for ${diagramType}`, () => {
+  setup(() => {
+    console.log("Setting up Mermaid Syntax Highlighting Tests...");
+  });
+
+  teardown(() => {
+    console.log("Teardown complete.");
+  });
+
+  Object.keys(diagramMappings).forEach((diagramType) => {
+    suite(`${diagramType} Syntax Highlighting`, () => {
       const grammarPath = path.join(syntaxesDir, `mermaid-${diagramType}.tmLanguage.json`);
-      const fileExists = fs.existsSync(grammarPath);
 
-      expect(fileExists, `Grammar file missing for ${diagramType}: ${grammarPath}`).to.be.true;
+      test(`should have a grammar file for ${diagramType}`, () => {
+        const fileExists = fs.existsSync(grammarPath);
+        expect(fileExists, `Grammar file missing for ${diagramType}: ${grammarPath}`).to.be.true;
+      });
+
+      test(`should load and apply syntax highlighting for ${diagramType}`, async () => {
+        const content = `%% Example ${diagramType} diagram`;
+        const document = await vscode.workspace.openTextDocument({ content });
+
+        const grammarExists = fs.existsSync(grammarPath);
+        expect(grammarExists, `Grammar file missing for ${diagramType}: ${grammarPath}`).to.be.true;
+
+        await applySyntaxHighlighting(document, grammarPath);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const expectedLanguageId = `mermaid.${diagramType}`;
+        expect(document.languageId, `Expected ${expectedLanguageId} but got ${document.languageId}`).to.equal(expectedLanguageId);
+      });
     });
-
-    test(`should load and apply syntax highlighting for ${diagramType}`, async () => {
-      const content = `%% Example ${diagramType} diagram`;
-      const document = await vscode.workspace.openTextDocument({ content });
-
-      const grammarPath = path.join(syntaxesDir, `mermaid-${diagramType}.tmLanguage.json`);
-     
-
-     
-      const grammarExists = fs.existsSync(grammarPath);
-      assert.strictEqual(grammarExists, true, `Grammar file missing for ${diagramType}: ${grammarPath}`);
-
-     
-      await applySyntaxHighlighting(document, grammarPath);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-    
-      const expectedLanguageId = `mermaid.${diagramType}`;
-      assert.strictEqual(document.languageId, expectedLanguageId, `Expected ${expectedLanguageId} but got ${document.languageId}`);
-    });
-  }
+  });
 });
-
-

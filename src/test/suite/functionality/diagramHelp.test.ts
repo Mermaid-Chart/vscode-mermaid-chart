@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 import sinon from 'sinon';
 import { getHelpUrl } from '../../../util';
 
-
 const diagramTypes = [
     'erdiagram',
     'gitgraph',
@@ -18,88 +17,68 @@ const diagramTypes = [
 ];
 
 suite('Mermaid Chart Diagram Help Command', function () {
+    let sandbox: sinon.SinonSandbox;
     let openExternalStub: sinon.SinonStub;
     let showWarningMessageStub: sinon.SinonStub;
     let activeTextEditorStub: sinon.SinonStub;
 
-    setup(() => {
-       
-        openExternalStub = sinon.stub(vscode.env, 'openExternal').returns(Promise.resolve(true)); 
-        
-       
-        showWarningMessageStub = sinon.stub(vscode.window, 'showWarningMessage').resolves(undefined);
+    const mockActiveEditor = (text: string) => ({
+        document: { getText: () => text },
+    });
 
-        activeTextEditorStub = sinon.stub(vscode.window, 'activeTextEditor');
+    const expectedUrls: Record<string, string> = {
+        erdiagram: 'https://mermaid.js.org/syntax/entityRelationshipDiagram.html',
+        gitgraph: 'https://mermaid.js.org/syntax/gitgraph.html',
+        journey: 'https://mermaid.js.org/syntax/userJourney.html',
+        classdiagram: 'https://mermaid.js.org/syntax/classDiagram.html',
+        statediagram: 'https://mermaid.js.org/syntax/stateDiagram.html',
+        sequencediagram: 'https://mermaid.js.org/syntax/sequenceDiagram.html',
+        requirementdiagram: 'https://mermaid.js.org/syntax/requirementDiagram.html',
+        xychart: 'https://mermaid.js.org/syntax/xyChart.html',
+        quadrantchart: 'https://mermaid.js.org/syntax/quadrantChart.html',
+        c4context: 'https://mermaid.js.org/syntax/c4.html',
+    };
+
+    setup(() => {
+        sandbox = sinon.createSandbox();
+
+        openExternalStub = sandbox.stub(vscode.env, 'openExternal').resolves(true);
+        showWarningMessageStub = sandbox.stub(vscode.window, 'showWarningMessage').resolves(undefined);
+        activeTextEditorStub = sandbox.stub(vscode.window, 'activeTextEditor');
     });
 
     teardown(() => {
-        // Restore all stubs
-        openExternalStub.restore();
-        showWarningMessageStub.restore();
-        activeTextEditorStub.restore();
+        sandbox.restore();
     });
 
-    test('should open correct URL for ER Diagram', function () {
-        const activeEditorStub = {
-            document: {
-                getText: () => 'erdiagram some diagram content',
-            }
-        };
+    diagramTypes.forEach((diagram) => {
+        test(`should open correct URL for ${diagram}`, async function () {
+            const editorStub = mockActiveEditor(`${diagram} some diagram content`);
+            activeTextEditorStub.value(editorStub);
 
-        activeTextEditorStub.value(activeEditorStub);
+            await vscode.commands.executeCommand('mermaidChart.diagramHelp');
 
-        vscode.commands.executeCommand('mermaidChart.diagramHelp');
-
-        assert.ok(openExternalStub.calledOnce, 'openExternal was called');
-        assert.strictEqual(openExternalStub.calledWith(vscode.Uri.parse('https://mermaid.js.org/syntax/entityRelationshipDiagram.html')), true, 'URL for ER diagram is correct');
+            assert.ok(openExternalStub.calledOnce, 'openExternal should be called once');
+            assert.strictEqual(
+                openExternalStub.calledWith(vscode.Uri.parse(expectedUrls[diagram])),
+                true,
+                `URL for ${diagram} is correct`
+            );
+        });
     });
 
-    test('should open correct URL for Sequence Diagram', function () {
-        const activeEditorStub = {
-            document: {
-                getText: () => 'sequencediagram some diagram content',
-            }
-        };
-
-        // Mock the active editor
-        activeTextEditorStub.value(activeEditorStub);
-
-        vscode.commands.executeCommand('mermaidChart.diagramHelp');
-
-        assert.ok(openExternalStub.calledOnce, 'openExternal was called');
-        assert.strictEqual(openExternalStub.calledWith(vscode.Uri.parse('https://mermaid.js.org/syntax/sequenceDiagram.html')), true, 'URL for Sequence diagram is correct');
-    });
-
-    test('should show warning message if no active editor is found', function () {
-        // Mock no active editor
+    test('should show warning message if no active editor is found', async function () {
         activeTextEditorStub.value(undefined);
 
-        vscode.commands.executeCommand('mermaidChart.diagramHelp');
+        await vscode.commands.executeCommand('mermaidChart.diagramHelp');
 
-        assert.ok(showWarningMessageStub.calledOnce, 'showWarningMessage was called');
+        assert.ok(showWarningMessageStub.calledOnce, 'showWarningMessage should be called once');
         assert.strictEqual(showWarningMessageStub.calledWith('No active editor found.'), true, 'Warning message is correct');
     });
 
     test('should return correct URL from getHelpUrl for known diagram types', function () {
-        const urls = {
-            erdiagram: 'https://mermaid.js.org/syntax/entityRelationshipDiagram.html',
-            gitgraph: 'https://mermaid.js.org/syntax/gitgraph.html',
-            journey: 'https://mermaid.js.org/syntax/userJourney.html',
-            classdiagram: 'https://mermaid.js.org/syntax/classDiagram.html',
-            statediagram: 'https://mermaid.js.org/syntax/stateDiagram.html',
-            sequencediagram: 'https://mermaid.js.org/syntax/sequenceDiagram.html',
-            requirementdiagram: 'https://mermaid.js.org/syntax/requirementDiagram.html',
-            xychart: 'https://mermaid.js.org/syntax/xyChart.html',
-            quadrantchart: 'https://mermaid.js.org/syntax/quadrantChart.html',
-            c4context: 'https://mermaid.js.org/syntax/c4.html',
-        };
-
-      
-        Object.keys(urls).forEach((key) => {
-            const diagram = key as keyof typeof urls; 
-            assert.strictEqual(getHelpUrl(diagram), urls[diagram]);
+        Object.entries(expectedUrls).forEach(([diagram, url]) => {
+            assert.strictEqual(getHelpUrl(diagram), url, `URL for ${diagram} is correct`);
         });
     });
-
-  
 });

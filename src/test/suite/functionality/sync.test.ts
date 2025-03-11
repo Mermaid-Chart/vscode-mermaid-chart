@@ -2,25 +2,30 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import * as vscode from 'vscode';
 
+const createMockAPI = () => ({
+    setDocument: sinon.stub(),
+});
 
-const mcAPI = { setDocument: sinon.stub() };
-const document = {
-    getText: () => 'graph TD; A --> B;',
+const createMockDocument = (content: string, languageId = 'mermaid') => ({
+    getText: () => content,
+    languageId,
     uri: vscode.Uri.file('test.mmd'),
-};
-
-const diagramId = '123';
-const projectId = '456';
+}) as vscode.TextDocument;
 
 suite('syncDiagramWithMermaid', () => {
-        let sandbox: sinon.SinonSandbox;
-            setup(() => {
-                sandbox = sinon.createSandbox();
-                (global as any).api = { mcAPI }; // Simulate API in global space
-            });
-        
+    let sandbox: sinon.SinonSandbox;
+    let mcAPI: ReturnType<typeof createMockAPI>;
+    let document: vscode.TextDocument;
+    const diagramId = '123';
+    const projectId = '456';
+
+    setup(() => {
+        sandbox = sinon.createSandbox();
+        mcAPI = createMockAPI();
+        document = createMockDocument('graph TD; A --> B;');
+    });
+
     teardown(() => {
-        sinon.restore(); // Restore original methods after each test
         sandbox.restore();
     });
 
@@ -51,8 +56,7 @@ suite('syncDiagramWithMermaid', () => {
                 projectID: projectId,
                 code: document.getText(),
             });
-            
-            // Fail the test if no error is thrown
+
             throw new Error('Test should have thrown an error');
         } catch (error) {
             if (error instanceof Error) {
@@ -62,47 +66,37 @@ suite('syncDiagramWithMermaid', () => {
             }
         }
     });
-        test('should show a message if the file is not a Mermaid diagram', async () => {
-            const documentMock = {
-                languageId: 'plaintext',
-                getText: sinon.stub().returns('random text')
-            } as unknown as vscode.TextDocument;
-    
-            const editorMock = { document: documentMock } as unknown as vscode.TextEditor;
-            sandbox.stub(vscode.window, 'activeTextEditor').value(editorMock);
-    
-            const showMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
-    
-            await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
-    
-            expect(showMessageStub.calledWith('This file is not a Mermaid diagram.')).to.be.true;
-        });
-    
-        test('should show a message if the file is empty', async () => {
-            const documentMock = {
-                languageId: 'mermaid',
-                getText: sinon.stub().returns('')
-            } as unknown as vscode.TextDocument;
-    
-            const editorMock = { document: documentMock } as unknown as vscode.TextEditor;
-            sandbox.stub(vscode.window, 'activeTextEditor').value(editorMock);
-    
-            const showMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
-    
-            await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
-    
-            expect(showMessageStub.calledWith('The file is empty.')).to.be.true;
-        });
-    
-        test('should do nothing if no active editor is present', async () => {
-            sandbox.stub(vscode.window, 'activeTextEditor').value(undefined);
-    
-            const showMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
-    
-            await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
-    
-            expect(showMessageStub.called).to.be.false;
-        });
+
+    test('should show a message if the file is not a Mermaid diagram', async () => {
+        const documentMock = createMockDocument('random text', 'plaintext');
+        const editorMock = { document: documentMock } as vscode.TextEditor;
+
+        sandbox.stub(vscode.window, 'activeTextEditor').value(editorMock);
+        const showMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
+
+        await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
+
+        expect(showMessageStub.calledWith('This file is not a Mermaid diagram.')).to.be.true;
+    });
+
+    test('should show a message if the file is empty', async () => {
+        const documentMock = createMockDocument('');
+        const editorMock = { document: documentMock } as vscode.TextEditor;
+
+        sandbox.stub(vscode.window, 'activeTextEditor').value(editorMock);
+        const showMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
+
+        await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
+
+        expect(showMessageStub.calledWith('The file is empty.')).to.be.true;
+    });
+
+    test('should do nothing if no active editor is present', async () => {
+        sandbox.stub(vscode.window, 'activeTextEditor').value(undefined);
+        const showMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
+
+        await vscode.commands.executeCommand('mermaidChart.syncDiagramWithMermaid');
+
+        expect(showMessageStub.called).to.be.false;
+    });
 });
-
-

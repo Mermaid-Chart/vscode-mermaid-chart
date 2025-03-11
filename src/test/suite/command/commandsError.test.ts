@@ -1,21 +1,20 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
+const commandList = [
+    'mermaidChart.logout',
+    'mermaidChart.preview',
+    'mermaidChart.createMermaidFile',
+    'mermaidChart.syncDiagramWithMermaid',
+    'mermaidChart.connectDiagramToMermaidChart',
+    'mermaidChart.downloadDiagram',
+    'mermaidChart.focus',
+    'mermaidChart.refresh',
+    'mermaidChart.outline',
+    'extension.refreshTreeView',
+    'mermaidChart.diagramHelp',
+    'mermaid.editAuxFile',
+];
 suite('Mermaid Chart Commands', () => {
-    const commandList = [
-        'mermaidChart.logout',
-        'mermaidChart.preview',
-        'mermaidChart.createMermaidFile',
-        'mermaidChart.syncDiagramWithMermaid',
-        'mermaidChart.connectDiagramToMermaidChart',
-        'mermaidChart.downloadDiagram',
-        'mermaidChart.focus',
-        'mermaidChart.refresh',
-        'mermaidChart.outline',
-        'extension.refreshTreeView',
-        'mermaidChart.diagramHelp',
-        'mermaid.editAuxFile',
-    ];
-
     suiteSetup(async () => {
         const ext = vscode.extensions.getExtension('MermaidChart.vscode-mermaid-chart');
         assert.ok(ext, 'Extension should be present');

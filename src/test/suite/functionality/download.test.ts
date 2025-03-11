@@ -48,26 +48,26 @@ suite("mermaidChart.downloadDiagram Command", function () {
     expect(showErrorMessageStub.calledWith("No project ID found for this diagram.")).to.be.true;
   });
 
-//   test("should process and save the diagram when valid inputs are provided", async () => {
-//     getProjectIdStub.returns("proj-5678");
-//     ensureIdStub.returns("processed-graph TD; A-->B;");
+  test("should process and save the diagram when valid inputs are provided", async () => {
+    getProjectIdStub.returns("proj-5678");
+    ensureIdStub.returns("processed-graph TD; A-->B;");
 
-//     await vscode.commands.executeCommand("mermaidChart.downloadDiagram", mockDocument);
-//     console.log(setDocumentStub.called); 
-//     console.log(updateCacheStub.called); 
-//     console.log(createFileStub.called);  
+    await vscode.commands.executeCommand("mermaidChart.downloadDiagram", mockDocument);
+    console.log(setDocumentStub.called); 
+    console.log(updateCacheStub.called); 
+    console.log(createFileStub.called);  
 
-//     expect(ensureIdStub.calledWith(mockDocument.code, mockDocument.uuid)).to.be.true;
-//     expect(setDocumentStub.calledWith({
-//       documentID: "1234",
-//       projectID: "proj-5678",
-//       code: "processed-graph TD; A-->B;"
-//     })).to.be.true;
-//     expect(updateCacheStub.calledWith("1234", "processed-graph TD; A-->B;")).to.be.true;
-//     expect(createFileStub.calledWith(mockContext, "processed-graph TD; A-->B;", false)).to.be.true;
+    expect(ensureIdStub.calledWith(mockDocument.code, mockDocument.uuid)).to.be.true;
+    expect(setDocumentStub.calledWith({
+      documentID: "1234",
+      projectID: "proj-5678",
+      code: "processed-graph TD; A-->B;"
+    })).to.be.true;
+    expect(updateCacheStub.calledWith("1234", "processed-graph TD; A-->B;")).to.be.true;
+    expect(createFileStub.calledWith(mockContext, "processed-graph TD; A-->B;", false)).to.be.true;
 
 
-//   });
+  });
 
   test("should handle mcAPI.setDocument errors gracefully", async () => {
     getProjectIdStub.returns("proj-5678");

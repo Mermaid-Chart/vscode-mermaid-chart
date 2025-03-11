@@ -6,17 +6,11 @@ import { MermaidChartVSCode } from '../../../mermaidChartVSCode';
 suite('MermaidChart Login', () => {
   let mcAPI: MermaidChartVSCode;
   let loginStub: sinon.SinonStub;
-  let syncMermaidChartStub: sinon.SinonStub;
-  let trackLoginStub: sinon.SinonStub;
+
 
   setup(() => {
     mcAPI = new MermaidChartVSCode();
-
-    // Stub the methods and save the stubs
     loginStub = sinon.stub(mcAPI, 'login');
-
- 
-
   });
 
   teardown(() => {
@@ -27,14 +21,12 @@ suite('MermaidChart Login', () => {
     
   loginStub.resolves();
   await mcAPI.login();
-    // Check if the stubs were called
     expect(loginStub.calledOnce).to.be.true;
   
   });
   test('should handle login failure', async () => {
     const errorMessage = 'Login failed';
-    loginStub.rejects(new Error(errorMessage)); // Simulate failed login
-  
+    loginStub.rejects(new Error(errorMessage)); 
     try {
       await mcAPI.login();
     } catch (error) {
@@ -44,8 +36,6 @@ suite('MermaidChart Login', () => {
         throw new Error('Unexpected error type');
       }
     }
-  
-
   });
   
 });

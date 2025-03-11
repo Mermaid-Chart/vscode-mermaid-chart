@@ -59,7 +59,7 @@ suite('Connect Diagram Command', function () {
   setup(async function () {
     sandbox = sinon.createSandbox();
   
-    // Stub VS Code APIs
+    
     openTextDocumentStub = sandbox.stub(vscode.workspace, 'openTextDocument').resolves(document);
     showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick').resolves({
       label: 'Test Project',

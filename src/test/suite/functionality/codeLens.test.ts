@@ -12,13 +12,13 @@ suite('MermaidChartCodeLensProvider', () => {
     codeLenses = [];
   });
 
-  // Mock token
+
   const mockToken: any = {
     uri: vscode.Uri.file('/path/to/file.md'),
     range: new vscode.Range(new vscode.Position(0, 0), new vscode.Position(1, 0)),
   };
 
-  // Mock session
+  
   const mockSession: any = {
     accessToken: 'mockToken',
   };

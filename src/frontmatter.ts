@@ -200,15 +200,17 @@ export function parseMetadataFromDiagram(content: string): any {
   return null;
 }
 
-export function extractFilePath(reference: any): string | undefined {
-  const match = reference.match(/File:\s*(.*)\s+\(lines/);
+export function extractFilePaths(reference: any): string[] {
+  const matches = reference.matchAll(/File:\s*(.*?)(?:\s*\(lines.*\))?$/gm);
+  
+  const paths = Array.from(matches, (match: RegExpMatchArray) => match[1]?.trim()).filter(Boolean);
 
-  if (match && match[1]) {
-    return match[1].trim(); 
-  } else {
-    console.error("Failed to extract the file path from the reference.");
-    return undefined;
+  if (paths.length === 0) {
+    console.error("Failed to extract file paths from the reference.");
   }
+
+  return paths;
 }
+
 
 

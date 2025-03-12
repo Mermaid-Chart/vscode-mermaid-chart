@@ -544,9 +544,13 @@ export function getFileModifiedTime(filePath: string): Date | null {
     }
   }
   
-  export function  checkIfFileChanged(sourceFile: string, generationTime: Date): boolean {
-    const modifiedTime = getFileModifiedTime(sourceFile);
-    return modifiedTime ? modifiedTime > generationTime : false;
+  export function checkIfFileChanged(sourceFiles: string[], generationTime: Date): boolean {
+    return sourceFiles.some((filePath) => {
+      const modifiedTime = getFileModifiedTime(filePath);
+      console.log(`Checking file: ${filePath}, Modified Time: ${modifiedTime}, Generation Time: ${generationTime}`);
+      return modifiedTime ? modifiedTime > generationTime : false;
+    });
   }
+  
 
 

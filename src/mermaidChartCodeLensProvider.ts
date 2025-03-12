@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import { checkIfFileChanged, isAuxFile, MermaidChartToken } from "./util";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
-import { extractFilePath, extractIdFromCode, parseMetadataFromDiagram } from "./frontmatter";
-import * as fs from "fs";
+import { extractFilePaths, extractIdFromCode, parseMetadataFromDiagram } from "./frontmatter";
+
 
 export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
   constructor(private mermaidChartTokens: MermaidChartToken[]) {}
@@ -19,21 +19,14 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
     const editor = vscode.window.activeTextEditor;
     if (!editor) return codeLenses;
     const metadata=parseMetadataFromDiagram(editor.document.getText());
-  
-  const source = metadata.references ? extractFilePath(metadata.references[0]) : undefined;
-  
     
-    if (metadata?.references && metadata?.generationTime && source) {
-      const fileChanged = checkIfFileChanged(
-        source,
-        new Date(metadata.generationTime)
-      );
-    
-      if (fileChanged) {
+    if (metadata?.references && metadata?.generationTime) {
+      const filesPath = metadata.references
+        .flatMap((ref: any) => extractFilePaths(ref))
+        .filter(Boolean); 
+      if (filesPath.length > 0 && checkIfFileChanged(filesPath, new Date(metadata.generationTime))) {
         this.addUpdateDiagramCodeLens(codeLenses, document.uri);
       }
-
-     
     }
   
 
@@ -88,8 +81,8 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
     codeLenses.push(
       new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
         title: "Update Diagram",
-        command: "mermaidChart.editLocally",
-        arguments: [diagramUri]
+        command: "extension.updateCodeLens",
+        // arguments: [diagramUri]
       })
     );
   }

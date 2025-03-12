@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
-import { isAuxFile, MermaidChartToken } from "./util";
+import { checkIfFileChanged, isAuxFile, MermaidChartToken } from "./util";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
-import { extractIdFromCode } from "./frontmatter";
+import { extractFilePath, extractIdFromCode, parseMetadataFromDiagram } from "./frontmatter";
+import * as fs from "fs";
 
 export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
   constructor(private mermaidChartTokens: MermaidChartToken[]) {}
@@ -17,6 +18,25 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
     const codeLenses: vscode.CodeLens[] = [];
     const editor = vscode.window.activeTextEditor;
     if (!editor) return codeLenses;
+    const metadata=parseMetadataFromDiagram(editor.document.getText());
+  
+  const source = metadata.references ? extractFilePath(metadata.references[0]) : undefined;
+  
+    
+    if (metadata?.references && metadata?.generationTime && source) {
+      const fileChanged = checkIfFileChanged(
+        source,
+        new Date(metadata.generationTime)
+      );
+    
+      if (fileChanged) {
+        this.addUpdateDiagramCodeLens(codeLenses, document.uri);
+      }
+
+     
+    }
+  
+
   
     const session = await vscode.authentication.getSession(
       MermaidChartAuthenticationProvider.id,
@@ -37,7 +57,7 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
   
     return codeLenses;
   }
-  
+
   private addAuxFileCodeLenses(
     codeLenses: vscode.CodeLens[],
     token: MermaidChartToken,
@@ -59,6 +79,19 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
     codeLenses.push(this.createCodeLens(token, "View Diagram", "extension.viewMermaidChart", [token.uuid]));
     codeLenses.push(this.createCodeLens(token, "Edit Diagram in Mermaid Chart", "extension.editMermaidChart", [token.uuid]));
     codeLenses.push(this.createCodeLens(token, "Edit Diagram", "mermaidChart.editLocally", [token.uuid]));
+  }
+
+  private addUpdateDiagramCodeLens(
+    codeLenses: vscode.CodeLens[],
+    diagramUri: vscode.Uri
+  ) {
+    codeLenses.push(
+      new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
+        title: "Update Diagram",
+        command: "mermaidChart.editLocally",
+        arguments: [diagramUri]
+      })
+    );
   }
   
   private createCodeLens(

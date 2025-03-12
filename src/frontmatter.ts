@@ -1,5 +1,6 @@
 import { parseDocument, type Document, YAMLMap, isMap, parse, stringify } from 'yaml';
 import { pattern } from './util';
+import * as yaml from 'js-yaml';
 
 
 // const frontMatterRegex = /^-{3}\s*[\n\r](.*?[\n\r])-{3}\s*[\n\r]+/s;
@@ -183,3 +184,31 @@ export function addMetadataToFrontmatter(
   
   return `---\n${document.toString()}---\n${diagramText}`;
 }
+
+
+export function parseMetadataFromDiagram(content: string): any {
+  const metadataRegex = /---\n([\s\S]*?)\n---/;
+  const match = content.match(metadataRegex);
+
+  if (match) {
+    try {
+      return yaml.load(match[1]); // Parse YAML instead of JSON
+    } catch (error) {
+      console.error("Failed to parse metadata:", error);
+    }
+  }
+  return null;
+}
+
+export function extractFilePath(reference: any): string | undefined {
+  const match = reference.match(/File:\s*(.*)\s+\(lines/);
+
+  if (match && match[1]) {
+    return match[1].trim(); 
+  } else {
+    console.error("Failed to extract the file path from the reference.");
+    return undefined;
+  }
+}
+
+

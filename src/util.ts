@@ -9,6 +9,7 @@ import {
 } from "./mermaidChartProvider";
 import * as path from 'path';
 import { extractIdFromCode } from "./frontmatter";
+import * as fs from "fs";
 
 const activeListeners = new Map<string, vscode.Disposable>();
 const REOPEN_CHECK_DELAY_MS = 500; // Delay before checking if temp file is reopened
@@ -533,5 +534,19 @@ export const findDiagramCode = (items: MCTreeItem[], uuid: string): string | und
   }
   return undefined;
 };
+export function getFileModifiedTime(filePath: string): Date | null {
+    try {
+      const stats = fs.statSync(filePath);
+      return stats.mtime; 
+    } catch (err) {
+      console.error(`Failed to get file modified time for ${filePath}: ${err}`);
+      return null;
+    }
+  }
+  
+  export function  checkIfFileChanged(sourceFile: string, generationTime: Date): boolean {
+    const modifiedTime = getFileModifiedTime(sourceFile);
+    return modifiedTime ? modifiedTime > generationTime : false;
+  }
 
 

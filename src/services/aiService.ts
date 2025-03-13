@@ -106,36 +106,40 @@ export class MermaidAIService {
    * @param references - The references from the request
    * @returns Array of reference descriptions
    */
+ 
   private static async extractReferenceInfo(
     references?: ReadonlyArray<vscode.ChatPromptReference>
   ): Promise<string[]> {
     if (!references || references.length === 0) {
       return [];
     }
-    
+  
     const referenceInfo: string[] = [];
-    
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  
     for (const reference of references) {
       try {
         const value = reference.value;
-        
-        if (value instanceof vscode.Uri) {
-          // For file references, just store the path
-          referenceInfo.push(`File: ${value.path}`);
-        } else if (value instanceof vscode.Location) {
-          // For location references, store the path and line numbers
-          referenceInfo.push(`File: ${value.uri.path} (lines ${value.range.start.line + 1}-${value.range.end.line + 1})`);
+  
+        if (value instanceof vscode.Uri && workspaceFolder) {
+          const relativePath = vscode.workspace.asRelativePath(value, true);
+          referenceInfo.push(`File: ${relativePath}`);
+        } else if (value instanceof vscode.Location && workspaceFolder) {
+          const relativePath = vscode.workspace.asRelativePath(value.uri, true);
+          referenceInfo.push(
+            `File: ${relativePath} (lines ${value.range.start.line + 1}-${value.range.end.line + 1})`
+          );
         } else if (typeof value === 'string') {
-          // For string references
           referenceInfo.push(`Reference: ${value}`);
         }
       } catch (error) {
         console.error(`Error extracting reference info: ${error}`);
       }
     }
-    
+  
     return referenceInfo;
   }
+  
   
   /**
    * Initialize messages array with system prompt

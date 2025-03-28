@@ -245,6 +245,28 @@ export class DiagramRegenerator {
     }
   }
   
+public  static async  fixMermaidDiagram(document: vscode.TextDocument, diagnostic: vscode.Diagnostic) {
+    try {
+      const diagramCode = document.getText();
+      
+      const prompt = `Fix the following Mermaid diagram based on the issue: ${diagnostic.message}\n\n\`\`\`mermaid\n${diagramCode}\n\`\`\``;
+  
+      const fixedDiagram = await DiagramRegenerator.getUpdatedDiagramFromAI(prompt);
+  
+      if (fixedDiagram) {
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), fixedDiagram);
+        await vscode.workspace.applyEdit(edit);
+  
+        vscode.window.showInformationMessage("Diagram fixed successfully.");
+      } else {
+        vscode.window.showWarningMessage("No fixes were suggested for the diagram.");
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to fix the diagram: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  
   /**
    * Updates the document with the new diagram
    * @param uri The URI of the document

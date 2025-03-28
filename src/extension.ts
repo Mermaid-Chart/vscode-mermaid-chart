@@ -8,6 +8,7 @@ import {
   findDiagramCode,
   findMermaidChartTokens,
   findMermaidChartTokensFromAuxFiles,
+  flattenProjects,
   getHelpUrl,
   getMermaidChartTokenDecoration,
   insertMermaidChartToken,
@@ -32,6 +33,8 @@ import { aiHandler } from './commercial/ai/aiService';
 import { DiagramRegenerator } from './commercial/sync/diagramRegenerator';
 import { initializeAIChatParticipant } from "./commercial/ai/chatParticipant";
 import { registerRegenerateCommand } from './commercial/sync/regenerateCommand';
+import { MermaidAICodeActionProvider } from "./mermaidAiFixProvider";
+
 
 let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWords.json');
 let isExtensionStarted = false;
@@ -66,6 +69,18 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("mermaidWebview", mermaidWebviewProvider)
   );
+
+
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      [{ scheme: "file" }, { scheme: "untitled" }],
+      new MermaidAICodeActionProvider(),
+      { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] } 
+    )
+  );
+
+  
+  console.log("✅ Mermaid AI CodeActionProvider Registered!");
   
   updateViewVisibility(isUserLoggedIn, mermaidWebviewProvider, mermaidChartProvider);
 
@@ -91,6 +106,14 @@ export async function activate(context: vscode.ExtensionContext) {
     createMermaidFile(context, null, false)
   })
   context.subscriptions.push(
+    vscode.commands.registerCommand("mermaid-ai.fixDiagram", async (document: vscode.TextDocument, range: vscode.Range, diagnostic: vscode.Diagnostic) => {
+    
+      await DiagramRegenerator.fixMermaidDiagram(document,diagnostic);
+    
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.logout', async () => {
       mcAPI.logout(context);
       analytics.trackLogout();
@@ -106,7 +129,7 @@ export async function activate(context: vscode.ExtensionContext) {
   
 
 
-    const mermaidChartGutterIconDecoration = vscode.window.createTextEditorDecorationType({
+ const mermaidChartGutterIconDecoration = vscode.window.createTextEditorDecorationType({
       gutterIconPath: vscode.Uri.file(context.asAbsolutePath("images/mermaid-icon-16.png")), // Add the icon file path
       gutterIconSize: "8x8",// Adjust the icon size as desired
     });
@@ -236,7 +259,7 @@ context.subscriptions.push(
     }
   })
 );
- 
+
 context.subscriptions.push(
   vscode.commands.registerCommand('mermaid.connectDiagram', async (uri: vscode.Uri, range: vscode.Range) => {
     const document = await vscode.workspace.openTextDocument(uri);
@@ -248,8 +271,11 @@ context.subscriptions.push(
     }
     const projects = getAllTreeViewProjectsCache();
 
+
+    const flattenedProjects = flattenProjects(projects);
+
     const selectedProject = await vscode.window.showQuickPick(
-      projects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),
+      flattenedProjects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),
       { placeHolder: "Select a project to save the diagram" }
     );
 
@@ -281,14 +307,14 @@ context.subscriptions.push(
       }
     } catch (error) {
       if (error instanceof Error ) {
-        const errMessage = error.message; 
+        const errMessage = error.message;
         const matchedError = Object.keys(customErrorMessage).find((key) =>errMessage.includes(key));
         vscode.window.showErrorMessage(matchedError ? customErrorMessage[matchedError] : `Error: ${errMessage}`);
-        } else {
+      } else {
         vscode.window.showErrorMessage("Unknown error occurred.");
-        }
-        analytics.trackException(error);
       }
+      analytics.trackException(error);
+    }
   })
 );
 
@@ -446,10 +472,16 @@ context.subscriptions.push(
       vscode.window.showWarningMessage("This diagram is already connected to Mermaid Chart.");
       return;
     }
+    if (MermaidChartProvider.isSyncing) {
+      vscode.window.showInformationMessage('Please wait, diagrams are being synchronized...');
+      await MermaidChartProvider.waitForSync();
+    }
 
     const projects = getAllTreeViewProjectsCache();
+    const flattenedProjects = flattenProjects(projects);
+
     const selectedProject = await vscode.window.showQuickPick(
-      projects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),
+      flattenedProjects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),
       { placeHolder: "Select a project to save the diagram" }
     );
 

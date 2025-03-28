@@ -125,33 +125,17 @@ console.log("In Preview Panel",maxZoom);
   private handleDiagramError(errorMessage: string) {
     const diagnostics: vscode.Diagnostic[] = [];
     const errorDetails = this.getErrorLine(errorMessage);
+    console.log("Error Details", errorDetails);
   
     if (errorDetails) {
-      const caretPositionMatch = errorMessage.match(/(\^)/);
-      const lineText = errorMessage.split("\n")[1].trim();
-      const caretIndex = caretPositionMatch?.index ?? 0;
-      const wordsBeforeCaret = lineText.substring(0, caretIndex).split(/\s+/);
-      const wordsAfterCaret = lineText.substring(caretIndex + 1).split(/\s+/);
-  
-      const startWord = wordsBeforeCaret[wordsBeforeCaret.length - 1];
-      const endWord = wordsAfterCaret[0];
-  
-      const startCharacter = lineText.indexOf(startWord);
-      const endCharacter = lineText.indexOf(endWord) + endWord.length;
-  
-      const range = new vscode.Range(
-        errorDetails.line, 
-        startCharacter, 
-        errorDetails.line, 
-        endCharacter
-      );
+      const range = new vscode.Range(errorDetails.line, 0, errorDetails.line, 100); // Adjusted range
   
       const diagnostic = new vscode.Diagnostic(
         range,
         `Syntax error: ${errorDetails.message}`,
         vscode.DiagnosticSeverity.Error
       );
-      
+  
       diagnostics.push(diagnostic);
     }
   

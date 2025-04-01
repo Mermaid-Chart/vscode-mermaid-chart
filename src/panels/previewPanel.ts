@@ -92,31 +92,46 @@ console.log("In Preview Panel",maxZoom);
   private setupListeners() {
     const debouncedUpdate = debounce(() => this.update(), 300);
     vscode.workspace.onDidChangeTextDocument((event) => {
-      if (event.document === this.document) {
-        debouncedUpdate();
-      }
+        if (event.document === this.document) {
+            debouncedUpdate();
+        }
     }, this.disposables);
 
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor?.document?.languageId.startsWith('mermaid')) {
-        if (editor.document.uri.toString() !== this.document?.uri.toString()) {
-          this.document = editor.document; 
-          this.isFileChange = true; 
-          debouncedUpdate();
-        }
-      } 
+        if (editor?.document?.languageId.startsWith('mermaid')) {
+            if (editor.document.uri.toString() !== this.document?.uri.toString()) {
+                this.document = editor.document; 
+                this.isFileChange = true; 
+                debouncedUpdate();
+            }
+        } 
     }, this.disposables);
 
     vscode.window.onDidChangeActiveColorTheme(() => {
-      this.update(); 
-  }, this.disposables);
+        this.update(); 
+    }, this.disposables);
 
-    this.panel.webview. onDidReceiveMessage((message) => {
-      if (message.type === "error" && message.message) {
-        this.handleDiagramError(message.message);
-      } else if (message.type === "clearError") {
-        this.diagnosticsCollection.clear();
-    }
+    this.panel.webview.onDidReceiveMessage((message) => {
+        if (message.type === "error" && message.message) {
+            this.handleDiagramError(message.message);
+        } else if (message.type === "clearError") {
+            this.diagnosticsCollection.clear();
+        } else if (message.type === "fixWithAI") {
+          const editor = vscode.window.visibleTextEditors.find(
+              (editor) => editor.document.uri.toString() === this.document.uri.toString()
+          );
+          if (editor) {
+              const document = editor.document;
+              const diagnostic = this.diagnosticsCollection.get(document.uri)?.[0];
+              if (diagnostic) {
+                  vscode.commands.executeCommand("mermaid-ai.fixDiagram", document, diagnostic.range, diagnostic);
+              } else {
+                  vscode.window.showErrorMessage("No diagnostic information available to fix the diagram.");
+              }
+          } else {
+              vscode.window.showErrorMessage("No editor found for the document to fix the diagram.");
+          }
+      }
     });
 
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);

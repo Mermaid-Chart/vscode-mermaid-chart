@@ -40,14 +40,36 @@ import { ValidationBridgeImpl } from "./commercial/ai/tools/validationTool";
 import { injectMermaidTheme } from "./previewmarkdown/themeing";
 import { extendMarkdownItWithMermaid } from "./previewmarkdown/shared-md-mermaid";
 
-
+// --- Configuration for Conflict Check ---
+const PREVIEW_EXTENSION_ID = 'vstirbu.vscode-mermaid-preview'; // ID of the deprecated preview extension
+const THIS_EXTENSION_ID_CHART = 'MermaidChart.vscode-mermaid-chart'; // ID of this official extension (Verify publisher.name in package.json)
+// --- End Configuration ---
 
 let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWords.json');
 let isExtensionStarted = false;
 
-
 export async function activate(context: vscode.ExtensionContext) {
-  console.log("Activating Mermaid Chart extension");
+  console.log(`Activating ${THIS_EXTENSION_ID_CHART}`);
+
+  // --- Conflict Check: Uninstall Preview if Found ---
+  const previewExtension = vscode.extensions.getExtension(PREVIEW_EXTENSION_ID);
+  if (previewExtension) {
+    console.log(`[${THIS_EXTENSION_ID_CHART}] Detected conflicting extension: ${PREVIEW_EXTENSION_ID}.`);
+    console.log(`[${THIS_EXTENSION_ID_CHART}] Automatically uninstalling ${PREVIEW_EXTENSION_ID}.`);
+
+    try {
+      await vscode.commands.executeCommand('workbench.extensions.uninstallExtension', PREVIEW_EXTENSION_ID);
+      vscode.window.showInformationMessage(
+        `The conflicting "Mermaid Preview" extension (${PREVIEW_EXTENSION_ID}) has been automatically uninstalled. Please reload VS Code if prompted.`
+      );
+    } catch (error) {
+      console.error(`[${THIS_EXTENSION_ID_CHART}] Failed to uninstall ${PREVIEW_EXTENSION_ID}:`, error);
+      vscode.window.showWarningMessage(
+        `Could not automatically uninstall the conflicting "Mermaid Preview" extension (${PREVIEW_EXTENSION_ID}). Please uninstall it manually.`
+      );
+    }
+  }
+  // --- End Conflict Check ---
 
   analytics.trackActivation();
   

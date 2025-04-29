@@ -33,6 +33,7 @@ export function handleTextDocumentChange(
     const diagramType = getDiagramTypeFromWord(firstWord, diagramMappings);
 
     if (diagramType) {
+   
       const grammarPath = path.join(__dirname, '..', 'syntaxes', `mermaid-${diagramType}.tmLanguage.json`);
 
       // Apply the syntax highlighting from the appropriate .tmLanguage file

@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import { PreviewPanel } from "../panels/previewPanel";
 import { TempFileCache } from "../cache/tempFileCache";
+import analytics from "../analytics";
+import { normalizeMermaidText } from "../frontmatter";
 
 export async function createMermaidFile(
   context: vscode.ExtensionContext,
@@ -57,6 +59,7 @@ export async function createMermaidFile(
     return editor;
   } catch (error) {
     console.error("Error creating Mermaid file:", error);
+    analytics.trackException(error);
     return null;
   }
 }
@@ -78,4 +81,22 @@ export function getPreview() {
     return;
   }
   PreviewPanel.createOrShow(document);
+}
+
+export async function openMermaidPreview(
+  context: vscode.ExtensionContext,
+  mermaidCode: string
+): Promise<vscode.TextEditor | null> {
+  try {
+    // Normalize the Mermaid code using the frontmatter utility
+    const normalizedCode = normalizeMermaidText(mermaidCode);
+    
+    // Create new file with the normalized code
+    return await createMermaidFile(context, normalizedCode, false);
+  } catch (error) {
+    console.error("Error opening Mermaid preview:", error);
+    analytics.trackException(error);
+    vscode.window.showErrorMessage("Failed to open Mermaid preview");
+    return null;
+  }
 }

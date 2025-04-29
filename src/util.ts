@@ -5,12 +5,23 @@ import { MermaidChartVSCode } from "./mermaidChartVSCode";
 import {
   MermaidChartProvider,
   ITEM_TYPE_DOCUMENT,
+  MCTreeItem,
 } from "./mermaidChartProvider";
-import path = require("path");
+import * as path from 'path';
 import { extractIdFromCode } from "./frontmatter";
+import * as packageJson from '../package.json';
 
 const activeListeners = new Map<string, vscode.Disposable>();
 const REOPEN_CHECK_DELAY_MS = 500; // Delay before checking if temp file is reopened
+import { MermaidWebviewProvider } from "./panels/loginPanel";
+import { getSampleDiagrams } from "./constants/diagramTemplates";
+const config = vscode.workspace.getConfiguration();
+export const defaultBaseURL = config.get<string>('mermaidChart.baseUrl', 'https://www.mermaidchart.com');
+const DARK_BACKGROUND = "rgba(176, 19, 74, 0.5)"; // #B0134A with 50% opacity
+const LIGHT_BACKGROUND = "#FDE0EE";
+const DARK_COLOR = "#FFFFFF";
+const LIGHT_COLOR = "#1E1A2E";
+export const configSection = 'mermaid';
 
 
 export const pattern : Record<string, RegExp> = {
@@ -129,19 +140,29 @@ export function findMermaidChartTokens(
 export function findMermaidChartTokensFromAuxFiles(document: vscode.TextDocument): MermaidChartToken[] {
   const mermaidChartTokens: MermaidChartToken[] = [];
   const text = document.getText();
-  const regex = pattern[path.extname(document.fileName)];
+  const fileExt = path.extname(document.fileName);
+  const regex = pattern[fileExt];
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(text)) !== null) {
-    const range = new vscode.Range(
+    // Get the full match range
+    const fullRange = new vscode.Range(
       document.positionAt(match.index),
       document.positionAt(match.index + match[0].length)
     );
-    const extractedId = extractIdFromCode(document.getText(range)) || "";
+
+    // Extract only the Mermaid content (match[1] contains the content between delimiters)
+    const contentStart = match.index + match[0].indexOf(match[1]);
+    const contentRange = new vscode.Range(
+      document.positionAt(contentStart),
+      document.positionAt(contentStart + match[1].length)
+    );
+
+    const extractedId = extractIdFromCode(match[1]) || "";
     mermaidChartTokens.push({
       title: `Chart - ${extractedId}`,
       uri: document.uri,
-      range,
+      range: contentRange, // Use the content-only range
       uuid: extractedId,
     });
   }
@@ -152,12 +173,17 @@ export function findMermaidChartTokensFromAuxFiles(document: vscode.TextDocument
 export function applyMermaidChartTokenHighlighting(
   editor: vscode.TextEditor,
   mermaidChartTokens: MermaidChartToken[],
-  mermaidChartTokenDecoration: vscode.TextEditorDecorationType
+  mermaidChartTokenDecoration: vscode.TextEditorDecorationType,
+  mermaidChartGutterIconDecoration: vscode.TextEditorDecorationType
 ) {
-  editor.setDecorations(
-    mermaidChartTokenDecoration,
-    mermaidChartTokens.map((token) => token.range)
-  );
+  const fullBlockDecorations: vscode.DecorationOptions[] = mermaidChartTokens.map(token => ({
+    range: token.range, 
+  }));
+  const gutterIconDecorations: vscode.DecorationOptions[] = mermaidChartTokens.map(token => ({
+    range: new vscode.Range(token.range.start, token.range.start), // Only first line for gutter icon
+  }));
+  editor.setDecorations(mermaidChartTokenDecoration, fullBlockDecorations);
+  editor.setDecorations(mermaidChartGutterIconDecoration, gutterIconDecorations);
 }
 
 export function findComments(document: vscode.TextDocument): vscode.Range[] {
@@ -210,8 +236,8 @@ export async function viewMermaidChart(
   const svgContent = await mcAPI.getRawDocument(
     {
       documentID: uuid,
-      major: "0",
-      minor: "1",
+      major: 0,
+      minor: 1,
     },
     themeParameter
   );
@@ -235,17 +261,23 @@ export async function editMermaidChart(
   uuid: string,
   provider: MermaidChartProvider
 ) {
-  // const project = provider.getProjectOfDocument(uuid);
-  // const projectUuid = project?.uuid;
-  // if (!projectUuid) {
-  //   vscode.window.showErrorMessage(
-  //     "Diagram not found in project. Diagram might have moved to a different project."
-  //   );
-  //   return;
-  // }
+  // Retrieve the document details to get the required fields
+  const document = await mcAPI.getDocument({ documentID: uuid });
+
+  if (!document || !document.projectID) {
+    vscode.window.showErrorMessage(
+      "Document details not found. Unable to edit the chart."
+    );
+    return;
+  }
+
   const editUrl = await mcAPI.getEditURL({
-    documentID: uuid,
+    documentID: document.documentID,
+    major: document.major,
+    minor: document.minor,
+    projectID: document.projectID,
   });
+
   vscode.env.openExternal(vscode.Uri.parse(editUrl));
 }
 
@@ -272,6 +304,34 @@ export async function insertMermaidChartToken(
     );
   });
 }
+
+
+export function updateViewVisibility(isLoggedIn: boolean,webviewProvider?: MermaidWebviewProvider,mermaidChartProvider?: MermaidChartProvider) {
+  vscode.commands.executeCommand("setContext", "mermaid.showChart", isLoggedIn);
+  vscode.commands.executeCommand("setContext", "mermaid.showWebview", !isLoggedIn);
+  if (isLoggedIn) {
+    mermaidChartProvider?.refresh();
+  } else {
+    webviewProvider?.refresh();
+  }
+}
+
+export function getMermaidChartTokenDecoration(): vscode.TextEditorDecorationType {
+
+  // Determine the current theme
+  const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
+
+  // Set the decoration type based on the theme
+  const backgroundColor = isDarkTheme ? DARK_BACKGROUND : LIGHT_BACKGROUND;
+  const color = isDarkTheme ? DARK_COLOR : LIGHT_COLOR;
+
+  return vscode.window.createTextEditorDecorationType({
+    backgroundColor,
+    color,
+  });
+}
+  
+
 
 const getCommentLine = (editor: vscode.TextEditor, uuid: string): string => {
   const languageId = editor.document.languageId;
@@ -405,3 +465,108 @@ export function isAuxFile(fileName: string): boolean {
 
   return allowedExt.includes(fileExt);
 }
+export const getHelpUrl = (diagramType: string) => {
+  switch (diagramType) {
+    case 'erdiagram': {
+      diagramType = 'entityRelationshipDiagram';
+
+      break;
+    }
+    case 'gitgraph': {
+      diagramType = 'gitgraph';
+
+      break;
+    }
+    case 'journey': {
+      diagramType = 'userJourney';
+
+      break;
+    }
+    case 'classdiagram': {
+      diagramType = 'classDiagram';
+
+      break;
+    }
+  
+    case 'statediagram': {
+      diagramType = 'stateDiagram';
+
+      break;
+    }
+    case 'sequencediagram': {
+      diagramType = 'sequenceDiagram';
+
+      break;
+    }
+    case 'requirementdiagram': {
+      diagramType = 'requirementDiagram';
+
+      break;
+    }
+    case 'xychart': {
+      diagramType = 'xyChart';
+
+      break;
+    }
+    case 'quadrantchart':{
+      diagramType = 'quadrantChart';
+
+      break;
+    }
+    case 'c4context':{
+      diagramType = 'c4';
+
+      break;
+    }
+    // No default
+  }
+  return diagramType
+    ? (`https://mermaid.js.org/syntax/${diagramType}.html` as const)
+    : ('https://mermaid.js.org/intro/' as const);
+};
+
+
+export const findDiagramCode = (items: MCTreeItem[], uuid: string): string | undefined => {
+  for (const item of items) {
+    if (item.uuid === uuid) return item.code;
+    if (item.children?.length) {
+      const foundCode = findDiagramCode(item.children, uuid);
+      if (foundCode) return foundCode;
+    }
+  }
+  return undefined;
+};
+
+const mermaidChartGutterIconDecoration = vscode.window.createTextEditorDecorationType({
+  gutterIconPath: vscode.Uri.file(
+    vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)!.extensionPath + "/images/mermaid-icon.svg"
+  ),
+  gutterIconSize: "16x16",
+});
+
+export function applyGutterIconDecoration(position: vscode.Range) {
+  vscode.window.activeTextEditor?.setDecorations(mermaidChartGutterIconDecoration, [
+    position,
+  ]);
+}
+
+
+export function getDiagramTemplates() {
+  return getSampleDiagrams(); 
+}
+
+export function triggerSuggestIfEmpty(document: vscode.TextDocument) {
+  if (document.languageId.startsWith("mermaid") && document.getText().trim() === "") {
+    setTimeout(() => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor && editor.document === document) {
+        vscode.commands.executeCommand("editor.action.triggerSuggest");
+      } 
+    }, 100);
+  }
+}
+
+
+
+
+

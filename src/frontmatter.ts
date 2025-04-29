@@ -1,10 +1,8 @@
 import { parseDocument, type Document, YAMLMap, isMap, parse, stringify } from 'yaml';
-import { pattern } from './util';
+import * as fs from 'fs';
+import * as path from 'path';
 
-
-const frontMatterRegex = /^-{3}\s*[\n\r](.*?[\n\r])-{3}\s*[\n\r]+/s;
-const YAML_BLOCK_REGEX = /^\s*---[\r\n]+([\s\S]+?)[\r\n]+\s*---/gm;
-const EMPTY_BLOCK_REGEX = /^\s*---\s*\n\s*---\s*\n?/;
+// const frontMatterRegex = /^-{3}\s*[\n\r](.*?[\n\r])-{3}\s*[\n\r]+/s;
 const COMMENT_REGEX = /^\s*%%(?!{)[^\n]+\n?/gm;
 const DIRECTIVE_REGEX = /%{2}{\s*(?:(\w+)\s*:|(\w+))\s*(?:(\w+)|((?:(?!}%{2}).|\r?\n)*))?\s*(?:}%{2})?/gi;
 const FIRST_WORD_REGEX = /^\s*(\w+)/;
@@ -19,19 +17,31 @@ function parseFrontMatterYAML(frontMatterYaml: string): Document<YAMLMap, false>
     return document as unknown as Document<YAMLMap, false>;
 }
 
-function splitFrontMatter(text: string) {
-    const matches = text.match(frontMatterRegex);
-    if (!matches || !matches[1]) {
-      return {
-        diagramText: text,
-        frontMatter: '',
-      };
-    } else {
-      return {
-        diagramText: text.slice(matches[0].length),
-        frontMatter: matches[1],
-      };
+export function splitFrontMatter(text: string) {
+    // Normalize line endings and trim the text
+    const normalizedText = text.replace(/\r\n?/g, '\n').trim();
+    
+    // More flexible regex that handles indentation before front matter
+    const frontMatterRegex = /^\s*-{3}[\s\S]*?[\n\r]\s*-{3}/;
+    
+    const matches = normalizedText.match(frontMatterRegex);
+    
+    if (!matches) {
+        return {
+            diagramText: normalizedText,
+            frontMatter: '',
+        };
     }
+
+    const frontMatter = matches[0]
+        .replace(/^\s*---/, '') // Remove opening dashes with any preceding whitespace
+        .replace(/\s*---$/, '') // Remove closing dashes with any trailing whitespace
+        .trim();
+
+    return {
+        diagramText: normalizedText.slice(matches[0].length).trim(),
+        frontMatter: frontMatter,
+    };
 }
 
 
@@ -56,77 +66,14 @@ export function ensureIdField(code: string, diagramId: string): string {
  * @param code The input code containing YAML frontmatter.
  * @returns The extracted ID, or null if not found.
  */
-export function extractIdFromCode(code: string): string | null {
+export function extractIdFromCode(code: string): string | undefined {
     const { frontMatter } = splitFrontMatter(code);
-    if (!frontMatter) return null; // No frontmatter present
+    if (!frontMatter) return undefined; // No frontmatter present
 
     const document = parseFrontMatterYAML(frontMatter);
     const id = document.contents.get('id');
 
-    return typeof id === 'string' ? id : null; // Ensure 'id' is a string
-}
-
-/**
- * Normalizes a YAML block by removing empty frontmatter and reformatting valid YAML.
- * @param block - The YAML block to normalize.
- * @returns The normalized YAML block as a string.
- */
-function normalizeYamlBlock(block: string): string {
-  block = block.replace(EMPTY_BLOCK_REGEX, "");
-
-  return block.replace(YAML_BLOCK_REGEX, (_, yamlContent) => {
-    try {
-      const parsedYaml = parse(yamlContent);
-      return `---\n${stringify(parsedYaml)}\n---`;
-    } catch (error) {
-      return block;
-    }
-  });
-}
-
-/**
- * Adjusts indentation for Mermaid diagram blocks.
- * Determines the minimum indentation and normalizes all lines accordingly.
- * @param block - The Mermaid diagram block.
- * @returns The indentation-normalized block.
- */
-function normalizeMermaidIndentation(block: string): string {
-  const lines = block.split('\n');
-  const minIndent = Math.min(
-    ...lines.filter(line => line.trim() && !/^---/.test(line))
-      .map(line => line.match(/^\s*/)?.[0]?.length || 0)
-  );
-  return lines.map(line => (line.startsWith('---') ? line : line.slice(minIndent))).join('\n');
-}
-
-/**
- * Extracts Mermaid diagram code blocks from the given content based on the file extension.
- * @param content - The full text content to scan for Mermaid code.
- * @param fileExt - The file extension used to determine the regex pattern.
- * @returns An array of extracted Mermaid code blocks.
- */
-export function extractMermaidCode(content: string, fileExt: string): string[] {
-  try {
-    const mermaidRegex = pattern[fileExt];
-    if (!mermaidRegex) {
-      console.warn(`No regex pattern found for file extension: ${fileExt}`);
-      return [];
-    }
-
-    const matches = [...content.matchAll(mermaidRegex)].map(match => {
-      let block = match[1];
-      return normalizeMermaidIndentation(normalizeYamlBlock(block));
-    });
-
-    if (matches.length === 0) {
-      console.warn("No valid Mermaid code blocks found.");
-    }
-
-    return matches;
-  } catch (error) {
-    console.error("Error extracting Mermaid code:", error);
-    return [];
-  }
+    return typeof id === 'string' ? id : undefined; // Ensure 'id' is a string
 }
 
 const cleanupText = (code: string) => {
@@ -181,4 +128,187 @@ export function getFirstWordFromDiagram(text: string): string {
     return match[1].toLowerCase(); // Return the first word in lowercase
   }
   return ''; // Return an empty string if no word is found
+}
+
+/**
+ * Normalizes Mermaid diagram text by properly formatting the front matter and content.
+ * @param code The original diagram code.
+ * @returns The normalized diagram code.
+ */
+export function normalizeMermaidText(code: string): string {
+  const { diagramText, frontMatter } = splitFrontMatter(code);
+  
+  if (!frontMatter) {
+    return diagramText;
+  }
+
+  // Reconstruct the text with proper formatting
+  return `---\n${frontMatter.trim()}\n---\n${diagramText}`;
+}
+
+/**
+ * Adds metadata to the frontmatter of a Mermaid diagram
+ * @param code The original diagram code
+ * @param metadata The metadata to add (query, references, generationTime)
+ * @returns The diagram code with updated frontmatter
+ */
+
+export function addMetadataToFrontmatter(
+  code: string, 
+  metadata: {
+    query?: string;
+    references?: string[];
+    generationTime?: Date;
+  }
+): string {
+  const { diagramText, frontMatter } = splitFrontMatter(code);
+  const document = parseFrontMatterYAML(frontMatter);
+  
+
+
+
+  // Add metadata fields if they exist
+  if (metadata.query) {
+    document.contents.set('query', sanitizeQuery(metadata.query)); // Cleaned query
+  }
+  
+  if (metadata.references && metadata.references.length > 0) {
+    document.contents.set('references', metadata.references);
+  }
+
+  if (metadata.generationTime) {
+    document.contents.set('generationTime', metadata.generationTime.toISOString());
+  }
+
+  return `---\n${document.toString()}---\n${diagramText}`;
+}
+
+/**
+ * Extracts metadata from the YAML frontmatter of a Mermaid diagram
+ * @param code The diagram code with frontmatter
+ * @returns Object containing metadata (references, query)
+ */
+export function extractMetadataFromCode(code: string): {
+  references: string[];
+  generationTime?: Date;
+  query?: string;
+} {
+  const { frontMatter } = splitFrontMatter(code);
+  if (!frontMatter) {
+    return { references: [] };
+  }
+  
+  const document = parseFrontMatterYAML(frontMatter);
+  const result: {
+    references: string[];
+    generationTime?: Date;
+    query?: string;
+  } = {
+    references: []
+  };
+  
+  // Extract references
+  if (document.contents && document.contents.items) {
+    document.contents.items.forEach((item: any) => {
+      if (item.key && item.key.value === 'references' && item.value && item.value.items) {
+        result.references = item.value.items.map((ref: any) => 
+          ref.value ? String(ref.value) : String(ref)
+        );
+      }  else if (item.key && item.key.value === 'generationTime' && item.value) {
+        try {
+          result.generationTime = new Date(String(item.value));
+        } catch (error) {
+          console.error('Error parsing generation time:', error);
+        }
+      } else if (item.key && item.key.value === 'query' && item.value) {
+        result.query = String(item.value);
+      }
+    });
+  }
+  
+  return result;
+}
+
+function sanitizeQuery(query: string): string {
+  return query
+    .split("\n")
+    .filter(line => !line.includes("^") && !line.trim().startsWith("---")) // Remove lines with ^ and ---
+    .join("\n"); 
+}
+
+export function checkReferencedFiles(metadata: any, workspacePath: string = ''): string[] {
+  const changedReferences: string[] = [];
+
+  // If no references, return empty array
+  if (!metadata.references || !Array.isArray(metadata.references) || metadata.references.length === 0) {
+    return changedReferences;
+  }
+
+  // Get generation time from metadata
+  let generationTime = 0;
+  if (metadata.generationTime) {
+    generationTime = new Date(metadata.generationTime).getTime();
+  } else {
+    console.log('No generation time available in metadata');
+  }
+
+  for (const reference of metadata.references) {
+    // Extract file path from reference (assuming format "File: /path/to/file")
+    const match = reference.match(/File: (.*?)(\s|$|\()/);
+    if (!match) continue;
+
+    let filePath = match[1].trim();
+
+    // Early return if reference only contains a filename without a path
+    if (!filePath.includes('/') && !filePath.includes('\\')) {
+      console.log(`Skipping reference without path: ${filePath}`);
+      return [];
+    }
+
+    // If the path starts with '/', treat it as relative to workspace root
+    if (filePath.startsWith('/') && workspacePath) {
+      filePath = path.join(workspacePath, filePath);
+    }
+
+    if (!fs.existsSync(filePath)) {
+      changedReferences.push(`${path.basename(filePath)} (deleted)`);
+      continue;
+    }
+
+    // Get last modification time of the reference file
+    const stats = fs.statSync(filePath);
+    const lastModified = stats.mtimeMs;
+
+    // If reference file was modified after generation time
+    if (generationTime > 0 && lastModified > generationTime) {
+      changedReferences.push(path.basename(filePath));
+    }
+  }
+
+  return changedReferences;
+}
+/**
+ * Finds the position where diagram content starts (after frontmatter if any)
+ * @param text The complete document text
+ * @returns The index where actual diagram content begins
+ */
+export function findDiagramContentStartPosition(text: string): number {
+  const { diagramText } = splitFrontMatter(text);
+  
+  // Find the first non-whitespace character in diagram text
+  const firstNonWhitespaceMatch = diagramText.match(/\S/);
+  
+  if (firstNonWhitespaceMatch) {
+    // Get the offset of the first non-whitespace character
+    const firstContentCharOffset = diagramText.indexOf(firstNonWhitespaceMatch[0]);
+    
+    // Find where diagramText begins in the original text
+    const diagramTextOffset = text.indexOf(diagramText);
+    
+    // Return the position of the first content character
+    return diagramTextOffset + firstContentCharOffset;
+  }
+  
+  // Return 0 if no content found
+  return 0;
 }

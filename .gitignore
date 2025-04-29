@@ -5,3 +5,5 @@ node_modules
 *.vsix
 .DS_Store
 .npmrc
+webview/.npmrc
+dist-preview

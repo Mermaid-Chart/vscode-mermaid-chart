@@ -76,9 +76,14 @@
    "architecture"
   ],
   "packet": [
-    "packet"
+    "packet",
+    "packet-beta"
   ],
   "zenuml": [
     "zenuml"
+  ],
+  "radar": [
+    "radar",
+    "radar-beta"
   ]
 }

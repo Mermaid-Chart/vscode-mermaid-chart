@@ -8,19 +8,19 @@
   import Sidebar from './Sidebar.svelte';
   import { diagramContent as diagramData } from './diagramData';
 
-  let diagramContent: string = diagramData;
+  $: diagramContent = diagramData;
  
   let errorMessage = "";
-  let isToggled = true;
   let panzoomInstance: ReturnType<typeof Panzoom> | null = null;
   let panEnabled = false;
-  let isErrorOccured= false;
-  let theme: "default" | "base" | "dark" | "forest" | "neutral" | "neo" | "neo-dark" | "mc" | "null" = "neo"; 
+  let hasErrorOccured= false;
+  let theme: 'default' | 'base' | 'dark' | 'forest' | 'neutral' | 'neo' | 'neo-dark' | 'redux' | 'redux-dark' | 'redux-color' | 'redux-dark-color' | 'mc' | 'null' = 'redux'; 
   $: zoomLevel = 100;
-  $: sidebarBackgroundColor = theme === "dark" || theme === "neo-dark" ? "#4d4d4d" : "white";
-  $: iconBackgroundColor = theme === "dark" || theme === "neo-dark" ? "#4d4d4d" : "white";
-  $: svgColor = theme === "neo-dark" || theme === "dark" ? "white" : "#2329D6";
-  $: shadowColor = theme === "dark" || theme === "neo-dark" ? "#6b6b6b" : "#A3BDFF";
+  let maxZoomLevel = 5;
+  $: sidebarBackgroundColor = theme?.includes("dark")? "#4d4d4d" : "white";
+  $: iconBackgroundColor = theme?.includes("dark") ? "#4d4d4d" : "white";
+  $: svgColor = theme?.includes("dark") ? "white" : "#2329D6";
+  $: shadowColor = theme?.includes("dark")? "#6b6b6b" : "#A3BDFF";
 
 
     async function initializeMermaid() {
@@ -54,25 +54,45 @@
       }
     }
 
+  async function validateDiagramOnly(content: string) {
+    try {
+      await initializeMermaid();
+      
+      // Just parse the diagram without rendering
+      await mermaid.parse(content || 'info');
+      console.log('validationResult', true)
+      // If no error was thrown, the diagram is valid
+      vscode.postMessage({
+        type: "validationResult",
+        valid: true
+      });
+    } catch (error) {
+      // Send back the validation error
+      vscode.postMessage({
+        type: "validationResult",
+        valid: false,
+        message: `Syntax error in text: ${error.message || error}`
+      });
+    }
+  }
+
   async function renderDiagram() {
       await initializeMermaid();
 
     const element = document.getElementById("mermaid-diagram");
     if (element && diagramContent) {
-      if (diagramContent === " ") { 
-            element.innerHTML = ""; 
-      }
       try {
         const parsed = await mermaid.parse(diagramContent || 'info')
-        if (parsed?.config?.theme) {
-          theme = parsed?.config?.theme;
+        if (parsed?.config?.theme && 
+            ['default', 'base', 'dark' , 'forest' , 'neutral' , 'neo' , 'neo-dark' , 'redux' , 'redux-dark' , 'redux-color' , 'redux-dark-color' , 'mc' , 'null'].includes(parsed.config.theme)) {
+          theme = parsed.config.theme;
         }
         errorMessage = "";
         const currentScale = panzoomInstance?.getScale() || 1;
         const currentPan = panzoomInstance?.getPan() || { x: 0, y: 0 };
         const { svg } = await mermaid.render("diagram-graph", diagramContent);
         element.innerHTML = svg;
-        if (theme && (theme === "dark" || theme === "neo-dark" )) {
+        if (theme?.includes("dark")) {
           element.style.backgroundColor= "#1e1e1e"
         } else {
           element.style.backgroundColor =  "white"
@@ -86,7 +106,7 @@
 
           if (!panzoomInstance) {
           panzoomInstance = Panzoom(element, {
-            maxScale: 5,
+            maxScale: maxZoomLevel,
             minScale: 0.5,
             contain: "outside",
           });
@@ -96,34 +116,17 @@
             updateZoomLevel();
           });        
         }
-          if (!isToggled) {
-          if (panzoomInstance) {
-            panzoomInstance.destroy();
-          }
-          panzoomInstance = Panzoom(element, {
-            maxScale: 5,
-            minScale: 0.5,
-            contain: "outside",
-          });
 
-          element.addEventListener("wheel", (event) => {
-            panzoomInstance?.zoomWithWheel(event);
-            updateZoomLevel();
-          });
-        }
-
-        if (isToggled) {
           panzoomInstance.zoom(currentScale, { animate: false });
           panzoomInstance.pan(currentPan.x, currentPan.y, { animate: false });
-        }
 
           updateCursorStyle();
         }
-        if(isErrorOccured){
+        if(hasErrorOccured){
           vscode.postMessage({
             type: "clearError", 
           });
-          isErrorOccured = false
+          hasErrorOccured = false
         }
       } catch (error) {
         errorMessage = `Syntax error in text: ${error.message || error}`;
@@ -131,7 +134,8 @@
           type: "error",
           message: errorMessage,
         });
-        isErrorOccured = true
+        hasErrorOccured = true
+        element.innerHTML = "";
       }
     }
   }
@@ -172,15 +176,24 @@
   }
 
   window.addEventListener("message", async (event) => {
-    const { type, content, currentTheme,isFileChange} = event.data;
-    if (type === "update" && content) {
-      diagramContent = content;
-      theme = currentTheme;
-      if (isFileChange) {
-      panzoomInstance?.reset();
-      updateZoomLevel()
-    }
-      await renderDiagram();
+    const { type, content, currentTheme, isFileChange, validateOnly } = event.data;
+    if (type === "update") {
+      if (validateOnly && content) {
+        // Just validate without updating UI
+        await validateDiagramOnly(content);
+      } else if (content) {
+        // Regular rendering flow
+        diagramContent = content;
+        theme = currentTheme;
+        if (isFileChange) {
+          panzoomInstance?.reset();
+          updateZoomLevel();
+        }
+        await renderDiagram();
+        if (panzoomInstance) {
+          panzoomInstance.setOptions({ maxScale: maxZoomLevel });
+        } 
+      }
     }
   });
 
@@ -188,10 +201,9 @@
     const appElement = document.getElementById("app");
     const initialContent = appElement?.dataset.initialContent;
     const currentTheme = appElement?.dataset.currentTheme;
-    console.log('initialContent', initialContent)
     if (initialContent) {
       diagramContent = decodeURIComponent(initialContent);
-      theme = decodeURIComponent(currentTheme) as "default" | "base" | "dark" | "forest" | "neutral" | "neo" | "neo-dark" | "mc" | "null";
+      theme = decodeURIComponent(currentTheme) as "default" | "base" | "dark" | "forest" | "neutral" | "null";
       renderDiagram();
     } else {
       renderDiagram();
@@ -209,7 +221,6 @@
     align-items: center;
   }
   #app-container {
-    display: flex;
     flex-direction: column;
     width: 100%;
     height: 100vh;

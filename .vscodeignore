@@ -8,3 +8,6 @@ vsc-extension-quickstart.md
 **/.eslintrc.json
 **/*.map
 **/*.ts
+!images/**  # ✅ Allow all images
+.npmrc
+webview/.npmrc

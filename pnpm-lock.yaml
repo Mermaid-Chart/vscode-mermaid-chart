@@ -35,6 +35,9 @@ importers:
       '@mermaid-chart/vscode-utils':
         specifier: 1.0.7
         version: 1.0.7(vscode@1.1.37)
+      '@mermaid-js/examples':
+        specifier: 0.0.1-beta.1
+        version: 0.0.1-beta.1
       '@mermaidchart/sdk':
         specifier: 0.2.1-alpha.1
         version: 0.2.1-alpha.1
@@ -618,6 +621,9 @@ packages:
     engines: {node: '>=14.0.0', vscode: ^1.77.0}
     peerDependencies:
       vscode: '*'
+
+  '@mermaid-js/examples@0.0.1-beta.1':
+    resolution: {integrity: sha512-dJ8yhCOf9Xh7T6VJzAATtxfhjT+8ywxFWYVuEE8ffu3P5v6iuoP+T27LLJN5aAIgmsLo/wFshlRqZFz3s8OolA==}
 
   '@mermaid-js/parser@0.4.0':
     resolution: {integrity: sha512-wla8XOWvQAwuqy+gxiZqY+c7FokraOTHRWMsbB4AgRx9Sy7zKslNyejy7E+a77qHfey5GXw/ik3IXv/NHMJgaA==}
@@ -3558,6 +3564,8 @@ snapshots:
       yaml: 2.7.1
     transitivePeerDependencies:
       - debug
+
+  '@mermaid-js/examples@0.0.1-beta.1': {}
 
   '@mermaid-js/parser@0.4.0':
     dependencies:

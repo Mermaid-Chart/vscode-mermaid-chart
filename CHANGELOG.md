@@ -1,4 +1,8 @@
 # Change Log
+
+### 2.2.5 -2025-04-30
+- Refined authentication behavior to remove unnecessary login prompts and Account badge indicators, ensuring a less intrusive experience.
+
 ### 2.2.3 -2025-04-22
 ### New Features
 - Added support to render Mermaid diagrams directly in the VS Code Markdown preview, replacing the raw Mermaid code blocks

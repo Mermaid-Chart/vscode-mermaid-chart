@@ -175,6 +175,165 @@
     updateZoomLevel();
   }
 
+  function getSvgElement(): SVGElement | null {
+    const element = document.getElementById("mermaid-diagram");
+    return element?.querySelector("svg") ?? null;
+  }
+
+  async function exportSVG() {
+    const svgElement = getSvgElement();
+    if (!svgElement) {
+      errorMessage = "Could not find SVG element to export.";
+      return;
+    }
+    // Clone the SVG and remove transform to get original size/position
+    const svgClone = svgElement.cloneNode(true) as SVGElement;
+    svgClone.style.transform = ''; // Reset any pan/zoom transforms for export
+    svgClone.removeAttribute('transform'); // Also remove attribute if present
+    svgClone.style.stroke = 'none'; // Remove potential border stroke
+    svgClone.style.border = 'none'; // Remove potential CSS border
+
+    let finalWidth: string | null = null;
+    let finalHeight: string | null = null;
+
+    // Ensure width and height are explicitly set if possible
+    if (!svgClone.getAttribute('width') || !svgClone.getAttribute('height')) {
+        // Cast to SVGGraphicsElement to access getBBox
+        const bbox = (svgElement as SVGGraphicsElement).getBBox();
+        // Add some padding
+        const padding = 10;
+        finalWidth = `${bbox.width + 2 * padding}`;
+        finalHeight = `${bbox.height + 2 * padding}`;
+        svgClone.setAttribute('width', finalWidth);
+        svgClone.setAttribute('height', finalHeight);
+        // Adjust viewBox to include padding
+        svgClone.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${bbox.width + 2 * padding} ${bbox.height + 2 * padding}`);
+    } else {
+        finalWidth = svgClone.getAttribute('width');
+        finalHeight = svgClone.getAttribute('height');
+    }
+
+
+    // Add XML namespace if missing (important for standalone SVG)
+    if (!svgClone.getAttribute('xmlns')) {
+        svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    }
+
+    // --- Add background rectangle ---
+    const backgroundRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    backgroundRect.setAttribute('width', '100%'); // Use 100% to fill the SVG area
+    backgroundRect.setAttribute('height', '100%');
+    backgroundRect.setAttribute('fill', theme?.includes("dark") ? '#1e1e1e' : 'white');
+    // Insert the rectangle as the first element so it's behind the diagram content
+    svgClone.insertBefore(backgroundRect, svgClone.firstChild);
+    // --- End background rectangle ---
+
+
+    const svgString = new XMLSerializer().serializeToString(svgClone);
+
+    vscode.postMessage({
+      type: "exportDiagram",
+      format: "svg",
+      data: svgString
+    });
+    errorMessage = ""; // Clear any previous error
+  }
+
+  async function exportPNG() {
+    const svgElement = getSvgElement();
+     if (!svgElement) {
+      errorMessage = "Could not find SVG element to export.";
+      return;
+    }
+
+    // Similar cloning and dimension setting as SVG export
+    const svgClone = svgElement.cloneNode(true) as SVGElement;
+    svgClone.style.transform = '';
+    svgClone.removeAttribute('transform');
+
+    let width = parseFloat(svgClone.getAttribute('width') || '0');
+    let height = parseFloat(svgClone.getAttribute('height') || '0');
+    const viewBox = svgClone.getAttribute('viewBox');
+
+    if ((!width || !height) && viewBox) {
+        const parts = viewBox.split(' ');
+        if (parts.length === 4) {
+            width = parseFloat(parts[2]);
+            height = parseFloat(parts[3]);
+            svgClone.setAttribute('width', `${width}`);
+            svgClone.setAttribute('height', `${height}`);
+        }
+    }
+
+    // Fallback using bounding box if still no dimensions
+    if (!width || !height) {
+        // Cast to SVGGraphicsElement to access getBBox
+        const bbox = (svgElement as SVGGraphicsElement).getBBox();
+        const padding = 10;
+        width = bbox.width + 2 * padding;
+        height = bbox.height + 2 * padding;
+        svgClone.setAttribute('width', `${width}`);
+        svgClone.setAttribute('height', `${height}`);
+        svgClone.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`);
+    }
+
+    if (!width || !height || width <= 0 || height <= 0) {
+        errorMessage = "Could not determine valid dimensions for PNG export.";
+        console.error("Invalid dimensions for PNG export:", width, height);
+        return;
+    }
+
+    if (!svgClone.getAttribute('xmlns')) {
+        svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    }
+
+    const svgString = new XMLSerializer().serializeToString(svgClone);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      // Use a higher resolution for better quality, e.g., 2x
+      const scaleFactor = 2;
+      canvas.width = width * scaleFactor;
+      canvas.height = height * scaleFactor;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        errorMessage = "Could not get canvas context for PNG export.";
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      // Optional: Fill background if transparency is not desired
+      ctx.fillStyle = theme?.includes("dark") ? '#1e1e1e' : 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.scale(scaleFactor, scaleFactor); // Scale context for higher resolution drawing
+      ctx.drawImage(img, 0, 0, width, height); // Draw image at original size
+
+      const pngDataUrl = canvas.toDataURL('image/png');
+      URL.revokeObjectURL(url); // Clean up blob URL
+
+      vscode.postMessage({
+        type: "exportDiagram",
+        format: "png",
+        data: pngDataUrl // Send base64 data URL
+      });
+       errorMessage = ""; // Clear any previous error
+    };
+
+    img.onerror = (e) => {
+      errorMessage = "Failed to load SVG into image for PNG export.";
+      console.error("Image load error:", e);
+      URL.revokeObjectURL(url);
+    };
+
+    img.src = url;
+  }
+
   window.addEventListener("message", async (event) => {
     const { type, content, currentTheme, isFileChange, validateOnly } = event.data;
     if (type === "update") {
@@ -234,7 +393,20 @@
   <ErrorMessage {errorMessage} />
   <div id="mermaid-diagram"></div>
   {#if !errorMessage}
-    <Sidebar {panEnabled} {iconBackgroundColor} {sidebarBackgroundColor} {shadowColor} {svgColor} {zoomLevel} {togglePan} {zoomOut} {resetView} {zoomIn} />
+    <Sidebar
+      {panEnabled}
+      {iconBackgroundColor}
+      {sidebarBackgroundColor}
+      {shadowColor}
+      {svgColor}
+      {zoomLevel}
+      {togglePan}
+      {zoomOut}
+      {resetView}
+      {zoomIn}
+      {exportSVG}
+      {exportPNG}
+    />
   {/if}
 </div>
 

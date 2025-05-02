@@ -95,6 +95,7 @@
     transition: background-color 0.2s;
     color: var(--svg-color);
     text-align: left;
+    font-family: "Recursive", serif;
     border: none;
     background: none;
   }

@@ -30,6 +30,7 @@
         font-weight: bold;
         padding: 6px 8px;
         border: 1px solid #ddd;
+        font-family: "Recursive", serif;
         border-radius: 4px;
         display: flex;
         align-items: center;
@@ -48,6 +49,7 @@
     .icon {
         cursor: pointer;
         border: none;
+        font-family: "Recursive", serif;
         background-color: var(--icon-bg);
         padding: 3px;
         border-radius: 6px;

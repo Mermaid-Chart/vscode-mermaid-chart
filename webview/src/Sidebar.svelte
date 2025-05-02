@@ -2,9 +2,11 @@
   import PanIcon from "./PanIcon.svelte";
   import ZoomInIcon from "./ZoomInIcon.svelte";
   import ZoomOutIcon from "./ZoomOutIcon.svelte";
+  import ExportIcon from "./ExportIcon.svelte";
+  import SvgIcon from "./SvgIcon.svelte";
 
     export let panEnabled, iconBackgroundColor, shadowColor, sidebarBackgroundColor, svgColor, zoomLevel;
-    export let togglePan, zoomOut, resetView, zoomIn;
+    export let togglePan, zoomOut, resetView, zoomIn, exportPng, exportSvg;
   </script>
 
   <style>
@@ -92,6 +94,14 @@
     
     <button class="icon" style="--icon-bg: {iconBackgroundColor};" on:click={zoomIn} aria-label="Zoom In" title="Zoom In">
       <ZoomInIcon fill={svgColor} />
+    </button>
+    
+    <button class="icon" style="--icon-bg: {iconBackgroundColor};" on:click={exportPng} aria-label="Export PNG" title="Export PNG">
+      <ExportIcon fill={svgColor} />
+    </button>
+    
+    <button class="icon" style="--icon-bg: {iconBackgroundColor};" on:click={exportSvg} aria-label="Export SVG" title="Export SVG">
+      <SvgIcon fill={svgColor} />
     </button>
     
     <div class="zoom-level" style="--icon-bg: {iconBackgroundColor};">

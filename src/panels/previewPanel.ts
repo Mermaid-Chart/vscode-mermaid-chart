@@ -3,6 +3,7 @@ import { debounce } from "../utils/debounce";
 import { getWebviewHTML } from "../templates/previewTemplate";
 import { isAuxFile } from "../util";
 import * as packageJson from "../../package.json";
+import { exportDiagramAsPng, exportDiagramAsSvg } from "../services/renderService";
 const DARK_THEME_KEY = "mermaid.vscode.dark";
 const LIGHT_THEME_KEY = "mermaid.vscode.light";
 const MAX_ZOOM= "mermaid.vscode.maxZoom";
@@ -106,12 +107,16 @@ export class PreviewPanel {
       this.update(); 
   }, this.disposables);
 
-    this.panel.webview. onDidReceiveMessage((message) => {
+    this.panel.webview.onDidReceiveMessage((message) => {
       if (message.type === "error" && message.message) {
         this.handleDiagramError(message.message);
       } else if (message.type === "clearError") {
         this.diagnosticsCollection.clear();
-    }
+      } else if (message.type === "exportPng") {
+        exportDiagramAsPng(this.document);
+      } else if (message.type === "exportSvg" && message.svgBase64) {
+        exportDiagramAsSvg(this.document, message.svgBase64);
+      }
     });
 
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);

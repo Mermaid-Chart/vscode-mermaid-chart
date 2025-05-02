@@ -7,6 +7,7 @@
   import ErrorMessage from './ErrorMessage.svelte';
   import Sidebar from './Sidebar.svelte';
   import { diagramContent as diagramData } from './diagramData';
+  import { Base64 } from 'js-base64';
 
   $: diagramContent = diagramData;
  
@@ -175,6 +176,64 @@
     updateZoomLevel();
   }
 
+  function exportSvg() {
+    try {
+      const element = document.getElementById("mermaid-diagram");
+      if (!element) return;
+      
+      const svgElement = element.querySelector("svg");
+      if (!svgElement) return;
+      
+      const svgClone = svgElement.cloneNode(true) as SVGElement;
+      
+      if (theme?.includes("dark")) {
+        svgClone.style.background = "#171719";
+      } else {
+        svgClone.style.background = "white";
+      }
+      
+      const styleEl = document.createElement('style');
+      styleEl.textContent = `@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"); p {margin: 0;}`;
+      svgClone.prepend(styleEl);
+      
+      if (theme === 'redux' || theme === 'redux-dark' || 
+          theme === 'redux-color' || theme === 'redux-dark-color') {
+        const recursiveFontStyleElement = document.createElement('style');
+        recursiveFontStyleElement.textContent = `
+          @font-face {
+            font-family: 'Recursive Variable';
+            font-style: normal;
+            font-display: swap;
+            font-weight: 300 1000;
+            src: url("https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap") format('woff2-variations');
+          }`;
+        svgClone.prepend(recursiveFontStyleElement);
+      }
+      
+      const xmlSerializer = new XMLSerializer();
+      const svgString = xmlSerializer.serializeToString(svgClone);
+      
+      const svgBase64 = Base64.encode(svgString);
+      
+      vscode.postMessage({
+        type: "exportSvg",
+        svgBase64: svgBase64
+      });
+    } catch (error) {
+      console.error("Error exporting SVG:", error);
+      vscode.postMessage({
+        type: "error",
+        message: `Error exporting SVG: ${error.message || error}`
+      });
+    }
+  }
+
+  function exportPng() {
+    vscode.postMessage({
+      type: "exportPng"
+    });
+  }
+
   window.addEventListener("message", async (event) => {
     const { type, content, currentTheme, isFileChange, validateOnly } = event.data;
     if (type === "update") {
@@ -234,7 +293,7 @@
   <ErrorMessage {errorMessage} />
   <div id="mermaid-diagram"></div>
   {#if !errorMessage}
-    <Sidebar {panEnabled} {iconBackgroundColor} {sidebarBackgroundColor} {shadowColor} {svgColor} {zoomLevel} {togglePan} {zoomOut} {resetView} {zoomIn} />
+    <Sidebar {panEnabled} {iconBackgroundColor} {sidebarBackgroundColor} {shadowColor} {svgColor} {zoomLevel} {togglePan} {zoomOut} {resetView} {zoomIn} {exportPng} {exportSvg} />
   {/if}
 </div>
 

@@ -13,7 +13,7 @@
     .sidebar {
         position: absolute;
         top: 5px;
-        right: 20px;
+        right: 22px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -95,15 +95,6 @@
     <button class="icon" style="--icon-bg: {iconBackgroundColor};" on:click={zoomIn} aria-label="Zoom In" title="Zoom In">
       <ZoomInIcon fill={svgColor} />
     </button>
-    
-    <button class="icon" style="--icon-bg: {iconBackgroundColor};" on:click={exportPng} aria-label="Export PNG" title="Export PNG">
-      <ExportIcon fill={svgColor} />
-    </button>
-    
-    <button class="icon" style="--icon-bg: {iconBackgroundColor};" on:click={exportSvg} aria-label="Export SVG" title="Export SVG">
-      <SvgIcon fill={svgColor} />
-    </button>
-    
     <div class="zoom-level" style="--icon-bg: {iconBackgroundColor};">
       <span style="--icon-bg: {svgColor};" title="Zoom Level">Zoom: {zoomLevel}%</span>
     </div>

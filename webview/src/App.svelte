@@ -8,6 +8,7 @@
   import Sidebar from './Sidebar.svelte';
   import { diagramContent as diagramData } from './diagramData';
   import { Base64 } from 'js-base64';
+  import LeftSideBar from './LeftSideBar.svelte';
 
   $: diagramContent = diagramData;
  
@@ -286,14 +287,23 @@
     background: white;
     gap: 10px;
   }
+  .sidebar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 </style>
 
 
 <div id="app-container">
   <ErrorMessage {errorMessage} />
   <div id="mermaid-diagram"></div>
-  {#if !errorMessage}
+  <div class="sidebar-container">
+    {#if !errorMessage}
+    <LeftSideBar {iconBackgroundColor} {sidebarBackgroundColor} {shadowColor} {svgColor} {exportPng} {exportSvg} />
     <Sidebar {panEnabled} {iconBackgroundColor} {sidebarBackgroundColor} {shadowColor} {svgColor} {zoomLevel} {togglePan} {zoomOut} {resetView} {zoomIn} {exportPng} {exportSvg} />
   {/if}
+  </div>
+
 </div>
 

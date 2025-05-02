@@ -130,26 +130,19 @@ export async function exportDiagramAsPng(document: vscode.TextDocument): Promise
       
       // Get the current theme (dark/light)
       const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
-      
-      // Get theme configuration
-      const config = vscode.workspace.getConfiguration('mermaidChart');
-      
+            
       // Use frontmatter values if available, otherwise use defaults
       const theme = frontmatterConfig.theme || (isDarkTheme ? 'neo-dark' : 'neo');
-      const look = frontmatterConfig.look || 'neo';
+      const isDarkModeEnabled = frontmatterConfig.theme?.includes('dark');
+      const look = frontmatterConfig.look || 'classic';
       const layout = frontmatterConfig.layout || 'dagre';
-      
-    //   // Apply dark theme variant if needed
-    //   const effectiveTheme = isDarkTheme && !theme.includes('dark') 
-    //     ? `${theme}-dark` 
-    //     : theme;
       
       // Render the diagram
       const pngBuffer = await renderExternalDiagram(code, {
         theme: theme,
         look,
         layout,
-        darkModeEnabled: isDarkTheme,
+        darkModeEnabled: isDarkModeEnabled,
         contentType: 'image/png',
       });
       
@@ -175,6 +168,6 @@ export async function exportDiagramAsPng(document: vscode.TextDocument): Promise
     });
   } catch (error) {
     console.error('Error exporting PNG:', error);
-    vscode.window.showErrorMessage(`Failed to export PNG: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    vscode.window.showErrorMessage(`Sorry, we were unable to generate a PNG of your diagram. Please make sure your diagram has no syntax errors in it and try again.`);
   }
 }

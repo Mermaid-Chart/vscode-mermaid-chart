@@ -85,7 +85,7 @@ export async function activate(context: vscode.ExtensionContext) {
     mcAPI
   );
 
-  mermaidChartProvider.syncMermaidChart();
+
   
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("mermaidWebview", mermaidWebviewProvider)
@@ -265,12 +265,18 @@ context.subscriptions.push(
     const document = await vscode.workspace.openTextDocument(uri);
     const content = document.getText();
     const blockContent = content.substring(document.offsetAt(range.start), document.offsetAt(range.end)).trim();
-    if (MermaidChartProvider.isSyncing) {
-      vscode.window.showInformationMessage('Please wait, diagrams are being synchronized...');
-      await MermaidChartProvider.waitForSync();
-    }
     const projects = getAllTreeViewProjectsCache();
-    const flattenedProjects = flattenProjects(projects);
+    let flattenedProjects = flattenProjects(projects);
+    if (flattenedProjects.length === 0) {
+      vscode.window.showInformationMessage('Please wait, diagrams are being synchronized...');
+      await mermaidChartProvider.syncMermaidChart();
+      if(MermaidChartProvider.isSyncing) {
+        await MermaidChartProvider.waitForSync();
+      }
+      const updatedProjects = getAllTreeViewProjectsCache();
+      flattenedProjects = flattenProjects(updatedProjects);
+    }
+   
 
     const selectedProject = await vscode.window.showQuickPick(
       flattenedProjects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),
@@ -472,7 +478,16 @@ context.subscriptions.push(
     }
 
     const projects = getAllTreeViewProjectsCache();
-    const flattenedProjects = flattenProjects(projects);
+    let flattenedProjects = flattenProjects(projects);
+    if (flattenedProjects.length === 0) {
+      vscode.window.showInformationMessage('Please wait, diagrams are being synchronized...');
+      await mermaidChartProvider.syncMermaidChart();
+      if(MermaidChartProvider.isSyncing) {
+        await MermaidChartProvider.waitForSync();
+      }
+      const updatedProjects = getAllTreeViewProjectsCache();
+      flattenedProjects = flattenProjects(updatedProjects);
+    }
 
     const selectedProject = await vscode.window.showQuickPick(
       flattenedProjects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),

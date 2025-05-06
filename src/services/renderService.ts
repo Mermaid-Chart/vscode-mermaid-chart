@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import {extractConfigFromFrontmatter } from '../frontmatter';
 import path from 'path';
 
-const RENDERING_SERVER_URL = 'https://render.mermaidchart.com/';
+const RENDERING_SERVER_URL = '';
 
 export interface RenderExternalDiagramOptions {
   look?: string;
@@ -34,31 +34,13 @@ export async function renderExternalDiagram(
   try {
     // Get API key from configuration or environment
     const config = vscode.workspace.getConfiguration('mermaidChart');
-    const apiKey = config.get<string>('renderingApiKey', 'cb5fvJ3tayWZCjsfdBWb');
+    const apiKey = config.get<string>('renderingApiKey', '');
 
     if (!apiKey) {
       throw new Error('Rendering API key is not configured');
     }
 
-    const response = await axios.post(RENDERING_SERVER_URL, {
-      code,
-      apiKey,
-      look,
-      theme,
-      darkModeEnabled,
-      contentType,
-      layout,
-      positions,
-    }, {
-      responseType: 'arraybuffer',
-      timeout: 59000, // 59 seconds timeout
-    });
-
-    if (response.status !== 200) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`);
-    }
-
-    return Buffer.from(response.data);
+    return Buffer.from('Test');
   } catch (error) {
     console.error('Error while calling external rendering server', error);
     

@@ -112,6 +112,22 @@ export class PreviewPanel {
       } else if (message.type === "clearError") {
         this.diagnosticsCollection.clear();
     }
+    else if (message.type === "fixWithAI") {
+      const editor = vscode.window.visibleTextEditors.find(
+          (editor) => editor.document.uri.toString() === this.document.uri.toString()
+      );
+      if (editor) {
+          const document = editor.document;
+          const diagnostic = this.diagnosticsCollection.get(document.uri)?.[0];
+          if (diagnostic) {
+              vscode.commands.executeCommand("mermaid-ai.fixDiagram", document, diagnostic.range, diagnostic);
+          } else {
+              vscode.window.showErrorMessage("No diagnostic information available to fix the diagram.");
+          }
+      } else {
+          vscode.window.showErrorMessage("No editor found for the document to fix the diagram.");
+      }
+    }
     });
 
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
@@ -119,31 +135,21 @@ export class PreviewPanel {
 
   private handleDiagramError(errorMessage: string) {
     const diagnostics: vscode.Diagnostic[] = [];
-    const errorDetails = this.getErrorLine(errorMessage);
+    
+    // Handle different error message formats
+    const errorDetails = this.parseErrorMessage(errorMessage);
   
     if (errorDetails) {
-      const caretPositionMatch = errorMessage.match(/(\^)/);
-      const lineText = errorMessage.split("\n")[1].trim();
-      const caretIndex = caretPositionMatch?.index ?? 0;
-      const wordsBeforeCaret = lineText.substring(0, caretIndex).split(/\s+/);
-      const wordsAfterCaret = lineText.substring(caretIndex + 1).split(/\s+/);
-  
-      const startWord = wordsBeforeCaret[wordsBeforeCaret.length - 1];
-      const endWord = wordsAfterCaret[0];
-  
-      const startCharacter = lineText.indexOf(startWord);
-      const endCharacter = lineText.indexOf(endWord) + endWord.length;
-  
       const range = new vscode.Range(
         errorDetails.line, 
-        startCharacter, 
+        errorDetails.startCharacter, 
         errorDetails.line, 
-        endCharacter
+        errorDetails.endCharacter
       );
   
       const diagnostic = new vscode.Diagnostic(
         range,
-        `Syntax error: ${errorDetails.message}`,
+        errorDetails.message,
         vscode.DiagnosticSeverity.Error
       );
       
@@ -154,15 +160,72 @@ export class PreviewPanel {
     this.diagnosticsCollection.set(this.document.uri, diagnostics);
   }
   
-  private getErrorLine(errorMessage: string): { line: number; message: string } | null {
-  
-    const match = errorMessage.match(/line (\d+):\s*([\s\S]+)/i); // Case-insensitive match for "line <number>: <message>"
-    if (match) {
-      const line = parseInt(match[1], 10) - 1; // Convert to zero-based index
-      const message = errorMessage;
-      return { line, message };
+  private parseErrorMessage(errorMessage: string): { line: number; startCharacter: number; endCharacter: number; message: string } | null {
+    // Try matching different error message formats
+    
+    // Format 1: "line X:" pattern
+    const linePattern = /line (\d+):/i;
+    const lineMatch = errorMessage.match(linePattern);
+    
+    // Format 2: "Error on line X" pattern
+    const errorLinePattern = /Error on line (\d+)/i;
+    const errorLineMatch = errorMessage.match(errorLinePattern);
+    
+    // Format 3: "Syntax error in graph" pattern
+    const syntaxErrorPattern = /Syntax error in graph/i;
+    const syntaxErrorMatch = errorMessage.match(syntaxErrorPattern);
+    
+    let line = 0;
+    let startCharacter = 0;
+    let endCharacter = 0;
+    
+    if (lineMatch || errorLineMatch) {
+      // Get line number from either format
+      line = parseInt((lineMatch?.[1] || errorLineMatch?.[1] || "1"), 10) - 1;
+      
+      // Try to find the problematic segment in the error message
+      const messageLines = errorMessage.split("\n");
+      if (messageLines.length > 1) {
+        const errorLine = messageLines[1]?.trim() || "";
+        const caretLine = messageLines[2] || "";
+        
+        if (caretLine.includes("^")) {
+          // If we have a caret pointer, use it to determine the error position
+          const caretIndex = caretLine.indexOf("^");
+          startCharacter = Math.max(0, caretIndex - 1);
+          endCharacter = Math.min(errorLine.length, caretIndex + 2);
+        } else {
+          // If no caret, mark the whole line
+          startCharacter = 0;
+          endCharacter = errorLine.length;
+        }
+      }
+    } else if (syntaxErrorMatch) {
+      // For general syntax errors, mark the first line
+      line = 0;
+      startCharacter = 0;
+      endCharacter = this.document.lineAt(0).text.length;
+    } else {
+      // Default case: mark the first problematic character or word found
+      line = 0;
+      const documentText = this.document.getText();
+      const lines = documentText.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim().length > 0) {
+          line = i;
+          startCharacter = lines[i].search(/\S/);
+          endCharacter = lines[i].length;
+          break;
+        }
+      }
     }
-    return null;
+    
+    return {
+      line,
+      startCharacter,
+      endCharacter,
+      message: errorMessage // Return the complete error message instead of just the first line
+    };
   }
 
   public dispose() {

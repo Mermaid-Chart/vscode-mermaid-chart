@@ -41,6 +41,8 @@ import { ValidationBridgeImpl } from "./commercial/ai/tools/validationTool";
 import { injectMermaidTheme } from "./previewmarkdown/themeing";
 import { extendMarkdownItWithMermaid } from "./previewmarkdown/shared-md-mermaid";
 import * as packageJson from '../package.json'; 
+import { MermaidAICodeActionProvider } from "./mermaidAiFixProvider";
+import { DiagramRegenerator } from "./commercial/sync/diagramRegenerator";
 
 
 
@@ -90,6 +92,23 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("mermaidWebview", mermaidWebviewProvider)
   );
+  
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      [{ scheme: "file" }, { scheme: "untitled" }],
+      new MermaidAICodeActionProvider(),
+      { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] } 
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("mermaid-ai.fixDiagram", async (document: vscode.TextDocument, range: vscode.Range, diagnostic: vscode.Diagnostic) => {
+    
+      await DiagramRegenerator.fixMermaidDiagram(document,diagnostic);
+    })
+  );
+
+  
+  console.log("✅ Mermaid AI CodeActionProvider Registered!");
   
   updateViewVisibility(isUserLoggedIn, mermaidWebviewProvider, mermaidChartProvider);
 

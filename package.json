@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid Chart",
   "description": "The \"official\" Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -748,10 +748,6 @@
         "title": "MermaidChart: Sync Diagram"
       },
       {
-        "command": "mermaidChart.viewMermaidChart",
-        "title": "MermaidChart: View Diagram"
-      },
-      {
         "command": "mermaidChart.preview",
         "title": "MermaidChart: Preview Diagram"
       },
@@ -787,10 +783,6 @@
       {
         "command": "mermaidChart.openCopilotChat",
         "title": "MermaidChart: Open AI Chat"
-      },
-      {
-        "command": "mermaidChart.insertMermaidTemplate",
-        "title": "Insert Mermaid Template"
       }
     ],
     "chatParticipants": [
@@ -974,7 +966,7 @@
     "@mermaid-chart/icons-gcp": "^1.0.0",
     "@mermaid-chart/vscode-utils": "1.0.7",
     "@mermaid-chart/layout-elk": "0.1.7-b.2",
-    "@mermaidchart/sdk": "0.2.1-alpha.1",
+    "@mermaidchart/sdk": "0.2.1",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",
     "@vscode/prompt-tsx": "^0.3.0-alpha.12",
     "axios": "^1.7.9",

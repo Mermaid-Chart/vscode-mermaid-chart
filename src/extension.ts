@@ -10,6 +10,7 @@ import {
   findDiagramCode,
   findMermaidChartTokens,
   findMermaidChartTokensFromAuxFiles,
+  flattenProjects,
   getDiagramTemplates,
   getHelpUrl,
   getMermaidChartTokenDecoration,
@@ -269,9 +270,10 @@ context.subscriptions.push(
       await MermaidChartProvider.waitForSync();
     }
     const projects = getAllTreeViewProjectsCache();
+    const flattenedProjects = flattenProjects(projects);
 
     const selectedProject = await vscode.window.showQuickPick(
-      projects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),
+      flattenedProjects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),
       { placeHolder: "Select a project to save the diagram" }
     );
 
@@ -470,8 +472,10 @@ context.subscriptions.push(
     }
 
     const projects = getAllTreeViewProjectsCache();
+    const flattenedProjects = flattenProjects(projects);
+
     const selectedProject = await vscode.window.showQuickPick(
-      projects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),
+      flattenedProjects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),
       { placeHolder: "Select a project to save the diagram" }
     );
 

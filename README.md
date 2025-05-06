@@ -151,6 +151,10 @@ This extension contributes the following settings:
 - `mermaid.vscode.light`: Defines the theme used for Mermaid diagrams when VS Code is in light mode.
 
 ## Release Notes
+
+### 2.2.5 -2025-04-30
+- Refined authentication behavior to remove unnecessary login prompts and Account badge indicators, ensuring a less intrusive experience.
+
 ### 2.2.4 -2025-04-29
 - Supports latest Mermaid version
 - Bug Fixes

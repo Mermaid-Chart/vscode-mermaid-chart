@@ -635,7 +635,18 @@
           "type": "number",
           "default": 5,
           "description": "Set the maximum zoom level for diagrams."
+        },
+        "mermaid.vscode.maxCharLength": {
+          "type": "number",
+          "default": 90000,
+          "description": "Maximum number of characters allowed in a diagram's source"
+        },
+        "mermaid.vscode.maxEdges": {
+          "type": "number",
+          "default": 1000,
+          "description": "Maximum number of edges allowed in a diagram's source"
         }
+
       }
     },
     "viewsContainers": {

@@ -109,7 +109,9 @@ export class DiagramRegenerator {
   
     for (const reference of allReferences) {
       const match = reference.match(/File:\s+(\/.*?)(\s|$|\()/);
-      if (!match) continue;
+      if (!match) {
+        continue;
+      }
   
       let relativeFilePath = match[1].trim();
       const fileName = path.basename(relativeFilePath);
@@ -175,6 +177,7 @@ export class DiagramRegenerator {
    */
   private static async getUpdatedDiagramFromAI(prompt: string): Promise<any> {
     try {
+      console.log('Prompt:', prompt);
       // Get user configuration for AI vendor and model family
       const config = vscode.workspace.getConfiguration();
       const configuredVendor = config.get<string>('mermaidChart.aiVendor') || config.get<string>('preview.mermaidChart.aiVendor') || 'copilot';
@@ -191,7 +194,7 @@ export class DiagramRegenerator {
         [model] = await vscode.lm.selectChatModels({
           vendor: configuredVendor
         });
-        
+    
         // If still no model, fall back to any available model
         if (!model) {
           [model] = await vscode.lm.selectChatModels({});
@@ -208,6 +211,14 @@ export class DiagramRegenerator {
   
       // make sure the model is available
       if (model) {
+        // Get all available tools
+        const tools = vscode.lm.tools.filter(tool => tool.tags.includes('mermaid-docs'));
+        
+        const options: vscode.LanguageModelChatRequestOptions = {
+          justification: 'To make a request to @toolsTSX',
+          tools: [...tools] 
+        };
+console.log('options avialble:', options);
         // send the messages array to the model and get the response
         const chatResponse = await model.sendRequest(
           messages,
@@ -383,7 +394,9 @@ export class DiagramRegenerator {
             } finally {
               // Clean up event listeners
               diffEditorClosed.dispose();
-              if (changeListener) changeListener.dispose();
+              if (changeListener) {
+                changeListener.dispose();
+              }
               
               // Clean up temp files if they exist
               try {
@@ -470,7 +483,24 @@ export class DiagramRegenerator {
   public  static async  fixMermaidDiagram(document: vscode.TextDocument, diagnostic: vscode.Diagnostic) {
     try {
       const diagramCode = document.getText();
-      const prompt = `Fix the following Mermaid diagram based on the issue: ${diagnostic.message}\n\n\`\`\`mermaid\n${diagramCode}\n\`\`\``;
+      const prompt = `You are an assistant focused on returning a corrected full version of a Mermaid diagram without syntax errors.
+      You will not add any new information to the diagram.
+      Do not write any other text in the resulting diagram code.
+      Call \`get_syntax_docs\` to get the latest up-to-date syntax for the requested diagram type.
+      
+      Please repair this mermaid diagram:
+      
+      \`\`\`mermaid
+      ${diagramCode}
+      \`\`\`
+      
+      The syntax error is:
+      
+      \`\`\`error
+      ${diagnostic.message}
+      \`\`\``;
+      
+
       const fixedDiagram = await DiagramRegenerator.getUpdatedDiagramFromAI(prompt);
   
       if (fixedDiagram) {

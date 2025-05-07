@@ -180,7 +180,7 @@
   }
 
   window.addEventListener("message", async (event) => {
-    const { type, content, currentTheme, isFileChange, validateOnly,maxCharLength,maxEdge } = event.data;
+    const { type, content, currentTheme, isFileChange, validateOnly,maxZoom,maxCharLength,maxEdge } = event.data;
     if (type === "update") {
       if (validateOnly && content) {
         // Just validate without updating UI
@@ -189,8 +189,9 @@
         // Regular rendering flow
         diagramContent = content;
         theme = currentTheme;
-        maxEdges = maxEdge; 
-        maxTextSize= maxCharLength;
+      maxZoomLevel = maxZoom        
+      maxEdges = maxEdge; 
+      maxTextSize= maxCharLength;
         if (isFileChange) {
           panzoomInstance?.reset();
           updateZoomLevel();

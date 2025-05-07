@@ -634,7 +634,7 @@
         "mermaid.vscode.maxZoom": {
           "type": "number",
           "default": 5,
-          "description": "Set the maximum zoom level for diagrams."
+          "description": "Defines the maximum zoom level for diagrams, specified as a multiple of 100%. For example, a value of 5 means the maximum zoom is 500%."
         },
         "mermaid.vscode.maxCharLength": {
           "type": "number",

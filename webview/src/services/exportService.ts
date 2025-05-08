@@ -1,6 +1,5 @@
 import { toBase64 } from 'js-base64';
 import { vscode } from '../utility/vscode';
-import { renderMermaid } from '@mermaid-js/mermaid-cli';
 import puppeteer from 'puppeteer';
 
 // Font Awesome URL constant

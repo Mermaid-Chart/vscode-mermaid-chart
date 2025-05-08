@@ -5,37 +5,6 @@ import * as path from 'path';
 
 let browser: puppeteer.Browser | null = null;
 
-const getMermaidHTML = (isDarkTheme: boolean) => `
-<!DOCTYPE html>
-<html>
-<head>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: ${isDarkTheme ? '#1e1e1e' : '#ffffff'};
-        }
-        .mermaid {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-    </style>
-</head>
-<body>
-    <div class="mermaid"></div>
-    <script>
-        mermaid.initialize({
-            startOnLoad: true,
-            theme: '${isDarkTheme ? 'dark' : 'default'}',
-            securityLevel: 'loose'
-        });
-    </script>
-</body>
-</html>
-`;
-
 export async function initializePuppeteer() {
     try {
         if (!browser) {
@@ -131,101 +100,6 @@ export async function closePuppeteer() {
     if (browser) {
         await browser.close();
         browser = null;
-    }
-}
-
-export async function renderMermaidToPNG(
-    code: string,
-    isDarkTheme: boolean = false,
-    maxZoom: number = 2
-): Promise<Buffer> {
-    try {
-        const browser = await initializePuppeteer();
-        const page = await browser.newPage();
-
-        // Set viewport
-        await page.setViewport({ 
-            width: 1200, 
-            height: 800,
-            deviceScaleFactor: maxZoom
-        });
-
-        // Set content and wait for it to load
-        await page.setContent(getMermaidHTML(isDarkTheme));
-
-        // Insert the diagram code
-        await page.evaluate((diagramCode) => {
-            const element = document.querySelector('.mermaid');
-            if (!element) {
-                throw new Error('Could not find Mermaid diagram element');
-            }
-            element.innerHTML = diagramCode;
-        }, code);
-
-        // Wait for rendering to complete
-        await page.waitForSelector('.mermaid svg', { timeout: 10000 });
-
-        // Get the diagram element
-        const element = await page.$('.mermaid');
-        if (!element) {
-            throw new Error('Could not find Mermaid diagram element');
-        }
-
-        // Take screenshot
-        const screenshot = await element.screenshot({
-            type: 'png',
-            omitBackground: true
-        });
-
-        await page.close();
-
-        return Buffer.from(screenshot);
-    } catch (error) {
-        console.error('Error rendering Mermaid diagram to PNG:', error);
-        analytics.trackException(error);
-        throw error;
-    }
-}
-
-export async function renderMermaidToSVG(
-    code: string,
-    isDarkTheme: boolean = false
-): Promise<string> {
-    try {
-        const browser = await initializePuppeteer();
-        const page = await browser.newPage();
-
-        // Set viewport
-        await page.setViewport({ width: 1200, height: 800 });
-
-        // Set content and wait for it to load
-        await page.setContent(getMermaidHTML(isDarkTheme));
-
-        // Insert the diagram code
-        await page.evaluate((diagramCode) => {
-            const element = document.querySelector('.mermaid');
-            if (!element) {
-                throw new Error('Could not find Mermaid diagram element');
-            }
-            element.innerHTML = diagramCode;
-        }, code);
-
-        // Wait for rendering to complete
-        await page.waitForSelector('.mermaid svg', { timeout: 10000 });
-
-        // Get the SVG content
-        const svg = await page.evaluate(() => {
-            const svgElement = document.querySelector('.mermaid svg');
-            return svgElement ? svgElement.outerHTML : '';
-        });
-
-        await page.close();
-
-        return svg;
-    } catch (error) {
-        console.error('Error rendering Mermaid diagram to SVG:', error);
-        analytics.trackException(error);
-        throw error;
     }
 }
 

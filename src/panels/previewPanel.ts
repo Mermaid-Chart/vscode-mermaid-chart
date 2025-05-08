@@ -3,7 +3,7 @@ import { debounce } from "../utils/debounce";
 import { getWebviewHTML } from "../templates/previewTemplate";
 import { isAuxFile } from "../util";
 import * as packageJson from "../../package.json";
-import { exportDiagramAsPng, exportDiagramAsSvg, renderDiagramToPng, handlePngExport } from "../services/renderService";
+import { exportDiagramAsSvg, handlePngExport } from "../services/renderService";
 import { closePuppeteer } from "../services/puppeteerService";
 const DARK_THEME_KEY = "mermaid.vscode.dark";
 const LIGHT_THEME_KEY = "mermaid.vscode.light";
@@ -119,7 +119,7 @@ export class PreviewPanel {
       } else if (message.type === "clearError") {
         this.diagnosticsCollection.clear();
       } else if (message.type === "exportPng") {
-        await handlePngExport(this.document, message.svg, message.theme);
+        handlePngExport(this.document, message.svg, message.theme);
       } else if (message.type === "exportSvg" && message.svgBase64) {
         exportDiagramAsSvg(this.document, message.svgBase64);
       }

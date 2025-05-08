@@ -1,13 +1,7 @@
 import * as vscode from 'vscode';
 import path from 'path';
-import { type ParseMDDOptions } from '@mermaid-js/mermaid-cli';
-import { renderMermaidToPNG, renderMermaidToSVG, closePuppeteer, renderSvgToPNG } from './puppeteerService';
+import { renderSvgToPNG } from './puppeteerService';
 
-// const fontAwesomeIconsJSONUrl = `data:application/json,${encodeURIComponent(JSON.stringify(fontAwesomeIcons))}`;
-// const awsIconsJSONUrl = `data:application/json,${encodeURIComponent(JSON.stringify(awsIcons))}`;
-// const azureIconsJSONUrl = `data:application/json,${encodeURIComponent(JSON.stringify(azureIcons))}`;
-// const gcpIconsJSONUrl = `data:application/json,${encodeURIComponent(JSON.stringify(gcpIcons))}`;
-export type MermaidThemes = NonNullable<ParseMDDOptions['mermaidConfig']>['theme'];
 
 function getDefaultSaveLocation(document: vscode.TextDocument, extension: string): vscode.Uri | undefined {
     const baseName = path.basename(document.fileName || 'diagram', path.extname(document.fileName || ''));

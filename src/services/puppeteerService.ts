@@ -1,6 +1,7 @@
 import * as puppeteer from 'puppeteer';
 import * as vscode from 'vscode';
 import analytics from '../analytics';
+import * as path from 'path';
 
 let browser: puppeteer.Browser | null = null;
 
@@ -38,10 +39,85 @@ const getMermaidHTML = (isDarkTheme: boolean) => `
 export async function initializePuppeteer() {
     try {
         if (!browser) {
-            browser = await puppeteer.launch({
-                headless: true,
-                args: ['--no-sandbox', '--disable-setuid-sandbox']
-            });
+            // Get the extension's storage path
+            const extensionContext = vscode.extensions.getExtension(`${process.env.VSCE_PUBLISHER}.${process.env.VSCE_NAME}`);
+            const extensionPath = extensionContext?.extensionPath || '';
+            
+            const chromePaths = [
+                process.env.CHROME_PATH,                    // Environment variable
+                '/usr/bin/google-chrome',                  // Linux
+                '/usr/bin/chromium-browser',              // Linux Chromium
+                '/usr/bin/chromium',                      // Linux Chromium alternative
+                '/usr/bin/microsoft-edge',                // Linux Edge
+                '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',  // macOS
+                '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge', // macOS Edge
+                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',    // Windows
+                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe', // Windows x86
+                'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', // Windows Edge
+            ].filter(Boolean);
+
+            // Try to launch with different configurations
+            for (const executablePath of chromePaths) {
+                try {
+                    browser = await puppeteer.launch({
+                        headless: true,
+                        executablePath: executablePath,
+                        args: [
+                            '--no-sandbox',
+                            '--disable-setuid-sandbox',
+                            '--disable-dev-shm-usage',
+                            '--disable-gpu'
+                        ],
+                        timeout: 30000
+                    });
+                    break;
+                } catch (e) {
+                    console.log(`Failed to launch with ${executablePath}:`, e);
+                    continue;
+                }
+            }
+
+            // If all paths failed, try launching without executablePath
+            if (!browser) {
+                try {
+                    browser = await puppeteer.launch({
+                        headless: true,
+                        args: [
+                            '--no-sandbox',
+                            '--disable-setuid-sandbox',
+                            '--disable-dev-shm-usage',
+                            '--disable-gpu'
+                        ],
+                        timeout: 30000
+                    });
+                } catch (error) {
+                    console.error('Failed to launch browser without path:', error);
+                }
+            }
+
+            // If browser is still null, show detailed error to user
+            if (!browser) {
+                const message = 'PNG export requires a Chromium-based browser (Chrome, Edge, or Chromium).';
+                const detail = 'Please install one of the following:\n' +
+                             '• Google Chrome (Recommended)\n' +
+                             '• Microsoft Edge\n' +
+                             '• Chromium';
+                
+                const selection = await vscode.window.showErrorMessage(
+                    message,
+                    { modal: true, detail },
+                    'Install Chrome',
+                    'Install Edge'
+                );
+
+                if (selection === 'Install Chrome') {
+                    await vscode.env.openExternal(vscode.Uri.parse('https://www.google.com/chrome/'));
+                } else if (selection === 'Install Edge') {
+                    await vscode.env.openExternal(vscode.Uri.parse('https://www.microsoft.com/edge'));
+                }
+
+                throw new Error('No compatible browser found. Please install Chrome, Edge, or Chromium.');
+            }
         }
         return browser;
     } catch (error) {

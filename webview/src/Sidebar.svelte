@@ -6,8 +6,8 @@
   import SvgIcon from "./SvgIcon.svelte";
 
     export let panEnabled, iconBackgroundColor, shadowColor, sidebarBackgroundColor, svgColor, zoomLevel;
-    export let togglePan, zoomOut, resetView, zoomIn, exportPng, exportSvg;
-  </script>
+    export let togglePan, zoomOut, resetView, zoomIn;
+</script>
 
   <style>
     .sidebar {

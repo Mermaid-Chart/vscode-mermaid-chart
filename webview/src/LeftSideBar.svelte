@@ -1,9 +1,9 @@
 <script>
   import ExportIcon from "./ExportIcon.svelte";
   import { onMount } from 'svelte';
+  import { exportPng, exportSvg } from './services/exportService';
 
-  export let iconBackgroundColor, shadowColor, sidebarBackgroundColor, svgColor;
-  export let exportPng, exportSvg;
+  export let iconBackgroundColor, shadowColor, sidebarBackgroundColor, svgColor, theme, diagramContent;
 
   let showExportOptions = false;
   let leftSidebarRef;
@@ -13,7 +13,7 @@
   }
 
   function handleExportPng() {
-    exportPng();
+    exportPng(diagramContent, theme);
     showExportOptions = false;
   }
 

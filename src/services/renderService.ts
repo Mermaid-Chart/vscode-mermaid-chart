@@ -1,155 +1,114 @@
 import * as vscode from 'vscode';
-import axios from 'axios';
-import * as fs from 'fs';
-import {extractConfigFromFrontmatter } from '../frontmatter';
 import path from 'path';
+import { type ParseMDDOptions } from '@mermaid-js/mermaid-cli';
+import { renderMermaidToPNG, renderMermaidToSVG, closePuppeteer, renderSvgToPNG } from './puppeteerService';
 
-const RENDERING_SERVER_URL = '';
+// const fontAwesomeIconsJSONUrl = `data:application/json,${encodeURIComponent(JSON.stringify(fontAwesomeIcons))}`;
+// const awsIconsJSONUrl = `data:application/json,${encodeURIComponent(JSON.stringify(awsIcons))}`;
+// const azureIconsJSONUrl = `data:application/json,${encodeURIComponent(JSON.stringify(azureIcons))}`;
+// const gcpIconsJSONUrl = `data:application/json,${encodeURIComponent(JSON.stringify(gcpIcons))}`;
+export type MermaidThemes = NonNullable<ParseMDDOptions['mermaidConfig']>['theme'];
 
-export interface RenderExternalDiagramOptions {
-  look?: string;
-  theme?: string;
-  darkModeEnabled?: boolean;
-  contentType?: 'image/png' | 'image/svg+xml';
-  positions?: any;
-  layout?: string;
-}
-
-/**
- * Renders a Mermaid diagram using the external rendering service
- */
-export async function renderExternalDiagram(
-  code: string,
-  options: RenderExternalDiagramOptions = {}
-): Promise<Buffer> {
-  const {
-    look = 'classic',
-    theme = 'neo',
-    darkModeEnabled = false,
-    contentType = 'image/png',
-    layout = 'dagre',
-    positions,
-  } = options;
-
-  try {
-    // Get API key from configuration or environment
-    const config = vscode.workspace.getConfiguration('mermaidChart');
-    const apiKey = config.get<string>('renderingApiKey', '');
-
-    if (!apiKey) {
-      throw new Error('Rendering API key is not configured');
-    }
-
-    return Buffer.from('Test');
-  } catch (error) {
-    console.error('Error while calling external rendering server', error);
+function getDefaultSaveLocation(document: vscode.TextDocument, extension: string): vscode.Uri | undefined {
+    const baseName = path.basename(document.fileName || 'diagram', path.extname(document.fileName || ''));
     
-    if (axios.isAxiosError(error)) {
-      if (error.code === 'ECONNABORTED') {
-        throw new Error('Timeout while rendering the diagram. Please try again or simplify your diagram.');
-      }
-      
-      if (error.response) {
-        if (error.response.status === 429) {
-          throw new Error('Rate limit exceeded. Please try again later.');
-        }
-        throw new Error(`Error ${error.response.status}: ${error.response.statusText}`);
-      }
+    // If document has a URI, use its parent directory
+    if (document.uri && document.uri.scheme === 'file') {
+        return vscode.Uri.joinPath(document.uri, `../${baseName}.${extension}`);
     }
     
-    throw new Error('Error rendering diagram. Please check your diagram syntax and try again.');
-  }
-}
-
-export async function exportDiagramAsSvg(document:vscode.TextDocument, svgcode: string): Promise<void> {
-
-  try {
-    // Get filename without extension
-    const baseName = path.basename(document.fileName, path.extname(document.fileName));
-    const defaultUri = document.uri
-      ? vscode.Uri.joinPath(document.uri, `../${baseName}.svg`)
-      : undefined;
-
-    // Ask user where to save the file
-    const saveUri = await vscode.window.showSaveDialog({
-      defaultUri: defaultUri,
-      filters: {
-        'SVG Image': ['svg']
-      },
-      title: `Export Mermaid Diagram as SVG image`
-    });
-    
-    if (saveUri) {
-      // Convert base64 to buffer
-      const svgBuffer = Buffer.from(svgcode, 'base64');
-      
-      // Write the SVG file
-      await vscode.workspace.fs.writeFile(saveUri, svgBuffer);
-      vscode.window.showInformationMessage(`Diagram exported to ${saveUri.fsPath}`);
+    // For untitled documents, try to use:
+    // 1. Current workspace folder
+    // 2. First workspace folder
+    // 3. Last used directory from state
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders && workspaceFolders.length > 0) {
+        // Use the first workspace folder
+        return vscode.Uri.joinPath(workspaceFolders[0].uri, `${baseName}.${extension}`);
     }
-  } catch (error) {
-    console.error('Error exporting SVG:', error);
-    vscode.window.showErrorMessage(`Failed to export SVG: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+    
+    return undefined;
 }
 
-/**
- * Exports the current diagram to PNG using the external rendering service
- */
-export async function exportDiagramAsPng(document: vscode.TextDocument): Promise<void> {
-  try {
-    // Show progress indicator
-    return await vscode.window.withProgress({
-      location: vscode.ProgressLocation.Notification,
-      title: 'Generating high-resolution PNG...',
-      cancellable: false
-    }, async (progress) => {
-      // Get the document content
-      const code = document.getText();
-      
-      // Extract theme, look and layout from frontmatter
-      const frontmatterConfig = extractConfigFromFrontmatter(code);
-      
-      // Get the current theme (dark/light)
-      const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
+export async function exportDiagramAsSvg(document: vscode.TextDocument, svgcode: string): Promise<void> {
+    try {
+        const defaultUri = getDefaultSaveLocation(document, 'svg');
+
+        // Ask user where to save the file
+        const saveUri = await vscode.window.showSaveDialog({
+            defaultUri: defaultUri,
+            filters: {
+                'SVG Image': ['svg']
+            },
+            title: `Export Mermaid Diagram as SVG image`
+        });
+        
+        if (saveUri) {
+            // Convert base64 to buffer
+            const svgBuffer = Buffer.from(svgcode, 'base64');
             
-      // Use frontmatter values if available, otherwise use defaults
-      const theme = frontmatterConfig.theme || (isDarkTheme ? 'neo-dark' : 'neo');
-      const isDarkModeEnabled = frontmatterConfig.theme?.includes('dark');
-      const look = frontmatterConfig.look || 'classic';
-      const layout = frontmatterConfig.layout || 'dagre';
-      
-      // Render the diagram
-      const pngBuffer = await renderExternalDiagram(code, {
-        theme: theme,
-        look,
-        layout,
-        darkModeEnabled: isDarkModeEnabled,
-        contentType: 'image/png',
-      });
-      
-      const baseName = path.basename(document.fileName, path.extname(document.fileName));
-      const defaultUri = document.uri ?
-         vscode.Uri.joinPath(document.uri, `../${baseName}.png`) :
-         undefined;
+            // Write the SVG file
+            await vscode.workspace.fs.writeFile(saveUri, svgBuffer);
+            vscode.window.showInformationMessage(`Diagram exported to ${saveUri.fsPath}`);
+        }
+    } catch (error) {
+        console.error('Error exporting SVG:', error);
+        vscode.window.showErrorMessage(`Failed to export SVG: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
 
-      // Ask user where to save the file
-      const saveUri = await vscode.window.showSaveDialog({
-        defaultUri: defaultUri,
-        filters: {
-          'PNG Image': ['png']
-        },
-        title: `Export Mermaid Diagram as PNG image`
-      });
-      
-      if (saveUri) {
-        // Write the PNG file
-        await vscode.workspace.fs.writeFile(saveUri, pngBuffer);
-        vscode.window.showInformationMessage(`Diagram exported to ${saveUri.fsPath}`);
-      }
+/**
+ * Exports the current diagram to PNG using the SVG from the preview panel
+ */
+export async function handlePngExport(document: vscode.TextDocument, svgString: string, theme: string): Promise<void> {
+    const progressPromise = vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Generating high-resolution PNG...',
+        cancellable: false
+    }, async () => {
+        try {
+            const pngBuffer = await renderDiagramToPng(svgString, theme);
+            await exportDiagramAsPng(document, pngBuffer);
+        } catch (error) {
+            console.error('Error in PNG export:', error);
+            vscode.window.showErrorMessage(`Sorry, we were unable to generate a PNG of your diagram. Please make sure your diagram has no syntax errors in it and try again.`);
+        }
     });
-  } catch (error) {
-    console.error('Error exporting PNG:', error);
-    vscode.window.showErrorMessage(`Sorry, we were unable to generate a PNG of your diagram. Please make sure your diagram has no syntax errors in it and try again.`);
-  }
+
+    return progressPromise;
+}
+
+export async function exportDiagramAsPng(document: vscode.TextDocument, pngBuffer: Buffer): Promise<void> {
+    try {
+        const defaultUri = getDefaultSaveLocation(document, 'png');
+
+        const saveUri = await vscode.window.showSaveDialog({
+            defaultUri: defaultUri,
+            filters: {
+                'PNG Image': ['png']
+            },
+            title: `Export Mermaid Diagram as PNG image`
+        });
+        
+        if (saveUri) {
+            await vscode.workspace.fs.writeFile(saveUri, pngBuffer);
+            vscode.window.showInformationMessage(`Diagram exported to ${saveUri.fsPath}`);
+        }
+    } catch (error) {
+        console.error('Error saving PNG:', error);
+        throw error;
+    }
+}
+
+export async function renderDiagramToPng(
+    svgString: string,
+    theme: string
+): Promise<Buffer> {
+    try {
+        const pngBuffer = await renderSvgToPNG(svgString, theme);
+        return pngBuffer;
+    } catch (error) {
+        console.error('Error rendering PNG:', error);
+        throw error;
+    }
 }

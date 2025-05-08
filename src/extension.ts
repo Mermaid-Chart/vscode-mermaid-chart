@@ -72,7 +72,6 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.login', async () => {
       await mcAPI.login();
-      mermaidChartProvider.syncMermaidChart();
       analytics.trackLogin();
     })
   );
@@ -85,7 +84,7 @@ export async function activate(context: vscode.ExtensionContext) {
     mcAPI
   );
 
-  mermaidChartProvider.syncMermaidChart();
+
   
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("mermaidWebview", mermaidWebviewProvider)
@@ -265,13 +264,21 @@ context.subscriptions.push(
     const document = await vscode.workspace.openTextDocument(uri);
     const content = document.getText();
     const blockContent = content.substring(document.offsetAt(range.start), document.offsetAt(range.end)).trim();
-    if (MermaidChartProvider.isSyncing) {
-      vscode.window.showInformationMessage('Please wait, diagrams are being synchronized...');
+    if(MermaidChartProvider.isSyncing) {
       await MermaidChartProvider.waitForSync();
     }
     const projects = getAllTreeViewProjectsCache();
-    const flattenedProjects = flattenProjects(projects);
-
+    let flattenedProjects = flattenProjects(projects);
+    if (flattenedProjects.length === 0) {
+      vscode.window.showInformationMessage('Please wait, diagrams are being synchronized...');
+      await mermaidChartProvider.syncMermaidChart();
+      const updatedProjects = getAllTreeViewProjectsCache();
+      flattenedProjects = flattenProjects(updatedProjects);
+    }
+    if (flattenedProjects.length === 0) {
+      vscode.window.showInformationMessage('No projects available to connect the diagram. Please try again later.');
+      return;
+    }
     const selectedProject = await vscode.window.showQuickPick(
       flattenedProjects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),
       { placeHolder: "Select a project to save the diagram" }
@@ -470,9 +477,21 @@ context.subscriptions.push(
       vscode.window.showWarningMessage("This diagram is already connected to Mermaid Chart.");
       return;
     }
-
+    if(MermaidChartProvider.isSyncing) {
+      await MermaidChartProvider.waitForSync();
+    }
     const projects = getAllTreeViewProjectsCache();
-    const flattenedProjects = flattenProjects(projects);
+    let flattenedProjects = flattenProjects(projects);
+    if (flattenedProjects.length === 0) {
+      vscode.window.showInformationMessage('Please wait, diagrams are being synchronized...');
+      await mermaidChartProvider.syncMermaidChart();
+      const updatedProjects = getAllTreeViewProjectsCache();
+      flattenedProjects = flattenProjects(updatedProjects);
+    }
+    if (flattenedProjects.length === 0) {
+      vscode.window.showInformationMessage('No projects available to connect the diagram. Please try again later.');
+      return;
+    }
 
     const selectedProject = await vscode.window.showQuickPick(
       flattenedProjects.map((p) => ({ label: p.title, description: p.title, projectId: p.uuid })),

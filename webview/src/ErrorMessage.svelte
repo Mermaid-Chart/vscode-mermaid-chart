@@ -13,7 +13,6 @@
         text-align: center;
         border: 1px solid #d8000c;
         display: none;
-        user-select:text
     }
 
     #error-message.errorVisible {

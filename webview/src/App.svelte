@@ -7,6 +7,7 @@
   import ErrorMessage from './ErrorMessage.svelte';
   import Sidebar from './Sidebar.svelte';
   import { diagramContent as diagramData } from './diagramData';
+  import LeftSideBar from './LeftSideBar.svelte';
 
   $: diagramContent = diagramData;
  
@@ -23,7 +24,6 @@
   $: iconBackgroundColor = theme?.includes("dark") ? "#4d4d4d" : "white";
   $: svgColor = theme?.includes("dark") ? "white" : "#2329D6";
   $: shadowColor = theme?.includes("dark")? "#6b6b6b" : "#A3BDFF";
-
 
     async function initializeMermaid() {
       try {
@@ -61,17 +61,12 @@
   async function validateDiagramOnly(content: string) {
     try {
       await initializeMermaid();
-      
-      // Just parse the diagram without rendering
       await mermaid.parse(content || 'info');
-      console.log('validationResult', true)
-      // If no error was thrown, the diagram is valid
       vscode.postMessage({
         type: "validationResult",
         valid: true
       });
     } catch (error) {
-      // Send back the validation error
       vscode.postMessage({
         type: "validationResult",
         valid: false,
@@ -118,11 +113,11 @@
           element.addEventListener("wheel", (event) => {
             panzoomInstance?.zoomWithWheel(event);
             updateZoomLevel();
-          });        
+          });
         }
-
-          panzoomInstance.zoom(currentScale, { animate: false });
-          panzoomInstance.pan(currentPan.x, currentPan.y, { animate: false });
+        panzoomInstance.setOptions({ disablePan: !panEnabled });
+        panzoomInstance.zoom(currentScale, { animate: false });
+        panzoomInstance.pan(currentPan.x, currentPan.y, { animate: false });
 
           updateCursorStyle();
         }
@@ -179,8 +174,9 @@
     updateZoomLevel();
   }
 
+
   window.addEventListener("message", async (event) => {
-    const { type, content, currentTheme, isFileChange, validateOnly,maxZoom,maxCharLength,maxEdge } = event.data;
+    const { type, content, currentTheme, isFileChange, validateOnly, maxZoom, maxCharLength, maxEdge } = event.data;
     if (type === "update") {
       if (validateOnly && content) {
         // Just validate without updating UI
@@ -234,14 +230,23 @@
     background: white;
     gap: 10px;
   }
+  .sidebar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 </style>
 
 
 <div id="app-container">
   <ErrorMessage {errorMessage} />
   <div id="mermaid-diagram"></div>
-  {#if !errorMessage}
+  <div class="sidebar-container">
+    {#if !errorMessage}
+    <LeftSideBar {iconBackgroundColor} {sidebarBackgroundColor} {shadowColor} {svgColor} {theme} {diagramContent}/>
     <Sidebar {panEnabled} {iconBackgroundColor} {sidebarBackgroundColor} {shadowColor} {svgColor} {zoomLevel} {togglePan} {zoomOut} {resetView} {zoomIn} />
   {/if}
+  </div>
+
 </div>
 

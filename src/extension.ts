@@ -41,16 +41,17 @@ import { ValidationBridgeImpl } from "./commercial/ai/tools/validationTool";
 import { injectMermaidTheme } from "./previewmarkdown/themeing";
 import { extendMarkdownItWithMermaid } from "./previewmarkdown/shared-md-mermaid";
 import * as packageJson from '../package.json'; 
+import { clearTmLanguageCache } from "./syntaxHighlighter";
 
 
-
+const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
 let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWords.json');
 let isExtensionStarted = false;
 
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("Activating Mermaid Chart extension");
-  const pluginID= packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
+
   initializePlugin(pluginID);
 
   analytics.trackActivation();
@@ -103,12 +104,23 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
   vscode.workspace.onDidChangeTextDocument((event) =>
-    handleTextDocumentChange(event, diagramMappings, false)
-  );
-  vscode.window.onDidChangeActiveTextEditor((event) =>
-    handleTextDocumentChange(event, diagramMappings, true)
+    {
+      handleTextDocumentChange(event, diagramMappings, false);
+      updateMermaidChartTokenHighlighting();
+      triggerSuggestIfEmpty(event.document);
+    },
+    null,
+    context.subscriptions
   );
 
+  vscode.window.onDidChangeActiveTextEditor(
+    (event) => {
+      handleTextDocumentChange(event, diagramMappings, true);
+      updateMermaidChartTokenHighlighting();
+    },
+    null,
+    context.subscriptions
+  );
   
   vscode.commands.registerCommand('mermaidChart.createMermaidFile', async () => {
     createMermaidFile(context, null, false);
@@ -168,21 +180,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   updateMermaidChartTokenHighlighting();
 
-  vscode.window.onDidChangeActiveTextEditor(
-    () => {
-      updateMermaidChartTokenHighlighting();
-    },
-    null,
-    context.subscriptions
-  );
-
-  vscode.workspace.onDidChangeTextDocument(
-    () => {
-      updateMermaidChartTokenHighlighting();
-    },
-    null,
-    context.subscriptions
-  );
 
   const viewCommandDisposable = vscode.commands.registerCommand(
     "mermaidChart.viewMermaidChart",
@@ -751,9 +748,6 @@ vscode.workspace.onDidOpenTextDocument((document) => {
 vscode.window.visibleTextEditors.forEach((editor) => {
   triggerSuggestIfEmpty(editor.document);
 });
-vscode.workspace.onDidChangeTextDocument((event) => {
-  triggerSuggestIfEmpty(event.document);
-});
 
 // Register markdown preview handler
 context.subscriptions.push(
@@ -790,4 +784,6 @@ return {
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+  clearTmLanguageCache();
+}

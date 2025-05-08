@@ -19,6 +19,8 @@
   let theme: 'default' | 'base' | 'dark' | 'forest' | 'neutral' | 'neo' | 'neo-dark' | 'redux' | 'redux-dark' | 'redux-color' | 'redux-dark-color' | 'mc' | 'null' = 'redux'; 
   $: zoomLevel = 100;
   let maxZoomLevel = 5;
+  let maxTextSize = 90000;
+  let maxEdges = 1000;
   $: sidebarBackgroundColor = theme?.includes("dark")? "#4d4d4d" : "white";
   $: iconBackgroundColor = theme?.includes("dark") ? "#4d4d4d" : "white";
   $: svgColor = theme?.includes("dark") ? "white" : "#2329D6";
@@ -50,6 +52,8 @@
           startOnLoad: false,
           suppressErrorRendering: true,
           theme: theme,
+          maxEdges: maxEdges,
+          maxTextSize: maxTextSize,
         });
       } catch (error) {
         console.error('Error initializing Mermaid:', error);
@@ -236,7 +240,7 @@
   }
 
   window.addEventListener("message", async (event) => {
-    const { type, content, currentTheme, isFileChange, validateOnly,maxZoom } = event.data;
+    const { type, content, currentTheme, isFileChange, validateOnly,maxZoom,maxCharLength,maxEdge } = event.data;
     if (type === "update") {
       if (validateOnly && content) {
         // Just validate without updating UI
@@ -245,7 +249,9 @@
         // Regular rendering flow
         diagramContent = content;
         theme = currentTheme;
-        maxZoomLevel = maxZoom
+      maxZoomLevel = maxZoom        
+      maxEdges = maxEdge; 
+      maxTextSize= maxCharLength;
         if (isFileChange) {
           panzoomInstance?.reset();
           updateZoomLevel();

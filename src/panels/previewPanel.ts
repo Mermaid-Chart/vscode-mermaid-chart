@@ -7,7 +7,8 @@ import { exportDiagramAsPng, exportDiagramAsSvg } from "../services/renderServic
 const DARK_THEME_KEY = "mermaid.vscode.dark";
 const LIGHT_THEME_KEY = "mermaid.vscode.light";
 const MAX_ZOOM= "mermaid.vscode.maxZoom";
-
+const MAX_CHAR_LENGTH = "mermaid.vscode.maxCharLength";
+const MAX_EDGES = "mermaid.vscode.maxEdges";
 
 
 export class PreviewPanel {
@@ -64,6 +65,8 @@ export class PreviewPanel {
     const darkTheme = config.get<string>(DARK_THEME_KEY, "redux-dark");
     const lightTheme = config.get<string>(LIGHT_THEME_KEY, "redux");
     const maxZoom = config.get<number>(MAX_ZOOM, 5);
+    const maxCharLength = config.get<number>(MAX_CHAR_LENGTH, 90000);
+    const maxEdges = config.get<number>(MAX_EDGES, 1000);
 
     // Determine the current theme based on the user's preference and the active color theme
     const currentTheme = isDarkTheme ? darkTheme : lightTheme;
@@ -80,7 +83,9 @@ export class PreviewPanel {
       content:this.lastContent,
       currentTheme: currentTheme,
       isFileChange: this.isFileChange,
-      maxZoom: maxZoom
+      maxZoom: maxZoom,
+      maxCharLength: maxCharLength,
+      maxEdge: maxEdges,
     });
     this.isFileChange = false;
   }

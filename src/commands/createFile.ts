@@ -73,6 +73,7 @@ export function getPreview() {
   }
 
   const document = activeEditor.document;
+  console.log("Document languageId n preview: ", document.languageId);
   if (document.languageId !== "plaintext" && 
       !document.fileName.endsWith(".mmd") && 
       !document.fileName.endsWith(".mermaid") && 

@@ -752,6 +752,8 @@ context.subscriptions.push(
   )
 );
 vscode.workspace.onDidOpenTextDocument((document) => {
+  console.log("Document opened: ", document.fileName);
+  console.log("Document languageId: ", document.languageId);
   triggerSuggestIfEmpty(document);
 });
 vscode.window.visibleTextEditors.forEach((editor) => {

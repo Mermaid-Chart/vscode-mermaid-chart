@@ -166,8 +166,11 @@ This extension contributes the following settings:
 
 ## Release Notes
 
-### 2.2.6 -2025-05-09
+### 2.2.6 -2025-05-12
 - Added export functionality for SVG and PNG formats
+- Added support for additional icon packs:
+  - Logos (from iconify-json/logos)
+  - Material Design Icons (MDI)
 - Performance improvements and bug fixes
 - Added configurable maximum zoom level setting
 - Added settings for maximum text size and edges in diagrams

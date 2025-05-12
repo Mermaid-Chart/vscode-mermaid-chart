@@ -1,12 +1,15 @@
 # Change Log
 
-### 2.2.6 -2025-05-09
+### 2.2.6 -2025-05-12
 ### New Features
 - Added export functionality for SVG and PNG formats
 - Added new configurable settings:
   - Maximum zoom level control
   - Maximum text size limit
   - Maximum edges limit
+- Added support for additional icon packs:
+  - Logos (from iconify-json/logos) 
+  - Material Design Icons (MDI)
 ### Improvements
 - Enhanced performance for diagram rendering
 ### Changed

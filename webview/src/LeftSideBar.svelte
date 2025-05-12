@@ -13,7 +13,7 @@
   }
 
   function handleExportPng() {
-    exportPng(diagramContent, theme);
+    exportPng(theme);
     showExportOptions = false;
   }
 

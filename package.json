@@ -564,6 +564,16 @@
         "language": "mermaid.radar",
         "scopeName": "source.mermaid.radar",
         "path": "./syntaxes/mermaid-radar.tmLanguage.json"
+      },
+      {
+        "scopeName": "source.mermaid.embedded.markdown",
+        "path": "./syntaxes/mermaid-markdown.json",
+        "injectTo": ["text.html.markdown"]
+      },
+      {
+        "language": "mermaid",
+        "scopeName": "source.mermaid",
+        "path": "./syntaxes/mermaid.tmLanguage.json"
       }
     ],
     "configuration": {
@@ -646,7 +656,6 @@
           "default": 1000,
           "description": "Maximum number of edges allowed in a diagram's source"
         }
-
       }
     },
     "viewsContainers": {
@@ -932,7 +941,7 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm compile",
-    "precompile": "pnpm --filter ./webview build && webpack --mode=production --config ./build/markdownPreview.webpack.config.js",
+    "precompile": "pnpm --filter ./webview build ",
     "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --sourcemap --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --minify",
     "watch": "tsc -p ./ --noEmit --watch",
     "pretest": "pnpm compile && pnpm lint",

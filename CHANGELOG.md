@@ -8,8 +8,9 @@
   - Maximum text size limit
   - Maximum edges limit
 - Added support for additional icon packs:
-  - Logos (from iconify-json/logos) 
+  - Logos (from iconify-json/logos)
   - Material Design Icons (MDI)
+- Added support for markdown mermaid block syntax highlighting based on specific diagram types
 ### Improvements
 - Enhanced performance for diagram rendering
 ### Changed

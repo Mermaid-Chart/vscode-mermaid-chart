@@ -11,10 +11,6 @@
   - Logos (from iconify-json/logos)
   - Material Design Icons (MDI)
 - Added support for markdown mermaid block syntax highlighting based on specific diagram types
-### Improvements
-- Enhanced performance for diagram rendering
-### Changed
-- Updated sync behavior to reduce unnecessary API calls
 
 ### 2.2.5 -2025-04-30
 - Refined authentication behavior to remove unnecessary login prompts and Account badge indicators, ensuring a less intrusive experience.

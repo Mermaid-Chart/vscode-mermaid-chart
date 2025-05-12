@@ -45,6 +45,14 @@
             name: 'gcp',
             loader: () => import('@mermaid-chart/icons-gcp').then((m) => m.icons),
           },
+          {
+            name: 'logos',
+            loader: () => import('@iconify-json/logos').then((module) => module.icons),
+          },
+          {
+            name: 'mdi',
+            loader: () => import('@iconify-json/mdi').then((module) => module.icons),
+          },
         ]);
         await mermaid.initialize({
           startOnLoad: false,

@@ -979,6 +979,8 @@
     "@iconify-json/fa6-regular": "^1.2.0",
     "@mermaid-chart/icons-aws": "^1.0.1",
     "@mermaid-chart/icons-azure": "^1.0.0",
+    "@iconify-json/logos": "^1.2.4",
+    "@iconify-json/mdi": "^1.2.3",
     "@mermaid-chart/icons-gcp": "^1.0.0",
     "@mermaid-chart/vscode-utils": "1.0.7",
     "@mermaid-chart/layout-elk": "0.1.7-b.2",

@@ -3,8 +3,7 @@ import { debounce } from "../utils/debounce";
 import { getWebviewHTML } from "../templates/previewTemplate";
 import { isAuxFile } from "../util";
 import * as packageJson from "../../package.json";
-import { exportDiagramAsSvg, handlePngExport } from "../services/renderService";
-import { closePuppeteer } from "../services/puppeteerService";
+import { saveDiagramAsPng, saveDiagramAsSvg } from "../services/renderService";
 const DARK_THEME_KEY = "mermaid.vscode.dark";
 const LIGHT_THEME_KEY = "mermaid.vscode.light";
 const MAX_ZOOM= "mermaid.vscode.maxZoom";
@@ -118,10 +117,22 @@ export class PreviewPanel {
         this.handleDiagramError(message.message);
       } else if (message.type === "clearError") {
         this.diagnosticsCollection.clear();
-      } else if (message.type === "exportPng") {
-        handlePngExport(this.document, message.svg, message.theme);
+      } else if (message.type === "exportPng" && message.pngBase64) {
+        await vscode.window.withProgress({
+          location: vscode.ProgressLocation.Notification,
+          title: "Exporting PNG...",
+          cancellable: false
+        }, async () => {
+          await saveDiagramAsPng(this.document, message.pngBase64, this.lastContent);
+        });
       } else if (message.type === "exportSvg" && message.svgBase64) {
-        exportDiagramAsSvg(this.document, message.svgBase64);
+        await vscode.window.withProgress({
+          location: vscode.ProgressLocation.Notification,
+          title: "Exporting SVG...",
+          cancellable: false
+        }, async () => {
+          await saveDiagramAsSvg(this.document, message.svgBase64, this.lastContent);
+        });
       }
     });
 
@@ -180,7 +191,6 @@ export class PreviewPanel {
     PreviewPanel.currentPanel = undefined;
     this.diagnosticsCollection.clear();
     this.diagnosticsCollection.dispose();
-    closePuppeteer().catch(console.error);
 
     while (this.disposables.length) {
       const disposable = this.disposables.pop();

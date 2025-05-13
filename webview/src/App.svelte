@@ -25,6 +25,12 @@
   $: svgColor = theme?.includes("dark") ? "white" : "#2329D6";
   $: shadowColor = theme?.includes("dark")? "#6b6b6b" : "#A3BDFF";
 
+  let panEventHandlers = {
+    mouseDown: null,
+    mouseUp: null,
+    mouseLeave: null
+  };
+
     async function initializeMermaid() {
       try {
         mermaid.registerLayoutLoaders(layouts);
@@ -175,19 +181,55 @@
   }
 
   function togglePan() {
+    panEnabled = !panEnabled;
+    
     if (panzoomInstance) {
-      panEnabled = !panEnabled;
-      panzoomInstance.setOptions({ disablePan: !panEnabled });
-      updateCursorStyle();
+      // Configure panzoom with the new state
+      panzoomInstance.setOptions({ 
+        disablePan: !panEnabled
+      });
+      
+      // Remove event listeners if they exist
+      if (panEventHandlers.mouseDown && panEventHandlers.mouseUp) {
+        // PanZoom doesn't have an 'off' method, so we need to track our own DOM event handlers
+        const element = document.getElementById("mermaid-diagram");
+        if (element) {
+          element.removeEventListener('panzoomstart', panEventHandlers.mouseDown);
+          element.removeEventListener('panzoomend', panEventHandlers.mouseUp);
+        }
+      }
+      
+      if (panEnabled) {
+        const element = document.getElementById("mermaid-diagram");
+        if (element) {
+          // Create event handlers
+          panEventHandlers.mouseDown = () => {
+            element.style.cursor = 'grabbing';
+            console.log("PanZoom start");
+          };
+          
+          panEventHandlers.mouseUp = () => {
+            if (panEnabled) element.style.cursor = 'grab';
+            console.log("PanZoom end");
+          };
+          
+          // Connect to PanZoom's events using DOM event listeners
+          element.addEventListener('panzoomstart', panEventHandlers.mouseDown);
+          element.addEventListener('panzoomend', panEventHandlers.mouseUp);
+          
+          // Set initial cursor
+          element.style.cursor = 'grab';
+        }
+      } else {
+        // Reset cursor when pan is disabled
+        const element = document.getElementById("mermaid-diagram");
+        if (element) {
+          element.style.cursor = 'default';
+        }
+      }
     }
   }
 
-  function updateCursorStyle() {
-    const element = document.getElementById("mermaid-diagram");
-    if (element) {
-      element.style.cursor = panEnabled ? `grab` : 'default';
-    }
-  }
   function updateZoomLevel() {
     if (panzoomInstance) {
       zoomLevel = Math.round(panzoomInstance.getScale() * 100);
@@ -209,6 +251,13 @@
     updateZoomLevel();
   }
 
+  function updateCursorStyle() {
+    // Simply update cursor based on current panEnabled state
+    const element = document.getElementById("mermaid-diagram");
+    if (element) {
+      element.style.cursor = panEnabled ? 'grab' : 'default';
+    }
+  }
 
   window.addEventListener("message", async (event) => {
     const { type, content, currentTheme, isFileChange, validateOnly, maxZoom, maxCharLength, maxEdge } = event.data;
@@ -258,6 +307,15 @@
     justify-content: center;
     align-items: center;
   }
+  
+  :global(#mermaid-diagram.pan-enabled) {
+    cursor: grab;
+  }
+  
+  :global(#mermaid-diagram.pan-enabled:active) {
+    cursor: grabbing;
+  }
+  
   #app-container {
     flex-direction: column;
     width: 100%;

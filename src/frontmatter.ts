@@ -1,13 +1,10 @@
 import { parseDocument, type Document, YAMLMap, isMap, parse, stringify } from 'yaml';
 import * as fs from 'fs';
 import * as path from 'path';
+import { COMMENT_REGEX, DIRECTIVE_REGEX, FIRST_WORD_REGEX } from './types';
 
 // const frontMatterRegex = /^-{3}\s*[\n\r](.*?[\n\r])-{3}\s*[\n\r]+/s;
-const COMMENT_REGEX = /^\s*%%(?!{)[^\n]+\n?/gm;
-const DIRECTIVE_REGEX = /%{2}{\s*(?:(\w+)\s*:|(\w+))\s*(?:(\w+)|((?:(?!}%{2}).|\r?\n)*))?\s*(?:}%{2})?/gi;
-const FIRST_WORD_REGEX = /^\s*(\w+)/;
 
-export const anyCommentRegex = /\s*%%.*\n/gm;
 
 export function parseFrontMatterYAML(frontMatterYaml: string): Document<YAMLMap, false> {
     const document: Document = parseDocument(frontMatterYaml);
@@ -311,6 +308,16 @@ export function findDiagramContentStartPosition(text: string): number {
   // Return 0 if no content found
   return 0;
 }
+
+export function getDiagramTypeFromWord(firstWord: string, diagramMappings: Record<string, string[]>): string | null {
+  for (const [diagramType, aliases] of Object.entries(diagramMappings)) {
+    if (aliases.map(alias => alias.toLowerCase()).includes(firstWord.toLowerCase())) {
+      return diagramType;
+    }
+  }
+  return null;
+}
+
 
 // /**
 //  * Extract theme, look, and layout settings from the frontmatter of a diagram

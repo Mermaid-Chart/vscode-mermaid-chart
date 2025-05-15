@@ -4,11 +4,8 @@ import { getWebviewHTML } from "../templates/previewTemplate";
 import { isAuxFile } from "../util";
 import * as packageJson from "../../package.json";
 import { saveDiagramAsPng, saveDiagramAsSvg } from "../services/renderService";
-const DARK_THEME_KEY = "mermaid.vscode.dark";
-const LIGHT_THEME_KEY = "mermaid.vscode.light";
-const MAX_ZOOM= "mermaid.vscode.maxZoom";
-const MAX_CHAR_LENGTH = "mermaid.vscode.maxCharLength";
-const MAX_EDGES = "mermaid.vscode.maxEdges";
+import { DARK_THEME_KEY, LIGHT_THEME_KEY, MAX_CHAR_LENGTH, MAX_EDGES, MAX_ZOOM } from "../types";
+
 
 
 export class PreviewPanel {
@@ -26,8 +23,6 @@ export class PreviewPanel {
     this.panel = panel;
     this.document = document;
     this.diagnosticsCollection = vscode.languages.createDiagnosticCollection("mermaid");
-
-
     this.update();
     this.setupListeners();
   }

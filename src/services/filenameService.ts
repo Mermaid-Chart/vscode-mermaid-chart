@@ -79,11 +79,9 @@ export function getDefaultSaveUri(document: vscode.TextDocument, extension: stri
             if (diagramCode) {
                 try {
                     const aiSuggestedName = await generateDiagramFilenameWithAI(diagramCode);
-                    console.log('AI suggested name:', aiSuggestedName); // Debug log
                     
                     if (aiSuggestedName && aiSuggestedName.trim() !== '') {
                         baseName = aiSuggestedName;
-                        console.log('Using AI suggested name:', baseName); // Debug log
                     } else {
                         console.log('AI returned empty name, fallback to document name'); // Debug log
                         baseName = path.basename(document.fileName || 'diagram', path.extname(document.fileName || ''));
@@ -98,17 +96,14 @@ export function getDefaultSaveUri(document: vscode.TextDocument, extension: stri
             
             // Triple safety check - ensure baseName is never empty
             if (!baseName || baseName.trim() === '') {
-                console.log('Fallback to untitled_diagram due to empty baseName'); // Debug log
                 baseName = 'untitled_diagram';
             }
             
-            console.log('Final baseName before URI construction:', baseName); // Debug log
             
             let fileUri;
             // If document has a URI, use its parent directory
             if (document.uri && document.uri.scheme === 'file') {
                 fileUri = vscode.Uri.joinPath(document.uri, `../${baseName}.${extension}`);
-                console.log('Using document URI path:', fileUri.fsPath); // Debug log
                 resolve(fileUri);
                 return;
             }
@@ -123,7 +118,6 @@ export function getDefaultSaveUri(document: vscode.TextDocument, extension: stri
             }
             
             // Ultimate fallback - if all else fails
-            console.log('No valid URI could be constructed, returning undefined'); // Debug log
             resolve(undefined);
         } catch (error) {
             console.error('Error getting save location:', error);
@@ -131,20 +125,17 @@ export function getDefaultSaveUri(document: vscode.TextDocument, extension: stri
             // Super-safe fallback with guaranteed non-empty name
             try {
                 const safeBaseName = 'untitled_diagram';
-                console.log('Using emergency fallback name:', safeBaseName); // Debug log
+                
                 
                 if (document.uri && document.uri.scheme === 'file') {
                     const fileUri = vscode.Uri.joinPath(document.uri, `../${safeBaseName}.${extension}`);
-                    console.log('Emergency fallback URI:', fileUri.fsPath); // Debug log
                     resolve(fileUri);
                 } else {
                     const workspaceFolders = vscode.workspace.workspaceFolders;
                     if (workspaceFolders && workspaceFolders.length > 0) {
                         const fileUri = vscode.Uri.joinPath(workspaceFolders[0].uri, `${safeBaseName}.${extension}`);
-                        console.log('Emergency fallback workspace URI:', fileUri.fsPath); // Debug log
                         resolve(fileUri);
                     } else {
-                        console.log('No valid fallback URI could be constructed'); // Debug log
                         resolve(undefined);
                     }
                 }

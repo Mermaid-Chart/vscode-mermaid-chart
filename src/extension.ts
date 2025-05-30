@@ -711,6 +711,38 @@ context.subscriptions.push(
   );
 
 context.subscriptions.push(
+  vscode.commands.registerCommand(
+    "mermaidChart.generateCloudDiagram",
+    async () => {
+      const copilotExtension = vscode.extensions.getExtension(
+        "GitHub.copilot-chat"
+      );
+      if (!copilotExtension) {
+        const installOption = "Install GitHub Copilot Chat";
+        const selection = await vscode.window.showErrorMessage(
+          "GitHub Copilot Chat extension is not installed. Please install it from the VS Code Marketplace.",
+          installOption
+        );
+
+        if (selection === installOption) {
+          await vscode.commands.executeCommand(
+            "extension.open",
+            "GitHub.copilot-chat"
+          );
+        }
+        return;
+      }
+      await vscode.commands.executeCommand("workbench.panel.chat.view.copilot.focus");
+      await vscode.commands.executeCommand("workbench.action.chat.focusInput");
+      await vscode.commands.executeCommand("deleteAllLeft");
+      await vscode.commands.executeCommand("default:type", { text: "@mermaid-chart /generate_cloud_architecture_diagram"});
+      
+      vscode.commands.executeCommand("workbench.action.chat.submit");
+    }
+  )
+);
+
+context.subscriptions.push(
   vscode.commands.registerCommand('mermaidChart.openResponsePreview', async (mermaidCode: string) => {
     if (!mermaidCode) {
       vscode.window.showErrorMessage("No Mermaid code provided");

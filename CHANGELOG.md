@@ -1,6 +1,6 @@
 # Change Log
 
-### 2.4.0 -2025-05-30
+### 2.4.0 -2025-06-03
 - Added new AI feature **Generate_Cloud_Architecture_Diagram**
 - Use `@mermaid-chart /Generate_Cloud_Architecture_Diagram` to generate diagram 
 

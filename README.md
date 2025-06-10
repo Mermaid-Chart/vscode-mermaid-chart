@@ -179,7 +179,7 @@ This extension contributes the following settings:
 
 ## Release Notes
 
-### 2.4.1 -2025-06-10
+### 2.4.1 -2025-06-11
 - Command bug fixed
 
 ### 2.4.0 -2025-06-04

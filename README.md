@@ -59,6 +59,15 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 
 ![Image illustrating accessible diagrams in explorer panel](https://docs.mermaidchart.com/img/plugins/vscode-plugin-update-diagram.gif)
 
+### Visualize Cloud Infrastructure from Your Codebase
+- Instantly visualize your cloud infrastructure with our AI-powered diagram generator.<br>
+- Simply mention:  `@mermaid-chart /generate_cloud_architecture_diagram` in GitHub Copilot Chat or `MermaidChart: Generate Cloud Diagram` in command pallet.
+- it will scan your workspace, detect cloud configuration files, and generate a clear, accurate architecture diagram.<br>
+- Before generating, you can easily select the specific files you want to include, giving you full control over the output.<br>
+- Understand your cloud setup at a glance — no manual effort required.
+
+![vscode-plugin-cloud-diagram](https://docs.mermaidchart.com/img/plugins/vscode-plugin-cloud-diagram.gif)
+
 ### Real-Time local Edit & Preview 
 Now you get a side-by-side real time preview of the mermaid diagram while editing the diagram locally. This helps the user to see the true power of a mermaid's text-based diagram, where each change in text is reflected immediately on the diagram.
 
@@ -169,6 +178,13 @@ This extension contributes the following settings:
 - `mermaid.vscode.maxEdges`: Sets the maximum number of edges allowed in a diagram.
 
 ## Release Notes
+
+### 2.4.1 -2025-06-11
+- Command bug fixed
+
+### 2.4.0 -2025-06-04
+- Added new AI feature **Generate Cloud Architecture Diagram**
+- Use `@mermaid-chart /generate_cloud_architecture_diagram` to generate cloud diagram or `MermaidChart: Generate Cloud Diagram`
 
 ### 2.3.0 -2025-05-13
 - Added export functionality for SVG and PNG formats

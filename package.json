@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid Chart",
   "description": "The \"official\" Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.3.0",
+  "version": "2.4.1",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -798,6 +798,10 @@
       {
         "command": "mermaidChart.openCopilotChat",
         "title": "MermaidChart: Open AI Chat"
+      },
+      {
+        "command": "mermaidChart.generateCloudDiagram",
+        "title": "MermaidChart: Generate Cloud Diagram"
       }
     ],
     "chatParticipants": [
@@ -806,7 +810,13 @@
         "fullName": "Mermaid Chart AI Chat",
         "name": "mermaid-chart",
         "description": "Official VS Code Extension for AI Chat",
-        "isSticky": true
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "generate_cloud_architecture_diagram",
+            "description": "Generate cloud architecture diagram"
+          }
+        ]
       }
     ],
     "languageModelTools": [
@@ -982,14 +992,14 @@
     "@iconify-json/logos": "^1.2.4",
     "@iconify-json/mdi": "^1.2.3",
     "@mermaid-chart/icons-gcp": "^1.0.0",
-    "@mermaid-chart/vscode-utils": "1.0.7",
+    "@mermaid-chart/vscode-utils": "1.2.4",
     "@mermaid-chart/layout-elk": "0.1.7-b.2",
     "@mermaidchart/sdk": "0.2.1",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",
     "@vscode/prompt-tsx": "^0.3.0-alpha.12",
     "axios": "^1.7.9",
     "markdown-it": "^14.1.0",
-    "@mermaid-chart/mermaid": "11.6.0-b.7",
+    "@mermaid-chart/mermaid": "11.6.0-b.12",
     "@mermaid-js/examples": "0.0.1-beta.1",
     "uuid": "^9.0.0",
     "yaml": "^2.7.0",

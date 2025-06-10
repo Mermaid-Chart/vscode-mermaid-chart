@@ -1,5 +1,9 @@
 # Change Log
 
+### 2.4.0 -2025-06-04
+- Added new AI feature **Generate Cloud Architecture Diagram**
+- Use `@mermaid-chart /generate_cloud_architecture_diagram` to generate diagram 
+
 ### 2.3.0 -2025-05-13
 ### New Features
 - Added export functionality for SVG and PNG formats

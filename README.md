@@ -179,6 +179,9 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 2.4.1 -2025-06-10
+- Command bug fixed
+
 ### 2.4.0 -2025-06-04
 - Added new AI feature **Generate Cloud Architecture Diagram**
 - Use `@mermaid-chart /generate_cloud_architecture_diagram` to generate cloud diagram or `MermaidChart: Generate Cloud Diagram`

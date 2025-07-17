@@ -75,8 +75,9 @@ export function getDefaultSaveUri(document: vscode.TextDocument, extension: stri
         try {
             // Get either AI-suggested name or default name
             let baseName = '';
-            
-            if (diagramCode) {
+            const aiExportEnabled = vscode.workspace.getConfiguration('mermaid.vscode').get<boolean>('aiExportName');
+            // check for diagramCode and AI export setting - if true suggest name to a file using the AI 
+            if (diagramCode && aiExportEnabled) {
                 try {
                     const aiSuggestedName = await generateDiagramFilenameWithAI(diagramCode);
                     console.log('AI suggested name:', aiSuggestedName); // Debug log

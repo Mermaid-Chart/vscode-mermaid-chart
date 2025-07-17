@@ -807,6 +807,14 @@
       {
         "command": "mermaidChart.generateCloudDiagram",
         "title": "MermaidChart: Generate Cloud Diagram"
+      },
+      {
+        "command": "mermaidChart.generateERDiagram",
+        "title": "MermaidChart: Generate ER Diagram"
+      },
+      {
+        "command": "mermaidChart.generateDockerDiagram",
+        "title": "MermaidChart: Generate Docker Diagram"
       }
     ],
     "chatParticipants": [

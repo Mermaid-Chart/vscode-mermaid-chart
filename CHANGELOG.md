@@ -1,5 +1,12 @@
 # Change Log
 
+### 2.5.0 - 2025-07-17
+### New Features
+- Added new AI feature **Generate Entity Relationship Diagrams**
+- Added new AI feature **Generate Docker Architecture Diagrams** 
+- Use `@mermaid-chart /generate_er_diagram` to generate ER diagrams from your codebase
+- Use `@mermaid-chart /generate_docker_diagram` to generate Docker architecture diagrams from Docker-related files
+
 ### 2.4.0 -2025-06-04
 - Added new AI feature **Generate Cloud Architecture Diagram**
 - Use `@mermaid-chart /generate_cloud_architecture_diagram` to generate diagram 

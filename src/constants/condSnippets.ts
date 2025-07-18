@@ -8,6 +8,7 @@ export interface SnippetData {
   sample?: string;
   image: string;
 }
+
 const snippets: SnippetData[] = [
   {
     id: "mmflrect",

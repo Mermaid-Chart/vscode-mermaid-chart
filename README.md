@@ -201,6 +201,9 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 2.5.1 - 2025-07-22
+- Bug fix
+
 ### 2.5.0 - 2025-07-17
 - Added new AI feature **Generate Entity Relationship Diagrams**
 - Added new AI feature **Generate Docker Architecture Diagrams** 

@@ -5,6 +5,9 @@ import { defaultBaseURL, updateViewVisibility } from "./util";
 import { MermaidWebviewProvider } from "./panels/loginPanel";
 
 export class MermaidChartVSCode extends MermaidChart {
+  private context?: vscode.ExtensionContext;
+  private mermaidWebviewProvider?: MermaidWebviewProvider;
+
   constructor() {
     const baseURL = getBaseUrl();
     const clientID = `469e30a6-2602-4022-aff8-2ab36842dc57`;
@@ -15,8 +18,89 @@ export class MermaidChartVSCode extends MermaidChart {
   }
 
   public async initialize(context: vscode.ExtensionContext, mermaidWebviewProvider?: MermaidWebviewProvider) {
+    this.context = context;
+    this.mermaidWebviewProvider = mermaidWebviewProvider;
     await this.registerListeners(context, mermaidWebviewProvider);
     await this.setupAPI();
+  }
+
+  // Wrapper method to handle API errors and auto-logout on 403/unauthorized
+  private async handleApiCall<T>(apiCall: () => Promise<T>): Promise<T> {
+    try {
+      return await apiCall();
+    } catch (error: any) {
+      // Check if error is 403 or unauthorized
+      if (this.isUnauthorizedError(error)) {
+        console.log('Unauthorized API call detected, logging out user');
+        await this.handleUnauthorizedError();
+        throw error;
+      }
+      throw error;
+    }
+  }
+
+  private isUnauthorizedError(error: any): boolean {
+    // Check for 403 status code
+    if (error?.status === 403 || error?.response?.status === 403) {
+      return true;
+    }
+    
+    // Check for 401 (unauthorized) status code
+    if (error?.status === 401 || error?.response?.status === 401) {
+      return true;
+    }
+    
+    // Check for unauthorized in error message
+    if (error?.message && typeof error.message === 'string') {
+      const message = error.message.toLowerCase();
+      return message.includes('unauthorized') || message.includes('forbidden') || message.includes('403') || message.includes('401');
+    }
+    
+    return false;
+  }
+
+  private async handleUnauthorizedError(): Promise<void> {
+    if (!this.context) {
+      console.error('Context not available for handling unauthorized error');
+      return;
+    }
+
+    try {
+      // Log out the user
+      await this.logout(this.context);
+      
+      // Update view visibility to show login screen
+      updateViewVisibility(false, this.mermaidWebviewProvider);
+      
+      // Show error message to user
+      vscode.window.showErrorMessage(
+        'Your session has expired. Please log in again to continue using Mermaid Chart.',
+        'Login'
+      ).then(selection => {
+        if (selection === 'Login') {
+          vscode.commands.executeCommand('mermaidChart.login');
+        }
+      });
+    } catch (logoutError) {
+      console.error('Error during automatic logout:', logoutError);
+    }
+  }
+
+  // Override API methods with error handling
+  public async getProjects(): Promise<any> {
+    return this.handleApiCall(() => super.getProjects());
+  }
+
+  public async getDocuments(projectId: string): Promise<any> {
+    return this.handleApiCall(() => super.getDocuments(projectId));
+  }
+
+  public async setDocument(params: any): Promise<any> {
+    return this.handleApiCall(() => super.setDocument(params));
+  }
+
+  public async createDocument(projectId: string): Promise<any> {
+    return this.handleApiCall(() => super.createDocument(projectId));
   }
 
   public async login() {

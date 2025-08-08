@@ -1,4 +1,10 @@
 # Change Log
+### 2.5.1 - 2025-08-08
+- Added new AI feature **Generate Code Ownership Diagrams**
+   - Command to use  `@mermaid-chart /analyze_code_ownership` 
+
+- Added new AI feature **Generate Dependency Diagrams from Your Codebase** 
+   - Command to use  `@mermaid-chart /generate_dependency_diagram`  
 
 ### 2.5.0 - 2025-07-17
 ### New Features

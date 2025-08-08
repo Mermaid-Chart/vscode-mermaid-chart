@@ -270,7 +270,7 @@ export function checkReferencedFiles(metadata: any, workspacePath: string = ''):
     }
 
     if (!fs.existsSync(filePath)) {
-      changedReferences.push(`${path.basename(filePath)} (deleted)`);
+      changedReferences.push(`${filePath} (deleted)`);
       continue;
     }
 
@@ -280,7 +280,7 @@ export function checkReferencedFiles(metadata: any, workspacePath: string = ''):
 
     // If reference file was modified after generation time
     if (generationTime > 0 && lastModified > generationTime) {
-      changedReferences.push(path.basename(filePath));
+      changedReferences.push(filePath);
     }
   }
 

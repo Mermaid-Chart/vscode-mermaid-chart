@@ -89,6 +89,36 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 
 ![vscode-plugin-docker-diagram](https://docs.mermaidchart.com/img/plugins/docker-diagram-vscode-plugin.gif)
 
+### Generate Code Ownership Diagrams 
+- Code ownership analysis provides a visual representation of team contributions to specific files or packages, helping identify maintainers and streamline collaboration.
+- Simply mention : `@mermaid-chart /analyze_code_ownership` in GitHub Copilot Chat 
+- The AI scans your workspace, analyzes file structures, and identifies ownership metadata such as authorship, contributors, and maintainers using commit history from Git.<br>
+- Select specific time frames (e.g., 1 month, 3 months, 6 months, or 12 months) to focus on recent or historical contributions.<br>
+-  Ownership is displayed for each package, with nodes color-coded based on contribution levels:
+    - 🟢 Green – Actively Maintained
+    - 🟠 Orange – Moderately Maintained
+    - 🟡 Yellow – Lightly Maintained
+    - ⚪ No color – Unmaintained<br>
+- Perfect for understanding team responsibilities, improving collaboration, and streamlining code reviews.<br>
+- Visualize code ownership effortlessly — from codebase to diagram in seconds.
+
+![vscode-plugin-ownership-diagram](https://docs.mermaidchart.com/img/plugins/vscode-analyze_code_ownership_diagram.gif)
+
+### Generate Dependency Diagrams from Your Codebase
+- The Dependency Diagram provides a visual overview of all packages used in your project, highlighting their security and update status. It categorizes dependencies based on their version lag and known vulnerabilities, helping teams identify potential risks and prioritize updates effectively.<br>
+- Simply mention: `@mermaid-chart /generate_dependency_diagram` in GitHub Copilot Chat.
+- The AI scans your workspace, analyzes dependency files (e.g., package.json, pom.xml, requirements.txt), and generates a detailed diagram of all packages.<br>
+- Each dependency is categorized based on Version & Vulnerability Analysis:
+   - 🟢 Good – Up-to-date and secure packages
+   - 🔵 Low – Slightly outdated but no critical issues
+   - 🟡 Medium – Multiple versions behind or moderate vulnerabilities
+   - 🟠 High – Known high-severity vulnerabilities
+   - 🔴 Critical – Severe vulnerabilities or abandoned packages<br>
+- The diagram helps development and security teams maintain package health, prevent exploits, and streamline dependency management.<br>
+- Visualize your dependency health effortlessly — from codebase to diagram in seconds.
+
+![vscode-plugin-dependency-diagram](https://docs.mermaidchart.com/img/plugins/vscode-dependency-diagram.gif)
+
 ### Real-Time local Edit & Preview 
 Now you get a side-by-side real time preview of the mermaid diagram while editing the diagram locally. This helps the user to see the true power of a mermaid's text-based diagram, where each change in text is reflected immediately on the diagram.
 
@@ -200,6 +230,12 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+### 2.5.1 - 2025-08-08
+- Added new AI feature **Generate Code Ownership Diagrams**
+   - Command to use  `@mermaid-chart /analyze_code_ownership` 
+
+- Added new AI feature **Generate Dependency Diagrams from Your Codebase** 
+   - Command to use  `@mermaid-chart /generate_dependency_diagram` 
 
 ### 2.5.1 - 2025-07-22
 - Bug fix

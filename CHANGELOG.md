@@ -1,5 +1,5 @@
 # Change Log
-### 2.5.1 - 2025-08-08
+### 2.5.2 - 2025-08-11
 - Added new AI feature **Generate Code Ownership Diagrams**
    - Command to use  `@mermaid-chart /analyze_code_ownership` 
 

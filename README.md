@@ -10,6 +10,8 @@ Transform ideas into diagrams instantly with our AI integration! Our extension n
 - **AI-Powered ER Diagrams**: Generate entity relationship diagrams from your codebase with simple commands
 - **AI-Powered Cloud Architecture**: Visualize your cloud infrastructure automatically from configuration files
 - **AI-Powered Docker Diagrams**: Create Docker architecture diagrams from your containerized applications
+- **AI-Powered Ownership Diagram**: Visulize your code Ownership of each packages/folder form you project using the Git commit history 
+- **AI-Powered Dependency Diagrams**:  Visualize all packages in your project, categorized by security issues, latest version status, and potential risks
 
 > **Note**<br/>
 > To use the AI diagramming feature, you must have the [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) extension installed.
@@ -230,7 +232,7 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
-### 2.5.1 - 2025-08-08
+### 2.5.2 - 2025-08-11
 - Added new AI feature **Generate Code Ownership Diagrams**
    - Command to use  `@mermaid-chart /analyze_code_ownership` 
 

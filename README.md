@@ -2,6 +2,12 @@
 
 The official Mermaid extension for Visual Studio Code enables developers to seamlessly create, edit, preview and integrate mermaid diagrams from within the VS Code.
 
+
+## Getting Started 🚀
+
+1. Install [Marmaid Chart](https://marketplace.visualstudio.com/items?itemName=MermaidChart.vscode-mermaid-chart) from Marketplace
+2. Login using account for Mermaid Chart. Or [create new account](https://www.mermaidchart.com/app/sign-up)
+
 ## Now with AI-Powered Diagramming! ✨
 
 Transform ideas into diagrams instantly with our AI integration! Our extension now includes:

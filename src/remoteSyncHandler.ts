@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { MermaidChartVSCode } from './mermaidChartVSCode';
-import { getDiagramFromCache } from './mermaidChartProvider';
+import { getDiagramFromCache, updateDiagramInCache } from './mermaidChartProvider';
 
 
 export class RemoteSyncHandler {
@@ -35,8 +35,15 @@ export class RemoteSyncHandler {
                 return 'continue';
             }
 
-            // If no remote changes, return continue
-            if (!remoteVersion || remoteVersion.code === originalDiagram.code || currentContent === remoteVersion.code) {
+            // If no remote changes since last cache, return continue
+            if (!remoteVersion || remoteVersion.code === originalDiagram.code) {
+                return 'continue';
+            }
+
+            // If current content matches remote, just update cache and continue
+            if (currentContent === remoteVersion.code) {
+                const { updateDiagramInCache } = require('./mermaidChartProvider');
+                updateDiagramInCache(diagramId, remoteVersion.code);
                 return 'continue';
             }
 
@@ -51,10 +58,9 @@ export class RemoteSyncHandler {
                 const canSaveFile = await this.insertMergeConflictMarkers(document, remoteVersion.code);
                 return canSaveFile ? 'continue' : 'abort'; // Abort to prevent immediate save
             } else if (result === 'Force Push Local Changes') {
+                updateDiagramInCache(diagramId, currentContent);
                 return 'continue';
-            }
-
-            return 'abort';
+            }return 'abort';
         } catch (error) {
             vscode.window.showErrorMessage(
                 `Failed to check remote changes: ${error instanceof Error ? error.message : 'Unknown error'}`

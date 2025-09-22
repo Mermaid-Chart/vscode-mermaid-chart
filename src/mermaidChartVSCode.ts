@@ -95,6 +95,10 @@ export class MermaidChartVSCode extends MermaidChart {
     return this.handleApiCall(() => super.getDocuments(projectId));
   }
 
+  public async getDocument(params: any): Promise<any> {
+    return this.handleApiCall(() => super.getDocument(params));
+  }
+
   public async setDocument(params: any): Promise<any> {
     return this.handleApiCall(() => super.setDocument(params));
   }

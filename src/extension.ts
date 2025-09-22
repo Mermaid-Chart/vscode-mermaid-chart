@@ -360,9 +360,9 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
         code: content,
       });
 
-      // Update the cache with the new code
-        updateDiagramInCache(diagramId, event.document.getText());
-        vscode.window.showInformationMessage(`Diagram synced successfully with Mermaid chart. Diagram ID: ${diagramId}`);
+      // Update the cache with the new code immediately after successful save
+      updateDiagramInCache(diagramId, content);
+      vscode.window.showInformationMessage(`Diagram synced successfully with Mermaid chart. Diagram ID: ${diagramId}`);
       }
     }
   }

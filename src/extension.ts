@@ -6,6 +6,7 @@ import {
   applyMermaidChartTokenHighlighting,
   configSection,
   editMermaidChart,
+  ensureAuthenticated,
   findComments,
   findDiagramCode,
   findMermaidChartTokens,
@@ -215,7 +216,19 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("mermaidChart.editLocally", async (uuid: string) => {
-      const projects = getAllTreeViewProjectsCache();
+      if (!(await ensureAuthenticated())) {
+        return;
+      }
+      let projects = getAllTreeViewProjectsCache();
+      if (projects.length === 0) {
+        if(MermaidChartProvider.isSyncing) {
+          await MermaidChartProvider.waitForSync();
+        } else {
+          vscode.window.showInformationMessage('Please wait, diagrams are being synchronized...');
+          await mermaidChartProvider.syncMermaidChart();
+        }
+        projects = getAllTreeViewProjectsCache();
+    }
    
       // Find the diagram code based on the UUID
        const diagramCode = findDiagramCode(projects,uuid);
@@ -267,6 +280,9 @@ context.subscriptions.push(
  
 context.subscriptions.push(
   vscode.commands.registerCommand('mermaid.connectDiagram', async (uri: vscode.Uri, range: vscode.Range) => {
+    if (!(await ensureAuthenticated())) {
+      return;
+    }
     const document = await vscode.workspace.openTextDocument(uri);
     const content = document.getText();
     const blockContent = content.substring(document.offsetAt(range.start), document.offsetAt(range.end)).trim();
@@ -551,6 +567,9 @@ context.subscriptions.push(
 );
 
   vscode.commands.registerCommand("mermaidChart.downloadDiagram", async (item: Document) => {
+    if (!(await ensureAuthenticated())) {
+      return;
+    }
     if (!item || !item.code) {
       vscode.window.showErrorMessage("No code found for this diagram.");
       return;

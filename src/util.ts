@@ -1,3 +1,4 @@
+import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
 import { Disposable, Event, EventEmitter, authentication } from "vscode";
 import { createHash } from "crypto";
 import * as vscode from "vscode";
@@ -221,10 +222,34 @@ export function getImageDataURL(svgXml: string) {
   return "data:image/svg+xml;base64," + base64;
 }
 
+
+export async function ensureAuthenticated(): Promise<boolean> {
+  const session = await vscode.authentication.getSession(
+    MermaidChartAuthenticationProvider.id,
+    [],
+    { silent: true }
+  );
+
+  if (!session) {
+    const selection = await vscode.window.showInformationMessage(
+      "You need to be logged in to perform this action.",
+      "Login"
+    );
+    if (selection === "Login") {
+      vscode.commands.executeCommand("mermaidChart.login");
+    }
+    return false;
+  }
+  return true;
+}
+
 export async function viewMermaidChart(
   mcAPI: MermaidChartVSCode,
   uuid: string
 ) {
+  if (!(await ensureAuthenticated())) {
+    return;
+  }
   const panel = vscode.window.createWebviewPanel(
     "mermaidChartView",
     `Mermaid Chart: ${uuid}`,
@@ -264,6 +289,9 @@ export async function editMermaidChart(
   uuid: string,
   provider: MermaidChartProvider
 ) {
+  if (!(await ensureAuthenticated())) {
+    return;
+  }
   // Retrieve the document details to get the required fields
   const document = await mcAPI.getDocument({ documentID: uuid });
 

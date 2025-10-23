@@ -238,6 +238,11 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.5.3 - 2025-10-23
+- Bug fix for markdown strings
+- Bug fixes for smart sync diagrams
+
 ### 2.5.2 - 2025-08-11
 - Added new AI feature **Generate Code Ownership Diagrams**
    - Command to use  `@mermaid-chart /analyze_code_ownership` 

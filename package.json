@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid Chart",
   "description": "The \"official\" Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -980,7 +980,7 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm compile",
-    "precompile": "pnpm --filter ./webview build  && webpack --mode=production --config ./build/markdownPreview.webpack.config.js",
+    "precompile": "pnpm --filter ./webview build && webpack --mode=production --config ./build/markdownPreview.webpack.config.js",
     "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --sourcemap --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --minify",
     "watch": "tsc -p ./ --noEmit --watch",
     "pretest": "pnpm compile && pnpm lint",
@@ -1028,7 +1028,7 @@
     "@vscode/prompt-tsx": "^0.3.0-alpha.12",
     "axios": "^1.7.9",
     "markdown-it": "^14.1.0",
-    "@mermaid-chart/mermaid": "11.12.0-b.2",
+    "@mermaid-chart/mermaid": "11.12.0-b.3",
     "@mermaid-js/examples": "0.0.1-beta.1",
     "uuid": "^9.0.0",
     "yaml": "^2.7.0",

@@ -10,7 +10,7 @@
         color: #d8000c;
         padding: 10px;
         font-size: 14px;
-        text-align: center;
+        text-align: left;
         border: 1px solid #d8000c;
         display: none;
         user-select:text;
@@ -22,6 +22,6 @@
   </style>
   <div id="error-message" class:errorVisible={!!errorMessage}>
     {#if errorMessage}
-      <p>{errorMessage}</p>
+      <pre>{errorMessage}</pre>
     {/if}
   </div>

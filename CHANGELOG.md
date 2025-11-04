@@ -1,5 +1,5 @@
 # Change Log
-### 2.5.3 - 2025-10-31
+### 2.5.4 - 2025-11-04
 - Added new AI feature **Generate Execution Sequence Diagrams**
    - Command to use `@mermaid-chart /generate_execution_sequence`
    - Generate detailed sequence diagrams from modular code showing interactions between components, classes, and methods

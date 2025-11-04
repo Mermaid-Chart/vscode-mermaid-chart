@@ -251,6 +251,11 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+### 2.5.4 - 2025-11-04
+- Added new AI feature **Generate Execution Sequence Diagrams**
+   - Command to use `@mermaid-chart /generate_execution_sequence`
+   - Generate detailed sequence diagrams from modular code showing interactions between components, classes, and methods
+
 
 ### 2.5.3 - 2025-10-23
 - Bug fix for markdown strings

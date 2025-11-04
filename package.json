@@ -843,7 +843,7 @@
           },
           {
             "name": "generate_execution_sequence",
-            "description": "Generate sequence diagram for modular code"
+            "description": "Generate detail execution sequence diagram from your code"
           },
           {
             "name": "generate_dependency_diagram", 

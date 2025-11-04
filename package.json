@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid Chart",
   "description": "The \"official\" Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -842,6 +842,10 @@
             "description": "Analyze code ownership and generate a Mermaid diagram."
           },
           {
+            "name": "generate_execution_sequence",
+            "description": "Generate detail execution sequence diagram from your code"
+          },
+          {
             "name": "generate_dependency_diagram", 
             "description": "Generate dependency security visualization diagram"
           }
@@ -1021,7 +1025,7 @@
     "@iconify-json/logos": "^1.2.4",
     "@iconify-json/mdi": "^1.2.3",
     "@mermaid-chart/icons-gcp": "^1.0.0",
-    "@mermaid-chart/vscode-utils": "1.3.7",
+    "@mermaid-chart/vscode-utils": "1.3.8",
     "@mermaid-chart/layout-elk": "0.1.7-b.2",
     "@mermaidchart/sdk": "0.2.1",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",

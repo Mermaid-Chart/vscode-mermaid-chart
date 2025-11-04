@@ -1,4 +1,9 @@
 # Change Log
+### 2.5.4 - 2025-11-04
+- Added new AI feature **Generate Execution Sequence Diagrams**
+   - Command to use `@mermaid-chart /generate_execution_sequence`
+   - Generate detailed sequence diagrams from modular code showing interactions between components, classes, and methods
+
 ### 2.5.2 - 2025-08-11
 - Added new AI feature **Generate Code Ownership Diagrams**
    - Command to use  `@mermaid-chart /analyze_code_ownership` 

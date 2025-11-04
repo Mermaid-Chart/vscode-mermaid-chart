@@ -18,6 +18,7 @@ Transform ideas into diagrams instantly with our AI integration! Our extension n
 - **AI-Powered Docker Diagrams**: Create Docker architecture diagrams from your containerized applications
 - **AI-Powered Ownership Diagram**: Visulize your code Ownership of each packages/folder form you project using the Git commit history 
 - **AI-Powered Dependency Diagrams**:  Visualize all packages in your project, categorized by security issues, latest version status, and potential risks
+- **AI-Powered Sequence Diagrams**: Generate execution sequence diagrams from your modular code, showing interactions between components, classes, and methods
 
 > **Note**<br/>
 > To use the AI diagramming feature, you must have the [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) extension installed.
@@ -126,6 +127,18 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 - Visualize your dependency health effortlessly — from codebase to diagram in seconds.
 
 ![vscode-plugin-dependency-diagram](https://docs.mermaidchart.com/img/plugins/vscode-dependency-diagram.gif)
+
+### Generate Execution Sequence Diagrams from Modular Code
+- Transform your complex codebase into clear, visual sequence diagrams that show how your components interact and communicate with each other.<br>
+- Simply mention: `@mermaid-chart /generate_execution_sequence` in GitHub Copilot Chat to automatically analyze your code structure and generate comprehensive sequence diagrams.<br>
+- The AI intelligently follows a structured workflow:
+  - Shows a popup for interactive file selection
+  - Analyzes chosen files to understand connections and patterns between functions
+  - Creates sequence diagrams showing detailed interaction and execution flow<br>
+- Perfect for documenting complex workflows, understanding system architecture, improving code maintainability.<br>
+- Visualize your code execution effortlessly and enhance your development workflow.
+
+![vscode-plugin-sequence-diagram](https://docs.mermaidchart.com/img/plugins/vscode-generate-execution-sequence.gif)
 
 ### Real-Time local Edit & Preview 
 Now you get a side-by-side real time preview of the mermaid diagram while editing the diagram locally. This helps the user to see the true power of a mermaid's text-based diagram, where each change in text is reflected immediately on the diagram.
@@ -238,6 +251,11 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+### 2.5.4 - 2025-11-04
+- Added new AI feature **Generate Execution Sequence Diagrams**
+   - Command to use `@mermaid-chart /generate_execution_sequence`
+   - Generate detailed sequence diagrams from modular code showing interactions between components, classes, and methods
+
 
 ### 2.5.3 - 2025-10-23
 - Bug fix for markdown strings

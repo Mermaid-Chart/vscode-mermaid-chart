@@ -16,9 +16,10 @@ Transform ideas into diagrams instantly with our AI integration! Our extension n
 - **AI-Powered ER Diagrams**: Generate entity relationship diagrams from your codebase with simple commands
 - **AI-Powered Cloud Architecture**: Visualize your cloud infrastructure automatically from configuration files
 - **AI-Powered Docker Diagrams**: Create Docker architecture diagrams from your containerized applications
-- **AI-Powered Ownership Diagram**: Visulize your code Ownership of each packages/folder form you project using the Git commit history 
+- **AI-Powered Ownership Diagram**: Visualize your code Ownership of each packages/folder form you project using the Git commit history 
 - **AI-Powered Dependency Diagrams**:  Visualize all packages in your project, categorized by security issues, latest version status, and potential risks
 - **AI-Powered Sequence Diagrams**: Generate execution sequence diagrams from your modular code, showing interactions between components, classes, and methods
+- **AI-Powered C4 Architecture Diagrams**: Generate top-down C4 architecture diagrams from your codebase, visualizing system components and their relationships
 
 > **Note**<br/>
 > To use the AI diagramming feature, you must have the [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) extension installed.
@@ -140,6 +141,18 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 
 ![vscode-plugin-sequence-diagram](https://docs.mermaidchart.com/img/plugins/vscode-generate-execution-sequence.gif)
 
+### Generate C4 Top-Down Architecture Diagrams from Your Codebase
+- Automatically create comprehensive C4 architecture diagrams that visualize your entire system's structure, components, and relationships.<br>
+- Simply mention: `@mermaid-chart /generate_c4_topdown_architecture` in GitHub Copilot Chat to scan and analyze your codebase.<br>
+- The AI intelligently follows a structured workflow:
+  - Scans your entire codebase to identify components, modules, and services
+  - Understands the relationships and dependencies between different parts of your system
+  - Creates C4 diagrams showing system context, containers, components, and their interactions<br>
+- Perfect for system documentation, architectural reviews, onboarding new team members, and maintaining architectural clarity.<br>
+- Visualize your entire system architecture from top-down perspective effortlessly.
+
+![vscode-plugin-c4-diagram](https://docs.mermaidchart.com/img/plugins/vscode-generate-c4-architecture.gif)
+
 ### Real-Time local Edit & Preview 
 Now you get a side-by-side real time preview of the mermaid diagram while editing the diagram locally. This helps the user to see the true power of a mermaid's text-based diagram, where each change in text is reflected immediately on the diagram.
 
@@ -251,6 +264,12 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+### 2.5.5 - 2025-11-24
+- Added new AI feature **Generate C4 Top-Down Architecture Diagrams**
+   - Command to use `@mermaid-chart /generate_c4_topdown_architecture`
+   - Scan your entire codebase to understand components and relationships
+   - Create C4 diagrams showing system architecture, containers, components, and their interactions visually
+
 ### 2.5.4 - 2025-11-04
 - Added new AI feature **Generate Execution Sequence Diagrams**
    - Command to use `@mermaid-chart /generate_execution_sequence`

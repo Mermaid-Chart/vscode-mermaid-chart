@@ -1,4 +1,10 @@
 # Change Log
+### 2.5.5 - 2025-11-24
+- Added new AI feature **Generate C4 Top-Down Architecture Diagrams**
+   - Command to use `@mermaid-chart /generate_c4_architecture`
+   - Scan your entire codebase to understand components and relationships
+   - Create C4 diagrams showing system architecture, containers, components, and their interactions visually
+
 ### 2.5.4 - 2025-11-04
 - Added new AI feature **Generate Execution Sequence Diagrams**
    - Command to use `@mermaid-chart /generate_execution_sequence`

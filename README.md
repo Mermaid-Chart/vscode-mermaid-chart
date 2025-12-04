@@ -172,14 +172,32 @@ We now support Pan and Zoom for the diagram preview, where the user pan to a spe
 Users can of course use the reset option to resize the preview diagram to fit the screen.
 ![Pan & Zoom](https://docs.mermaidchart.com/img/plugins/vscode-plugin-pan.png)
 
+### Theme Selector
+Change diagram themes instantly during your current session with our new theme selector feature. This makes it easy to:
+- Preview diagrams with different visual styles
+- Find the perfect theme for your documentation
+- Switch between light and dark themes based on your preference
+- Apply changes in real-time without reloading
+
+All Mermaid Chart themes are supported including: 
+**Mermaid Chart, Neo, Neo Dark, Default, Forest, Base, Dark, Neutral, Redux Dark, Redux Color, and Redux Dark Color**.
+
+Simply click the palette icon next to the export button to access the theme dropdown.
+
+![Theme Selector](https://docs.mermaidchart.com/img/plugins/vscode-plugin-theme-selector.png)
+
 ### Export Diagrams
-Export your diagrams easily in both SVG and PNG formats. This makes it simple to:
+Export your diagrams easily in both SVG and PNG formats with enhanced customization options. This makes it simple to:
 - Include diagrams in documentation
 - Share with team members
 - Use in presentations
 - Version control your diagram assets
 
-The exported files maintain high quality and can be used across different platforms and tools.
+**New Export Features:**
+- **Background Color Options**: Choose between Auto (follows VS Code theme), Light, Dark, or Custom (pick any color)
+- **Custom Color Picker**: Select any background color using an intuitive color picker
+
+The exported files maintain high quality and can be used across different platforms and tools with your preferred background styling.
 
 ![Export Diagrams](https://docs.mermaidchart.com/img/plugins/vscode-plugin-export.png)
 
@@ -264,6 +282,11 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.5.6 - 2025-12-04
+- Added theme selector in preview allowing users to change diagram themes in real-time during current session
+- Enhanced export functionality with custom background color selection for diagram exports
+
 ### 2.5.5 - 2025-11-24
 - Added new AI feature **Generate C4 Top-Down Architecture Diagrams**
    - Command to use `@mermaid-chart /generate_c4_topdown_architecture`

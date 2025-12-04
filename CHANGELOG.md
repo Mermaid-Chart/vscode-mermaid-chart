@@ -1,4 +1,9 @@
 # Change Log
+
+### 2.5.6 - 2025-12-04
+- Added theme selector in preview allowing users to change diagram themes in real-time during current session
+- Enhanced export functionality with custom background color selection for diagram exports
+
 ### 2.5.5 - 2025-11-24
 - Added new AI feature **Generate C4 Top-Down Architecture Diagrams**
    - Command to use `@mermaid-chart /generate_c4_architecture`

@@ -8,6 +8,7 @@
   import Sidebar from './Sidebar.svelte';
   import { diagramContent as diagramData } from './diagramData';
   import LeftSideBar from './LeftSideBar.svelte';
+  import ExportModal from './ExportModal.svelte';
 
   $: diagramContent = diagramData;
  
@@ -20,6 +21,7 @@
   let maxZoomLevel = 5;
   let maxTextSize = 90000;
   let maxEdges = 1000;
+  let isExportModalOpen = false;
   $: sidebarBackgroundColor = theme?.includes("dark")? "#4d4d4d" : "white";
   $: iconBackgroundColor = theme?.includes("dark") ? "#4d4d4d" : "white";
   $: svgColor = theme?.includes("dark") ? "white" : "#2329D6";
@@ -30,6 +32,20 @@
     mouseUp: null,
     mouseLeave: null
   };
+
+  function handleOpenExportModal() {
+    isExportModalOpen = true;
+  }
+
+  function handleCloseExportModal() {
+    isExportModalOpen = false;
+  }
+
+  function handleThemeChange(event) {
+    const newTheme = event.detail.theme;
+    theme = newTheme;
+    renderDiagram();
+  }
 
     async function initializeMermaid() {
       try {
@@ -335,10 +351,24 @@
   <div id="mermaid-diagram"></div>
   <div class="sidebar-container">
     {#if !errorMessage}
-    <LeftSideBar {iconBackgroundColor} {sidebarBackgroundColor} {shadowColor} {svgColor} {theme}/>
+    <LeftSideBar 
+      {iconBackgroundColor} 
+      {sidebarBackgroundColor} 
+      {shadowColor} 
+      {svgColor}
+      currentTheme={theme}
+      on:openExportModal={handleOpenExportModal}
+      on:themeChange={handleThemeChange}
+    />
     <Sidebar {panEnabled} {iconBackgroundColor} {sidebarBackgroundColor} {shadowColor} {svgColor} {zoomLevel} {togglePan} {zoomOut} {resetView} {zoomIn} />
   {/if}
   </div>
 
+  <!-- Export Modal -->
+  <ExportModal 
+    isOpen={isExportModalOpen} 
+    currentTheme={theme}
+    on:close={handleCloseExportModal} 
+  />
 </div>
 

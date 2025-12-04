@@ -12,12 +12,14 @@
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@types/vscode-webview": "^1.57.5",
     "svelte": "^5.17.3",
+    "unplugin-icons": "^0.19.3",
     "vite": "^6.0.7"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "6.7.2",
     "@iconify-json/fa6-regular": "^1.2.0",
     "@iconify-json/logos": "^1.2.4",
+    "@iconify-json/material-symbols": "^1.2.3",
     "@iconify-json/mdi": "^1.2.3",
     "@mermaid-chart/icons-aws": "^1.0.1",
     "@mermaid-chart/icons-azure": "^1.0.0",

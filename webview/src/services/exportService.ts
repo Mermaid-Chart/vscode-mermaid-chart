@@ -20,7 +20,10 @@ export function blobToBase64(blob: Blob): Promise<string> {
 /**
  * Creates a PNG image from the SVG diagram
  */
-export async function exportPng(theme?: string) {
+export async function exportPng(
+theme?: string,
+  customBackgroundColor?: string
+) {
   try {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const canvas = document.createElement('canvas');
@@ -45,9 +48,18 @@ export async function exportPng(theme?: string) {
     if (!context) {
       throw new Error('Failed to get canvas context');
     }
-    
-    // Set background color based on theme
-    context.fillStyle = theme?.includes("dark") ? "#171719" : "white";
+
+    // Set background color based on theme or custom color
+    let backgroundColor: string;
+    if (customBackgroundColor) {
+      backgroundColor = customBackgroundColor;
+    } else {
+      // Handle different theme formats: 'redux-dark' vs 'dark', 'redux' vs 'light'
+      const isDarkTheme = theme?.includes("dark") || theme === "dark";
+      backgroundColor = isDarkTheme ? "#171719" : "white";
+    }
+
+    context.fillStyle = backgroundColor;
     context.fillRect(0, 0, canvas.width, canvas.height);
     
     // Create image from SVG
@@ -95,11 +107,34 @@ export async function exportPng(theme?: string) {
 /**
  * Creates an SVG image from the diagram
  */
-export async function exportSvg() {
+export async function exportSvg(
+  theme?: string,
+  customBackgroundColor?: string
+) {
   try {
     const svg = getSvgElement() as HTMLElement;
     if (!svg) {
-      throw new Error('SVG element not found');
+      throw new Error("SVG element not found");
+    }
+
+    // Apply theme-specific styling to the SVG
+    if (theme || customBackgroundColor) {
+      let backgroundColor: string;
+
+      if (customBackgroundColor) {
+        backgroundColor = customBackgroundColor;
+      } else {
+        const isDarkTheme = theme?.includes("dark") || theme === "dark";
+        backgroundColor = isDarkTheme ? "#171719" : "white";
+      }
+
+      // Add background to the SVG
+      svg.style.backgroundColor = backgroundColor;
+
+      // If it's a light theme or custom light color, ensure proper contrast for dark elements
+      if (!customBackgroundColor || isLightColor(customBackgroundColor)) {
+        svg.style.color = "#000000";
+      }
     }
 
     const svgBase64 = await getBase64SVG(svg);
@@ -115,6 +150,24 @@ export async function exportSvg() {
       message: `Error exporting SVG: ${error instanceof Error ? error.message : String(error)}`
     });
   }
+}
+
+/**
+ * Helper function to determine if a color is light or dark
+ */
+function isLightColor(hexColor: string): boolean {
+  // Remove # if present
+  const hex = hexColor.replace("#", "");
+
+  // Convert to RGB
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  // Calculate luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  return luminance > 0.5;
 }
 
 /**

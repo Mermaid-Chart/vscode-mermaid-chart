@@ -1,7 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher, onMount, afterUpdate } from 'svelte';
   import { exportPng, exportSvg } from './services/exportService';
-  import mermaid from '@mermaid-chart/mermaid';
   
   export let isOpen = false;
   export let currentTheme: string;
@@ -9,7 +8,7 @@
   const dispatch = createEventDispatcher();
   
   let selectedFormat: 'png' | 'svg' = 'png';
-  let selectedTheme: 'auto' | 'light' | 'dark' | 'custom' = 'auto';
+  let selectedTheme: 'light' | 'dark' | 'custom' | 'transparent' = currentTheme?.includes('dark') ? 'dark' : 'light';
   let customBackgroundColor: string = '#ffffff';
   let previewElement: HTMLElement;
   
@@ -29,7 +28,7 @@
   
   function resetModalState() {
     selectedFormat = 'png';
-    selectedTheme = 'auto';
+    selectedTheme = currentTheme?.includes('dark') ? 'dark' : 'light';
     customBackgroundColor = '#ffffff';
   }
   
@@ -42,7 +41,7 @@
       case 'custom':
         // For custom, use light theme with custom background
         return 'redux';
-      case 'auto':
+      case 'transparent':
       default:
         return current; // Use current VS Code theme
     }
@@ -56,9 +55,9 @@
         return '#171719';
       case 'custom':
         return customColor;
-      case 'auto':
+      case 'transparent':
       default:
-        return current?.includes('dark') ? '#171719' : '#ffffff';
+        return 'transparent';
     }
   }
   
@@ -177,7 +176,8 @@
   
   function handleExport() {
     const exportTheme = previewTheme;
-    const backgroundColor = selectedTheme === 'custom' ? customBackgroundColor : null;
+    const backgroundColor = selectedTheme === 'custom' ? customBackgroundColor : 
+                           selectedTheme === 'transparent' ? 'transparent' : null;
     
     if (selectedFormat === 'png') {
       exportPng(exportTheme, backgroundColor);
@@ -279,12 +279,14 @@
   
   .export-options {
     flex: 1;
+    min-width: 0;
   }
   
   .preview-section {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
   }
   
   .option-group {
@@ -356,12 +358,26 @@
     border: 1px solid var(--vscode-panel-border, #3c3c3c);
     border-radius: 4px;
     height: 200px;
+    min-height: 200px;
+    max-height: 200px;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     position: relative;
     background: white;
+    flex-shrink: 0;
+  }
+  
+  .preview-container.transparent-bg {
+    background: 
+      linear-gradient(45deg, rgba(0, 0, 0, 0.3) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(0, 0, 0, 0.3) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.3) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.3) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    background-color: #f0f0f0;
   }
   
   .preview-placeholder {
@@ -430,29 +446,46 @@
     background: #171719;
   }
   
-  .background-auto {
-    background: linear-gradient(45deg, white 50%, #171719 50%);
+
+  
+  .background-transparent {
+    background: 
+      linear-gradient(45deg, rgba(0, 0, 0, 0.4) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(0, 0, 0, 0.4) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.4) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.4) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+    background-color: #f5f5f5;
   }
   
   .custom-color-picker {
-    margin-top: 12px;
-    margin-left: 32px;
-    margin-right: 8px;
-    margin-bottom: 8px;
+    margin:12px 8px;
     padding: 12px 16px;
     background: var(--vscode-input-background, #3c3c3c);
     border: 1px solid var(--vscode-input-border, #3c3c3c);
     border-radius: 6px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
+    overflow: hidden;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .color-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
   }
   
   .color-input {
-    width: 48px;
-    height: 32px;
-    border: 2px solid var(--vscode-panel-border, #3c3c3c);
-    border-radius: 6px;
+    width: 32px;
+    height: 24px;
+    border: 1px solid var(--vscode-panel-border, #3c3c3c);
+    border-radius: 4px;
     cursor: pointer;
     background: none;
     transition: border-color 0.2s ease;
@@ -465,7 +498,7 @@
   .color-input:focus {
     outline: none;
     border-color: var(--vscode-focusBorder, #007acc);
-    box-shadow: 0 0 0 2px var(--vscode-focusBorder, #007acc)33;
+    box-shadow: 0 0 0 1px var(--vscode-focusBorder, #007acc);
   }
   
   .color-input::-webkit-color-swatch-wrapper {
@@ -487,18 +520,25 @@
     color: var(--vscode-editor-foreground, #cccccc);
     font-size: 12px;
     font-weight: 500;
-    margin-right: 8px;
+    white-space: nowrap;
   }
   
   .color-value {
     color: var(--vscode-descriptionForeground, #cccccc99);
-    font-size: 12px;
+    font-size: 11px;
     font-family: monospace;
     text-transform: uppercase;
     background: var(--vscode-editor-background, #1e1e1e);
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 4px 6px;
+    border-radius: 3px;
     border: 1px solid var(--vscode-panel-border, #3c3c3c);
+    min-width: 55px;
+    max-width: 55px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 </style>
 
@@ -559,24 +599,6 @@
             <h3 class="option-group-title">Background color</h3>
             <div class="theme-options">
               <label 
-                class="radio-option {selectedTheme === 'auto' ? 'selected' : ''}"
-                for="theme-auto"
-              >
-                <input 
-                  type="radio" 
-                  id="theme-auto"
-                  class="radio-input"
-                  bind:group={selectedTheme} 
-                  value="auto"
-                />
-                <div>
-                  <div class="radio-label">Auto</div>
-                  <div class="radio-description">Follow VS Code theme</div>
-                </div>
-                <div class="background-preview background-auto"></div>
-              </label>
-              
-              <label 
                 class="radio-option {selectedTheme === 'light' ? 'selected' : ''}"
                 for="theme-light"
               >
@@ -613,6 +635,24 @@
               </label>
               
               <label 
+                class="radio-option {selectedTheme === 'transparent' ? 'selected' : ''}"
+                for="theme-transparent"
+              >
+                <input 
+                  type="radio" 
+                  id="theme-transparent"
+                  class="radio-input"
+                  bind:group={selectedTheme} 
+                  value="transparent"
+                />
+                <div>
+                  <div class="radio-label">Transparent</div>
+                  <div class="radio-description">No background color</div>
+                </div>
+                <div class="background-preview background-transparent"></div>
+              </label>
+              
+              <label 
                 class="radio-option {selectedTheme === 'custom' ? 'selected' : ''}"
                 for="theme-custom"
               >
@@ -632,18 +672,22 @@
               
               {#if selectedTheme === 'custom'}
                 <div class="custom-color-picker">
-                  <label for="custom-color" class="color-picker-label">
-                    <span class="color-picker-text">Background color:</span>
-                  </label>
-                  <input 
-                    type="color" 
-                    id="custom-color"
-                    bind:value={customBackgroundColor}
-                    class="color-input"
-                    title="Pick background color"
-                    aria-label="Custom background color picker"
-                  />
+                  <div class="color-picker-container">
+                    <label for="custom-color" class="color-picker-label">
+                      <span class="color-picker-text">Color:</span>
+                    </label>
+                    <input 
+                      type="color" 
+                      id="custom-color"
+                      bind:value={customBackgroundColor}
+                      class="color-input"
+                      title="Pick background color"
+                      aria-label="Custom background color picker"
+                    />
+                  </div>
+                  <div>
                   <span class="color-value">{customBackgroundColor}</span>
+                  </div>
                 </div>
               {/if}
             </div>
@@ -653,9 +697,9 @@
         <div class="preview-section">
           <h3 class="preview-title">Preview</h3>
           <div 
-            class="preview-container"
+            class="preview-container {selectedTheme === 'transparent' ? 'transparent-bg' : ''}"
             bind:this={previewElement}
-            style="background-color: {previewBackgroundColor}"
+            style="background-color: {selectedTheme === 'transparent' ? 'transparent' : previewBackgroundColor}"
           >
             <div class="preview-placeholder">
               Loading preview...

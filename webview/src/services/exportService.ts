@@ -50,17 +50,20 @@ theme?: string,
     }
 
     // Set background color based on theme or custom color
-    let backgroundColor: string;
-    if (customBackgroundColor) {
-      backgroundColor = customBackgroundColor;
-    } else {
-      // Handle different theme formats: 'redux-dark' vs 'dark', 'redux' vs 'light'
-      const isDarkTheme = theme?.includes("dark") || theme === "dark";
-      backgroundColor = isDarkTheme ? "#171719" : "white";
-    }
+    // Only fill background if not transparent
+    if (customBackgroundColor !== 'transparent') {
+      let backgroundColor: string;
+      if (customBackgroundColor) {
+        backgroundColor = customBackgroundColor;
+      } else {
+        // Handle different theme formats: 'redux-dark' vs 'dark', 'redux' vs 'light'
+        const isDarkTheme = theme?.includes("dark") || theme === "dark";
+        backgroundColor = isDarkTheme ? "#171719" : "white";
+      }
 
-    context.fillStyle = backgroundColor;
-    context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = backgroundColor;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
     
     // Create image from SVG
     const image = new Image();
@@ -119,21 +122,24 @@ export async function exportSvg(
 
     // Apply theme-specific styling to the SVG
     if (theme || customBackgroundColor) {
-      let backgroundColor: string;
+      // Only set background color if not transparent
+      if (customBackgroundColor !== 'transparent') {
+        let backgroundColor: string;
 
-      if (customBackgroundColor) {
-        backgroundColor = customBackgroundColor;
-      } else {
-        const isDarkTheme = theme?.includes("dark") || theme === "dark";
-        backgroundColor = isDarkTheme ? "#171719" : "white";
-      }
+        if (customBackgroundColor) {
+          backgroundColor = customBackgroundColor;
+        } else {
+          const isDarkTheme = theme?.includes("dark") || theme === "dark";
+          backgroundColor = isDarkTheme ? "#171719" : "white";
+        }
 
-      // Add background to the SVG
-      svg.style.backgroundColor = backgroundColor;
+        // Add background to the SVG
+        svg.style.backgroundColor = backgroundColor;
 
-      // If it's a light theme or custom light color, ensure proper contrast for dark elements
-      if (!customBackgroundColor || isLightColor(customBackgroundColor)) {
-        svg.style.color = "#000000";
+        // If it's a light theme or custom light color, ensure proper contrast for dark elements
+        if (!customBackgroundColor || isLightColor(customBackgroundColor)) {
+          svg.style.color = "#000000";
+        }
       }
     }
 

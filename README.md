@@ -6,7 +6,7 @@ The official Mermaid extension for Visual Studio Code enables developers to seam
 ## Getting Started 🚀
 
 1. Install [Marmaid Chart](https://marketplace.visualstudio.com/items?itemName=MermaidChart.vscode-mermaid-chart) from Marketplace
-2. Login using account for Mermaid Chart. Or [create new account](https://www.mermaidchart.com/app/sign-up)
+2. Login using account for Mermaid Chart. Or [create new account](https://mermaid.ai/app/sign-up)
 
 ## Now with AI-Powered Diagramming! ✨
 
@@ -28,7 +28,7 @@ Now we offer a feature rich experience to create, visualize and edit Mermaid dia
 
 Optionally, by creating a free MermaidChart account you can save and sync diagrams on the cloud, explore Mermaid AI, and experience the intuitive best-in-class drag-drop UI for Mermaid diagrams. 
 
-![Image illustrating accessible diagrams in explorer panel](https://docs.mermaidchart.com/img/plugins/vscode-plugin.gif)
+![Image illustrating accessible diagrams in explorer panel](https://mermaid.ai/docs/img/plugins/vscode-plugin.gif)
 
 ## Features
 
@@ -66,11 +66,11 @@ Just mention **@mermaid-chart** in any GitHub Copilot Chat and describe the diag
  Whether it's a class diagram, sequence diagram, entity relationship diagram, or more — the AI assistant will analyze the code, generate the appropriate Mermaid syntax, and instantly show a live preview.<br>
 Let your code speak for itself — effortlessly.
 
-![Image illustrating accessible diagrams in explorer panel](https://docs.mermaidchart.com/img/plugins/ai-generate-diagram.gif)
+![Image illustrating accessible diagrams in explorer panel](https://mermaid.ai/docs/img/plugins/ai-generate-diagram.gif)
 
 With Smart Diagram Regeneration, when your source code or requirements change, the extension can detect these changes and offer to update related diagrams with a single click.
 
-![Image illustrating accessible diagrams in explorer panel](https://docs.mermaidchart.com/img/plugins/vscode-plugin-update-diagram.gif)
+![Image illustrating accessible diagrams in explorer panel](https://mermaid.ai/docs/img/plugins/vscode-plugin-update-diagram.gif)
 
 ### Visualize Cloud Infrastructure from Your Codebase
 - Instantly visualize your cloud infrastructure with our AI-powered diagram generator.<br>
@@ -79,7 +79,7 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 - Before generating, you can easily select the specific files you want to include, giving you full control over the output.<br>
 - Understand your cloud setup at a glance — no manual effort required.
 
-![vscode-plugin-cloud-diagram](https://docs.mermaidchart.com/img/plugins/vscode-plugin-cloud-diagram.gif)
+![vscode-plugin-cloud-diagram](https://mermaid.ai/docs/img/plugins/vscode-plugin-cloud-diagram.gif)
 
 ### Generate Entity Relationship Diagrams from Your Codebase
 - Automatically create entity relationship diagrams from your database schemas and code structures.<br>
@@ -88,7 +88,7 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 - Perfect for documenting database designs, understanding data relationships, and onboarding new team members.<br>
 - Visualize your data architecture effortlessly — from code to diagram in seconds.
 
-![vscode-plugin-er-diagram](https://docs.mermaidchart.com/img/plugins/er-diagram-vscode-plugin.gif)
+![vscode-plugin-er-diagram](https://mermaid.ai/docs/img/plugins/er-diagram-vscode-plugin.gif)
 
 ### Generate Docker Architecture Diagrams
 - Visualize your containerized applications and Docker infrastructure with AI-powered diagram generation.<br>
@@ -97,7 +97,7 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 - Before generating, you can select specific Docker configuration files to include in your diagram.<br>
 - Understand your containerized architecture at a glance — perfect for documentation and team collaboration.
 
-![vscode-plugin-docker-diagram](https://docs.mermaidchart.com/img/plugins/docker-diagram-vscode-plugin.gif)
+![vscode-plugin-docker-diagram](https://mermaid.ai/docs/img/plugins/docker-diagram-vscode-plugin.gif)
 
 ### Generate Code Ownership Diagrams 
 - Code ownership analysis provides a visual representation of team contributions to specific files or packages, helping identify maintainers and streamline collaboration.
@@ -112,7 +112,7 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 - Perfect for understanding team responsibilities, improving collaboration, and streamlining code reviews.<br>
 - Visualize code ownership effortlessly — from codebase to diagram in seconds.
 
-![vscode-plugin-ownership-diagram](https://docs.mermaidchart.com/img/plugins/vscode-analyze_code_ownership_diagram.gif)
+![vscode-plugin-ownership-diagram](https://mermaid.ai/docs/img/plugins/vscode-analyze_code_ownership_diagram.gif)
 
 ### Generate Dependency Diagrams from Your Codebase
 - The Dependency Diagram provides a visual overview of all packages used in your project, highlighting their security and update status. It categorizes dependencies based on their version lag and known vulnerabilities, helping teams identify potential risks and prioritize updates effectively.<br>
@@ -127,7 +127,7 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 - The diagram helps development and security teams maintain package health, prevent exploits, and streamline dependency management.<br>
 - Visualize your dependency health effortlessly — from codebase to diagram in seconds.
 
-![vscode-plugin-dependency-diagram](https://docs.mermaidchart.com/img/plugins/vscode-dependency-diagram.gif)
+![vscode-plugin-dependency-diagram](https://mermaid.ai/docs/img/plugins/vscode-dependency-diagram.gif)
 
 ### Generate Execution Sequence Diagrams from Modular Code
 - Transform your complex codebase into clear, visual sequence diagrams that show how your components interact and communicate with each other.<br>
@@ -139,7 +139,7 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 - Perfect for documenting complex workflows, understanding system architecture, improving code maintainability.<br>
 - Visualize your code execution effortlessly and enhance your development workflow.
 
-![vscode-plugin-sequence-diagram](https://docs.mermaidchart.com/img/plugins/vscode-generate-execution-sequence.gif)
+![vscode-plugin-sequence-diagram](https://mermaid.ai/docs/img/plugins/vscode-generate-execution-sequence.gif)
 
 ### Generate C4 Top-Down Architecture Diagrams from Your Codebase
 - Automatically create comprehensive C4 architecture diagrams that visualize your entire system's structure, components, and relationships.<br>
@@ -151,26 +151,26 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 - Perfect for system documentation, architectural reviews, onboarding new team members, and maintaining architectural clarity.<br>
 - Visualize your entire system architecture from top-down perspective effortlessly.
 
-![vscode-plugin-c4-diagram](https://docs.mermaidchart.com/img/plugins/vscode-generate-c4-architecture.gif)
+![vscode-plugin-c4-diagram](https://mermaid.ai/docs/img/plugins/vscode-generate-c4-architecture.gif)
 
 ### Real-Time local Edit & Preview 
 Now you get a side-by-side real time preview of the mermaid diagram while editing the diagram locally. This helps the user to see the true power of a mermaid's text-based diagram, where each change in text is reflected immediately on the diagram.
 
-![Real-Time local Edit & Preview](https://docs.mermaidchart.com/img/plugins/vscode-plugin-full-view.png)
+![Real-Time local Edit & Preview](https://mermaid.ai/docs/img/plugins/vscode-plugin-full-view.png)
 
 ### Syntax Highlighting 
 We now support syntax highlighting for all Mermaid diagrams when writing the Mermaid code. The syntax highlighting works well with the developer selected theme for VS Code. 
 
-![Syntax Highlighting](https://docs.mermaidchart.com/img/plugins/vscode-plugin-highlighting-dark.png)
+![Syntax Highlighting](https://mermaid.ai/docs/img/plugins/vscode-plugin-highlighting-dark.png)
 
 The extension also provides syntax highlighting for Mermaid diagrams embedded in Markdown files, with specific highlighting based on diagram types.
 
-![Syntax Highlighting in Markdown](https://docs.mermaidchart.com/img/plugins/vscode-plugin-markdown-highlighting.png)
+![Syntax Highlighting in Markdown](https://mermaid.ai/docs/img/plugins/vscode-plugin-markdown-highlighting.png)
 
 ### Pan & Zoom 
 We now support Pan and Zoom for the diagram preview, where the user pan to a specific part of a large diagram, and also set different levels of zoom based on his preference. We implemented the zoom with stickiness, so that zoom levels are not changed when you edit your diagram
 Users can of course use the reset option to resize the preview diagram to fit the screen.
-![Pan & Zoom](https://docs.mermaidchart.com/img/plugins/vscode-plugin-pan.png)
+![Pan & Zoom](https://mermaid.ai/docs/img/plugins/vscode-plugin-pan.png)
 
 ### Theme Selector
 Change diagram themes instantly during your current session with our new theme selector feature. This makes it easy to:
@@ -184,7 +184,7 @@ All Mermaid Chart themes are supported including:
 
 Simply click the palette icon next to the export button to access the theme dropdown.
 
-![Theme Selector](https://docs.mermaidchart.com/img/plugins/vscode-plugin-theme-selector.png)
+![Theme Selector](https://mermaid.ai/docs/img/plugins/vscode-plugin-theme-selector.png)
 
 ### Export Diagrams
 Export your diagrams easily in both SVG and PNG formats with enhanced customization options. This makes it simple to:
@@ -199,65 +199,65 @@ Export your diagrams easily in both SVG and PNG formats with enhanced customizat
 
 The exported files maintain high quality and can be used across different platforms and tools with your preferred background styling.
 
-![Export Diagrams](https://docs.mermaidchart.com/img/plugins/vscode-plugin-export.png)
+![Export Diagrams](https://mermaid.ai/docs/img/plugins/vscode-plugin-export.png)
 
 
 ### Error Highlighting 
 While writing the mermaid code, if you encounter syntax errors, the extension highlights the syntax error with an error message, and also indicates which line in the code might be causing the error. This helps the user to locate and fix the error. 
-![Error Highlighting](https://docs.mermaidchart.com/img/plugins/vscode-plugin-error-indicator.png)
+![Error Highlighting](https://mermaid.ai/docs/img/plugins/vscode-plugin-error-indicator.png)
 
 ### Auto-Detect Mermaid diagrams in Markdown files
 The extension automatically detects mermaid diagrams in the markdown files using the ```mermaid``` code block. 
 
 This gives a unique opportunity for the users, they can now preview and edit the diagrams by clicking the edit diagram link directly from within the markdown file.
-![Auto-Detect Mermaid diagrams in Markdown files](https://docs.mermaidchart.com/img/plugins/vscode-plugin-markdown-view.png)
+![Auto-Detect Mermaid diagrams in Markdown files](https://mermaid.ai/docs/img/plugins/vscode-plugin-markdown-view.png)
 
 ### Mermaid Diagram Preview in Markdown File
 This extension enables **live preview of Mermaid diagrams** directly within the **Markdown preview** in VS Code. No need to leave your editor!
-![Markdown Preview](https://docs.mermaidchart.com/img/plugins/vscode-plugin-markdown-mermaid-preview.png)
+![Markdown Preview](https://mermaid.ai/docs/img/plugins/vscode-plugin-markdown-mermaid-preview.png)
 
 ### Support .mmd file extension as Mermaid Markdown file
 Now we provide native support for the .mmd  extension. All the local mermaid diagrams will be loaded as a .mmd file. You can notice that the .mmd also has the Mermaid logo in the file explorer view.
-![Support .mmd file extension as Mermaid Markdown file](https://docs.mermaidchart.com/img/plugins/vscode-plugin-file-icons.png)
+![Support .mmd file extension as Mermaid Markdown file](https://mermaid.ai/docs/img/plugins/vscode-plugin-file-icons.png)
 
 ### Smart Auto-Suggest with code snippets
 Now based on the diagram type auto suggestions for code snippets will be triggered on type of "m", and it will start showing relevant code snippets shorthand, that once selected, will expand to the proper code snippet.
-![Smart Auto-Suggest with code snippets](https://docs.mermaidchart.com/img/plugins/vscode-plugin-code-suggestions.png)
+![Smart Auto-Suggest with code snippets](https://mermaid.ai/docs/img/plugins/vscode-plugin-code-suggestions.png)
 
 ### Diagram Help
 If you get stuck with a diagram's syntax or want to learn about other features for a given diagram, now you can directly access the respective diagram's detailed documentation on the official mermaid.js docs. 
-![Diagram Help](https://docs.mermaidchart.com/img/plugins/vscode-plugin-diagram-help.png)
+![Diagram Help](https://mermaid.ai/docs/img/plugins/vscode-plugin-diagram-help.png)
 
 ### Advanced Features when linking with MermaidChart
 When you connect the extension with the MermaidChart account to explore some of the advanced features. With the integration to the Mermaid Chart service, this extension allows users to attach diagrams to their code and to gain quick access to updating diagrams.
 
-You can explore all the these options by signing-up for a free account on www.mermaidchart.com 
+You can explore all the these options by signing-up for a free account on https://mermaid.ai 
 
 #### Fetch & Use existing diagrams in Side Panel
 Users can start login flow with their Mermaid Chart account and once logged-in, in the side panel all the projects and diagrams from your account will be loaded in the side panel.
-![Fetch & Use existing diagrams in Side Panel](https://docs.mermaidchart.com/img/plugins/vscode-plugin-activitybar.png)
+![Fetch & Use existing diagrams in Side Panel](https://mermaid.ai/docs/img/plugins/vscode-plugin-activitybar.png)
 
 #### Link diagram directly in your code files
 For each diagram in the Side Panel, user will see two options:
 - Download: This will open the mermaid chart diagram locally for editing and will be connected to the Mermaid chart. Once the edited diagram is saved, or the user does a  ctrl+s, it will sync diagrams back to mermaid chart accounts as well
-![Download](https://docs.mermaidchart.com/img/plugins/vscode-plugin-download.png)
+![Download](https://mermaid.ai/docs/img/plugins/vscode-plugin-download.png)
 - Link Diagram : When you click on a diagram, that diagram (its diagram id) will be inserted into the code editor as a comment at the position of the cursor. And users will get an option to preview or edit the diagram from this diagram id.
-![Link Diagrams](https://docs.mermaidchart.com/img/plugins/vscode-plugin-link-diagram.png)
+![Link Diagrams](https://mermaid.ai/docs/img/plugins/vscode-plugin-link-diagram.png)
 
 #### Smart Sync to promote collaboration
 When a  user modifies an existing diagram, before saving it to MermaidChart service, it smartly checks if any modification is made in the web view, and if found, it indicates to the user to resolve any conflicts, and then save the resolved diagram back. 
-![Smart Sync to promote collaboration 1](https://docs.mermaidchart.com/img/plugins/vscode-plugin-smart-indicator-view.png)
+![Smart Sync to promote collaboration 1](https://mermaid.ai/docs/img/plugins/vscode-plugin-smart-indicator-view.png)
 
-![Smart Sync to promote collaboration 2](https://docs.mermaidchart.com/img/plugins/vscode-plugin-smart-indicator.png)
+![Smart Sync to promote collaboration 2](https://mermaid.ai/docs/img/plugins/vscode-plugin-smart-indicator.png)
 
 #### Refresh 
 To get the latest changes of diagrams from Mermaid Chart, click on the button named Refresh at the top in the side panel.
 
-![Refresh ](https://docs.mermaidchart.com/img/plugins/vscode-plugin-refresh.png)
+![Refresh ](https://mermaid.ai/docs/img/plugins/vscode-plugin-refresh.png)
 
 #### Open in Web View 
-Users now have the option to open and edit diagrams in the web view on www.mermaidchart.com in the browser. This will enable them to use the best-in-class Visual Editor with drag and drop interface to modify the diagram, Mermaid AI, use diagrams in Presentations etc
-![Open in Web View](https://docs.mermaidchart.com/img/plugins/vscode-plugin-mermaidchart.png)
+Users now have the option to open and edit diagrams in the web view on https://mermaid.ai in the browser. This will enable them to use the best-in-class Visual Editor with drag and drop interface to modify the diagram, Mermaid AI, use diagrams in Presentations etc
+![Open in Web View](https://mermaid.ai/docs/img/plugins/vscode-plugin-mermaidchart.png)
 
 ### Commands
 
@@ -273,7 +273,7 @@ Users now have the option to open and edit diagrams in the web view on www.merma
 ### Extension Settings
 
 This extension contributes the following settings:
-- `mermaidChart.baseUrl`: This points to the instance of the mermaid chart you are running, for the public service this is `https://www.mermaidchart.com/`.
+- `mermaidChart.baseUrl`: This points to the instance of the mermaid chart you are running, for the public service this is `https://mermaid.ai/`.
 - `mermaid.vscode.dark`: Defines the theme used for Mermaid diagrams when VS Code is in dark mode.
 - `mermaid.vscode.light`: Defines the theme used for Mermaid diagrams when VS Code is in light mode.
 - `mermaid.vscode.maxZoom`: Sets the maximum zoom level for diagram preview (default: 10).
@@ -414,7 +414,7 @@ New General Features
 
 ### 1.0.1 - 2023-06-29
 
-- Added default value "https://www.mermaidchart.com" for baseUrl configuration setting.
+- Added default value "https://mermaid.ai" for baseUrl configuration setting.
 - Corrected inserted label in editor code.
 - Added info in README.md about the MERMAIDCHART field in the explorer view.
 

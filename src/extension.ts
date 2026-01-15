@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import type MarkdownIt from 'markdown-it';
 import { MermaidChartProvider, MCTreeItem, getAllTreeViewProjectsCache, getProjectIdForDocument, Document, getDiagramFromCache, updateDiagramInCache } from "./mermaidChartProvider";
 import { MermaidChartVSCode } from "./mermaidChartVSCode";
+import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
 import {
   applyMermaidChartTokenHighlighting,
   configSection,
@@ -78,6 +79,31 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mermaidChart.loginWithToken', async () => {
+      const authProvider = MermaidChartAuthenticationProvider.getInstance(mcAPI, context);
+      try {
+        const session = await authProvider.createSessionWithToken();
+        analytics.trackLogin();
+        
+        // Manually update the global state and view visibility since the session change event
+        // may not fire properly for token-based login
+        console.log('[mermaidChart.loginWithToken] Token login successful, updating view');
+        await context.globalState.update("isUserLoggedIn", true);
+        await updateViewVisibility(true, mermaidWebviewProvider, mermaidChartProvider);
+        
+        // Set the access token in the API
+        mcAPI.setAccessToken(session.accessToken);
+        
+        // Refresh the chart provider to load data
+        mermaidChartProvider.refresh();
+      } catch (error: any) {
+        console.log('[mermaidChart.loginWithToken] Token login failed:', error?.message || error);
+        vscode.window.showErrorMessage(`Token login failed: ${error?.message || error}`);
+      }
+    })
+  );
+
   await mcAPI.initialize(context, mermaidWebviewProvider);
 
   const isUserLoggedIn = context.globalState.get<boolean>("isUserLoggedIn", false);
@@ -86,15 +112,16 @@ export async function activate(context: vscode.ExtensionContext) {
     mcAPI
   );
 
-
+  // Set the provider reference so session changes can update the view
+  mcAPI.setMermaidChartProvider(mermaidChartProvider);
   
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("mermaidWebview", mermaidWebviewProvider)
   );
   
-  updateViewVisibility(isUserLoggedIn, mermaidWebviewProvider, mermaidChartProvider);
+  await updateViewVisibility(isUserLoggedIn, mermaidWebviewProvider, mermaidChartProvider);
 
-  context.subscriptions.push(
+  context.subscriptions.push( 
     vscode.commands.registerCommand('mermaidChart.preview', getPreview)
   );
 

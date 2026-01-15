@@ -337,14 +337,38 @@ export async function insertMermaidChartToken(
 }
 
 
-export function updateViewVisibility(isLoggedIn: boolean,webviewProvider?: MermaidWebviewProvider,mermaidChartProvider?: MermaidChartProvider) {
-  vscode.commands.executeCommand("setContext", "mermaid.showChart", isLoggedIn);
-  vscode.commands.executeCommand("setContext", "mermaid.showWebview", !isLoggedIn);
+export async function updateViewVisibility(isLoggedIn: boolean,webviewProvider?: MermaidWebviewProvider,mermaidChartProvider?: MermaidChartProvider) {
+  console.log("[updateViewVisibility] isLoggedIn:", isLoggedIn);
+  
+  // Await context updates to ensure they're applied before refreshing views
+  await vscode.commands.executeCommand("setContext", "mermaid.showChart", isLoggedIn);
+  await vscode.commands.executeCommand("setContext", "mermaid.showWebview", !isLoggedIn);
+  
   if (isLoggedIn) {
+    // When logged in, refresh the chart provider to load data
     mermaidChartProvider?.refresh();
+    // Give VS Code a moment to process the context changes
+    await new Promise(resolve => setTimeout(resolve, 300));
+    // Try to focus on the chart view to force it to show
+    try {
+      await vscode.commands.executeCommand("mermaidChart.focus");
+    } catch (e) {
+      console.log("[updateViewVisibility] Failed to focus chart view:", e);
+    }
+    // Try to refresh the view container
+    try {
+      await vscode.commands.executeCommand("mermaidChart.refresh");
+    } catch (e) {
+      console.log("[updateViewVisibility] Failed to refresh chart view:", e);
+    }
   } else {
+    // When logged out, refresh the webview to show login screen
     webviewProvider?.refresh();
+    // Give VS Code a moment to process the context changes
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
+  
+  console.log("[updateViewVisibility] View visibility update complete");
 }
 
 export function getMermaidChartTokenDecoration(): vscode.TextEditorDecorationType {

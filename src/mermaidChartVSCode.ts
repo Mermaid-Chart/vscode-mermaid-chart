@@ -7,6 +7,7 @@ import { MermaidWebviewProvider } from "./panels/loginPanel";
 export class MermaidChartVSCode extends MermaidChart {
   private context?: vscode.ExtensionContext;
   private mermaidWebviewProvider?: MermaidWebviewProvider;
+  private mermaidChartProvider?: any; // MermaidChartProvider type
 
   constructor() {
     const baseURL = getBaseUrl();
@@ -70,7 +71,7 @@ export class MermaidChartVSCode extends MermaidChart {
       await this.logout(this.context);
       
       // Update view visibility to show login screen
-      updateViewVisibility(false, this.mermaidWebviewProvider);
+      await updateViewVisibility(false, this.mermaidWebviewProvider);
       
       // Show error message to user
       vscode.window.showErrorMessage(
@@ -147,12 +148,16 @@ export class MermaidChartVSCode extends MermaidChart {
      */
     context.subscriptions.push(
       vscode.authentication.onDidChangeSessions(async (e) => {
+        console.log('[onDidChangeSessions] Session change detected, provider:', e.provider.id);
         if (e.provider.id === MermaidChartAuthenticationProvider.id) {
           const session = await vscode.authentication.getSession(
             MermaidChartAuthenticationProvider.id,
             [],
             { silent: true }
           );
+          
+          console.log('[onDidChangeSessions] Session:', session ? 'exists' : 'null');
+          
           if (session) {
             this.setAccessToken(session.accessToken);
           } else {
@@ -160,11 +165,18 @@ export class MermaidChartVSCode extends MermaidChart {
           }
   
           if (!session) {
+            console.log('[onDidChangeSessions] User logged out');
             await context.globalState.update("isUserLoggedIn", false);
-            updateViewVisibility(false, mermaidWebviewProvider);
+            await updateViewVisibility(false, mermaidWebviewProvider, this.mermaidChartProvider);
           } else {
+            console.log('[onDidChangeSessions] User logged in');
             await context.globalState.update("isUserLoggedIn", true);
-            updateViewVisibility(true, mermaidWebviewProvider);
+            // Update view visibility to show chart view and hide login webview
+            await updateViewVisibility(true, mermaidWebviewProvider, this.mermaidChartProvider);
+            // Force a refresh to ensure the view updates immediately
+            if (this.mermaidChartProvider) {
+              this.mermaidChartProvider.refresh();
+            }
           }
         }
       })
@@ -203,9 +215,33 @@ export class MermaidChartVSCode extends MermaidChart {
     this.setAccessToken(session.accessToken);
   }
 
+  /**
+   * Login with a personal access token directly
+   * This is useful for remote environments like Codespaces
+   */
+  public async loginWithToken(token: string): Promise<void> {
+    this.setAccessToken(token);
+    // Validate token by fetching user info
+    await this.getUser();
+  }
+
   private async refreshBaseURL() {
     const baseURL = getBaseUrl();
     this.setBaseURL(baseURL);
+  }
+
+  /**
+   * Get the current base URL
+   */
+  public getBaseURL(): string | undefined {
+    return getBaseUrl();
+  }
+
+  /**
+   * Set the MermaidChartProvider reference for view updates
+   */
+  public setMermaidChartProvider(provider: any): void {
+    this.mermaidChartProvider = provider;
   }
 }
 

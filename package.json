@@ -780,6 +780,10 @@
         "title": "MermaidChart: Login"
       },
       {
+        "command": "mermaidChart.loginWithToken",
+        "title": "MermaidChart: Login with Personal Access Token"
+      },
+      {
         "command": "mermaidChart.createMermaidFile",
         "title": "MermaidChart: Create Diagram"
       },
@@ -988,7 +992,7 @@
   },
   "scripts": {
     "vscode:prepublish":"pnpm compile",
-    "precompile": "pnpm --filter ./webview build && webpack --mode=production --config ./build/markdownPreview.webpack.config.js",
+    "precompile": "pnpm --filter ./webview build ",
     "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --sourcemap --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --minify",
     "watch": "tsc -p ./ --noEmit --watch",
     "pretest": "pnpm compile && pnpm lint",

@@ -167,15 +167,23 @@ export function generateWebviewContent(
 </div>
 
         <p class="highlight-text">Join now and supercharge your workflow!</p>
-        <div class="login-btn"> 
-        <button id="signInButton">Sign in</button>
+        <div class="login-btn" style="display: flex; flex-direction: column; gap: 12px; width: 100%;"> 
+        <button id="signInButton" style="width: 100%;">Sign in with Browser</button>
+        <button id="signInWithTokenButton" style="width: 100%; background: transparent; border: 1px solid #E0095F; color: #E0095F;">Sign in with Token</button>
         </div>
+        <p style="font-size: 12px; color: #8585A4; text-align: center; margin: 0;">
+          Create a token in Settings → Secure tokens for plugins
+        </p>
     </div>
      <script>
         const vscode = acquireVsCodeApi();
 
         document.getElementById('signInButton').addEventListener('click', () => {
             vscode.postMessage({ command: 'signIn' });
+        });
+
+        document.getElementById('signInWithTokenButton').addEventListener('click', () => {
+            vscode.postMessage({ command: 'signInWithToken' });
         });
     </script>
 </body>

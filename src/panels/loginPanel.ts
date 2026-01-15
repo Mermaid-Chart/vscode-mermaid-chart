@@ -25,6 +25,8 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage((message) => {
       if (message.command === "signIn") {
         vscode.commands.executeCommand("mermaidChart.login");
+      } else if (message.command === "signInWithToken") {
+        vscode.commands.executeCommand("mermaidChart.loginWithToken");
       }
     });
   

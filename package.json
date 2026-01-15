@@ -581,7 +581,7 @@
       "properties": {
         "mermaidChart.baseUrl": {
           "type": "string",
-          "default": "https://www.mermaidchart.com",
+          "default": "https://mermaid.ai",
           "description": "Base URL for Mermaid Chart"
         },
         "mermaid.vscode.dark": {

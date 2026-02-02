@@ -1,9 +1,9 @@
 {
   "name": "vscode-mermaid-chart",
   "publisher": "MermaidChart",
-  "displayName": "Mermaid Chart",
+  "displayName": "Mermaid",
   "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.5.7",
+  "version": "2.5.8",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -568,7 +568,9 @@
       {
         "scopeName": "source.mermaid.embedded.markdown",
         "path": "./syntaxes/mermaid-markdown.json",
-        "injectTo": ["text.html.markdown"]
+        "injectTo": [
+          "text.html.markdown"
+        ]
       },
       {
         "language": "mermaid",
@@ -658,7 +660,7 @@
         },
         "mermaid.vscode.aiExportName": {
           "type": "boolean",
-          "default": "false", 
+          "default": "false",
           "description": "Automatic name suggestion for exported diagrams"
         }
       }
@@ -846,7 +848,7 @@
             "description": "Generate detail execution sequence diagram from your code"
           },
           {
-            "name": "generate_dependency_diagram", 
+            "name": "generate_dependency_diagram",
             "description": "Generate dependency security visualization diagram"
           },
           {
@@ -987,7 +989,7 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish":"pnpm compile",
+    "vscode:prepublish": "pnpm compile",
     "precompile": "pnpm --filter ./webview build && webpack --mode=production --config ./build/markdownPreview.webpack.config.js",
     "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --sourcemap --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --minify",
     "watch": "tsc -p ./ --noEmit --watch",

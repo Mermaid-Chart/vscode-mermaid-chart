@@ -22,6 +22,7 @@
   let maxTextSize = 90000;
   let maxEdges = 1000;
   let isExportModalOpen = false;
+  let isRepairing = false;
   $: sidebarBackgroundColor = theme?.includes("dark")? "#4d4d4d" : "white";
   $: iconBackgroundColor = theme?.includes("dark") ? "#4d4d4d" : "white";
   $: svgColor = theme?.includes("dark") ? "white" : "#2329D6";
@@ -45,6 +46,21 @@
     const newTheme = event.detail.theme;
     theme = newTheme;
     renderDiagram();
+  }
+
+  function handleRepair() {
+    if (!diagramContent || !errorMessage || isRepairing) {
+      return;
+    }
+    
+    isRepairing = true;
+    
+    // Send message to extension to call repair API
+    vscode.postMessage({
+      type: "repairDiagram",
+      code: diagramContent,
+      errorMessage: errorMessage
+    });
   }
 
     async function initializeMermaid() {
@@ -297,6 +313,9 @@
           panzoomInstance.setOptions({ maxScale: maxZoomLevel });
         } 
       }
+    } else if (type === "repairComplete") {
+      // Repair is done, just reset the repairing state
+      isRepairing = false;
     }
   });
 
@@ -347,7 +366,7 @@
 
 
 <div id="app-container" style="background: {theme?.includes('dark') ? '#1e1e1e' : 'white'}">
-  <ErrorMessage {errorMessage} />
+  <ErrorMessage {errorMessage} {isRepairing} on:repair={handleRepair} />
   <div id="mermaid-diagram"></div>
   <div class="sidebar-container">
     {#if !errorMessage}

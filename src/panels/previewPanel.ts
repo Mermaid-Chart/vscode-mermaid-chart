@@ -8,7 +8,7 @@ import { MermaidChartVSCode } from "../mermaidChartVSCode";
 import { RepairCodeLensProvider } from "./repairCodeLensProvider";
 import { RepairStateManager, ChangeChunk } from "./repairStateManager";
 import DecorationManager from "./decorationManager";
-import * as path from "path";
+import { MermaidChartAuthenticationProvider } from "../mermaidChartAuthenticationProvider";
 const DARK_THEME_KEY = "mermaid.vscode.dark";
 const LIGHT_THEME_KEY = "mermaid.vscode.light";
 const MAX_ZOOM= "mermaid.vscode.maxZoom";
@@ -32,6 +32,10 @@ export class PreviewPanel {
     originalUri: vscode.Uri;
     changes: ChangeChunk[];
   } | undefined;
+  
+  // Simple per-preview-panel caching
+  private cachedAICredits: {remaining: number, total: number} | null = null;
+  private creditsFetched: boolean = false;
 
   // Use shared decoration manager
 
@@ -96,7 +100,10 @@ export class PreviewPanel {
   
     if (!this.panel.webview.html) {
       this.panel.webview.html = getWebviewHTML(this.panel, extensionPath, this.lastContent, currentTheme, false);
+      // Only fetch credits on initial panel creation
+      this.fetchAndSendCredits();
     }
+    
     this.panel.webview.postMessage({
       type: "update",
       content:this.lastContent,
@@ -105,8 +112,36 @@ export class PreviewPanel {
       maxZoom: maxZoom,
       maxCharLength: maxCharLength,
       maxEdge: maxEdges,
+      aiCredits: this.cachedAICredits, // Always send cached credits if available
     });
     this.isFileChange = false;
+  }
+
+  private async fetchAICredits(): Promise<{remaining: number, total: number} | null> {
+    try {
+      // Return cached credits if available
+      if (this.creditsFetched && this.cachedAICredits) {
+        return this.cachedAICredits;
+      }
+
+      if (PreviewPanel.mcAPI) {
+        const response = await PreviewPanel.mcAPI.getAICredits();
+        this.cachedAICredits = response.aiCredits;
+        this.creditsFetched = true;
+        return this.cachedAICredits;
+      }
+    } catch (error) {
+      console.log("Failed to fetch AI credits:", error);
+    }
+    return null;
+  }
+
+  private async fetchAndSendCredits() {
+    const aiCredits = await this.fetchAICredits();
+    this.panel.webview.postMessage({
+      type: "aiCreditsUpdate",
+      aiCredits: aiCredits
+    });
   }
 
   private setupListeners() {
@@ -271,7 +306,12 @@ export class PreviewPanel {
 
       vscode.window.showErrorMessage(errorMsg);
     } finally {
-      this.panel.webview.postMessage({ type: "repairComplete" });
+      // Refresh credits cache after repair and send fresh credits
+      this.creditsFetched = false; // Reset cache to fetch fresh credits
+      this.fetchAndSendCredits(); // Fetch and send updated credits
+      this.panel.webview.postMessage({ 
+        type: "repairComplete"
+      });
     }
   }
 

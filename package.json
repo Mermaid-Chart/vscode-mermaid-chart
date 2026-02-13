@@ -990,7 +990,7 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm compile",
-    "precompile": "pnpm --filter ./webview build",
+    "precompile": "pnpm --filter ./webview build && webpack --mode=production --config ./build/markdownPreview.webpack.config.js",
     "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --sourcemap --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --minify",
     "watch": "tsc -p ./ --noEmit --watch",
     "pretest": "pnpm compile && pnpm lint",
@@ -1033,7 +1033,7 @@
     "@mermaid-chart/icons-gcp": "^1.0.0",
     "@mermaid-chart/vscode-utils": "1.4.2",
     "@mermaid-chart/layout-elk": "0.1.7-b.2",
-    "@mermaidchart/sdk": "0.2.1",
+    "@mermaidchart/sdk": "0.2.2",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",
     "@vscode/prompt-tsx": "^0.3.0-alpha.12",
     "axios": "^1.7.9",

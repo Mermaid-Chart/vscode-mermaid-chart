@@ -45,8 +45,8 @@ importers:
         specifier: 0.0.1-beta.1
         version: 0.0.1-beta.1
       '@mermaidchart/sdk':
-        specifier: 0.2.1
-        version: 0.2.1
+        specifier: 0.2.2
+        version: 0.2.2
       '@vscode/chat-extension-utils':
         specifier: ^0.0.0-alpha.1
         version: 0.0.0-alpha.5
@@ -685,8 +685,8 @@ packages:
   '@mermaid-js/parser@0.6.3':
     resolution: {integrity: sha512-lnjOhe7zyHjc+If7yT4zoedx2vo4sHaTmtkl1+or8BRTnCtDmcTpAjpzDSfCZrshM5bCoz0GyidzadJAH1xobA==}
 
-  '@mermaidchart/sdk@0.2.1':
-    resolution: {integrity: sha512-TnYemSeT01qAwHyqx11hbzouEMpP3AfRJe3LcR2YwqpMP1hUz2rfyfsUCXvGAf5ZQJbESjIZ2nEas3gwn6OviQ==}
+  '@mermaidchart/sdk@0.2.2':
+    resolution: {integrity: sha512-i7JoHa5khAFLGULaMnLQD8Av3+O/XHeMB/CpF4yjIuoC5CakU5p4rznSqBkCY2tlxF5IrXCOIu5xZ8RIBTfh6g==}
     engines: {node: ^18.18.0 || >= 20.0.0}
 
   '@nodelib/fs.scandir@2.1.5':
@@ -3994,7 +3994,7 @@ snapshots:
     dependencies:
       langium: 3.3.1
 
-  '@mermaidchart/sdk@0.2.1':
+  '@mermaidchart/sdk@0.2.2':
     dependencies:
       '@badgateway/oauth2-client': 2.4.2
       axios: 1.10.0

@@ -41,6 +41,7 @@ export class MermaidChartAuthenticationProvider
     { promise: Promise<string>; cancel: EventEmitter<void> }
   >();
   private _uriHandler = new UriEventHandler();
+  private _manualToken: string | null = null; // For manual token storage
 
   private static instance: MermaidChartAuthenticationProvider | null = null;
 
@@ -102,12 +103,30 @@ export class MermaidChartAuthenticationProvider
    */
   public async createSession(scopes: string[]): Promise<AuthenticationSession> {
     try {
-      await this.login(scopes);
-      const token = await this.mcAPI.getAccessToken();
-      if (!token) {
-        throw new Error(`MermaidChart login failure`);
+      let token: string;
+      let user: any;
+      
+      // Check if we have a manual token to use
+      if (this._manualToken) {
+        token = this._manualToken;
+        this._manualToken = null; // Clear after use
+        
+        // Set token and validate by getting user info
+        this.mcAPI.setAccessToken(token);
+        user = await this.getUserInfo();
+        
+        if (!user || !user.emailAddress) {
+          throw new Error('Invalid manual token - unable to fetch user information');
+        }
+      } else {
+        // Regular OAuth flow
+        await this.login(scopes);
+        token = await this.mcAPI.getAccessToken();
+        if (!token) {
+          throw new Error(`MermaidChart login failure`);
+        }
+        user = await this.getUserInfo();
       }
-      const user = await this.getUserInfo();
       const session: AuthenticationSession = {
         id: uuid(),
         accessToken: token,
@@ -241,5 +260,13 @@ export class MermaidChartAuthenticationProvider
 
   private async getUserInfo() {
     return await this.mcAPI.getUser();
+  }
+
+  /**
+   * Set manual token for next createSession call
+   * This allows manual token to go through the same VS Code session management flow
+   */
+  public setManualToken(token: string): void {
+    this._manualToken = token;
   }
 }

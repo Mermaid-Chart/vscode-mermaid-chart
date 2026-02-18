@@ -60,6 +60,29 @@ Currently supported diagrams and charts:
 - Packet
 - Radar
 
+### Sign-in & Authentication Support
+Our extension supports flexible authentication options to seamlessly connect with your Mermaid Chart account, enabling advanced features like cloud synchronization, diagram sharing, and collaborative editing.
+
+#### Dual Authentication Support
+We provide two convenient authentication methods to accommodate different development environments and user preferences:
+
+**🌐 OAuth Authentication (Recommended)**
+- **One-click sign-in**: Simply click the "Sign-in" button and authenticate through your browser
+- **Automatic authentication**: OAuth handles the entire authentication flow seamlessly
+
+
+**🔑 Manual Token Authentication**  
+- **IDE flexibility**: Perfect for users working in different IDEs, remote environments, or corporate networks
+- **Troubleshooting alternative**: When OAuth encounters issues or restrictions, manual token provides a reliable fallback
+- **Simple process**: 
+  1. Visit your [Mermaid Chart account settings](https://mermaid.ai/app/user/settings)
+  2. Generate a new authentication token
+  3. Copy and paste the token into the extension
+- **Persistent access**: Once authenticated, no need to re-enter tokens or manage authentication manually
+
+
+![Authentication Flow](https://mermaid.ai/docs/img/plugins/vscode-plugin-authentication.gif)
+
 ### Generate AI-powered diagrams directly from your code!
 Transform your ideas and source code into clear, insightful diagrams with our new AI integration in VS Code.<br>
 Just mention **@mermaid-chart** in any GitHub Copilot Chat and describe the diagram you want to create — even link specific source code files!<br>

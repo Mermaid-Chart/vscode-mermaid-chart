@@ -817,6 +817,10 @@
       {
         "command": "mermaidChart.generateDockerDiagram",
         "title": "MermaidChart: Generate Docker Diagram"
+      },
+      {
+        "command": "mermaidChart.openDiagramDiffWebviews",
+        "title": "MermaidChart: Open Diagram Diff (Current vs Updated)"
       }
     ],
     "chatParticipants": [
@@ -1031,7 +1035,7 @@
     "@iconify-json/logos": "^1.2.4",
     "@iconify-json/mdi": "^1.2.3",
     "@mermaid-chart/icons-gcp": "^1.0.0",
-    "@mermaid-chart/vscode-utils": "1.4.2",
+    "@mermaid-chart/vscode-utils": "1.4.3",
     "@mermaid-chart/layout-elk": "0.1.7-b.2",
     "@mermaidchart/sdk": "0.2.2",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",

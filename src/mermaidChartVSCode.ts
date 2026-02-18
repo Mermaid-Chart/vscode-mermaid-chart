@@ -3,10 +3,12 @@ import { MermaidChart } from "@mermaidchart/sdk";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
 import { defaultBaseURL, updateViewVisibility } from "./util";
 import { MermaidWebviewProvider } from "./panels/loginPanel";
+import { MermaidChartProvider } from "./mermaidChartProvider";
 
 export class MermaidChartVSCode extends MermaidChart {
   private context?: vscode.ExtensionContext;
   private mermaidWebviewProvider?: MermaidWebviewProvider;
+  private mermaidChartProvider?: MermaidChartProvider;
 
   constructor() {
     const baseURL = getBaseUrl();
@@ -17,9 +19,10 @@ export class MermaidChartVSCode extends MermaidChart {
     });
   }
 
-  public async initialize(context: vscode.ExtensionContext, mermaidWebviewProvider?: MermaidWebviewProvider) {
+  public async initialize(context: vscode.ExtensionContext, mermaidWebviewProvider?: MermaidWebviewProvider, mermaidChartProvider?: MermaidChartProvider) {
     this.context = context;
     this.mermaidWebviewProvider = mermaidWebviewProvider;
+    this.mermaidChartProvider = mermaidChartProvider;
     await this.registerListeners(context, mermaidWebviewProvider);
     await this.setupAPI();
   }
@@ -119,6 +122,10 @@ export class MermaidChartVSCode extends MermaidChart {
     await this.loginToMermaidChart();
   }
 
+  public async loginWithToken(token: string) {
+    await this.loginWithManualToken(token);
+  }
+
   public async logout(context: vscode.ExtensionContext): Promise<void> {
     const session = await vscode.authentication.getSession(
       MermaidChartAuthenticationProvider.id,
@@ -169,10 +176,10 @@ export class MermaidChartVSCode extends MermaidChart {
   
           if (!session) {
             await context.globalState.update("isUserLoggedIn", false);
-            updateViewVisibility(false, mermaidWebviewProvider);
+            updateViewVisibility(false, mermaidWebviewProvider, this.mermaidChartProvider);
           } else {
             await context.globalState.update("isUserLoggedIn", true);
-            updateViewVisibility(true, mermaidWebviewProvider);
+            updateViewVisibility(true, mermaidWebviewProvider, this.mermaidChartProvider);
           }
         }
       })
@@ -209,6 +216,35 @@ export class MermaidChartVSCode extends MermaidChart {
       }
     );
     this.setAccessToken(session.accessToken);
+  }
+
+  private async loginWithManualToken(token: string) {
+    if (!this.context) {
+      throw new Error('Extension context not available');
+    }
+
+    try {
+      // Set the manual token in the auth provider
+      const authProvider = MermaidChartAuthenticationProvider.getInstance(this, this.context);
+      authProvider.setManualToken(token);
+      
+      // Use the same session creation flow as OAuth login
+      // This will trigger the same session management events
+      const session = await vscode.authentication.getSession(
+        MermaidChartAuthenticationProvider.id,
+        [],
+        { createIfNone: true }
+      );
+      
+      // Set the access token (this should happen automatically via session events, but just to be sure)
+      this.setAccessToken(session.accessToken);
+      
+    } catch (error: any) {
+      this.resetAccessToken();
+      const errorMessage = error.message || 'Invalid token';
+      vscode.window.showErrorMessage(`Token validation failed: ${errorMessage}`);
+      throw error;
+    }
   }
 
   private async refreshBaseURL() {

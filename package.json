@@ -817,6 +817,10 @@
       {
         "command": "mermaidChart.generateDockerDiagram",
         "title": "MermaidChart: Generate Docker Diagram"
+      },
+      {
+        "command": "mermaidChart.openDiagramDiffWebviews",
+        "title": "MermaidChart: Open Diagram Diff (Current vs Updated)"
       }
     ],
     "chatParticipants": [

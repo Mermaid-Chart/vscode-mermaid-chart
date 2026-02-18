@@ -78,13 +78,21 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  await mcAPI.initialize(context, mermaidWebviewProvider);
+  // Add manual token validation command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mermaidChart.validateManualToken', async (token: string) => {
+      await mcAPI.loginWithToken(token);
+      analytics.trackLogin();
+    })
+  );
 
   const isUserLoggedIn = context.globalState.get<boolean>("isUserLoggedIn", false);
 
   const mermaidChartProvider: MermaidChartProvider = new MermaidChartProvider(
     mcAPI
   );
+
+  await mcAPI.initialize(context, mermaidWebviewProvider, mermaidChartProvider);
 
 
   

@@ -36,9 +36,16 @@ import analytics from "./analytics";
 import { RemoteSyncHandler } from "./remoteSyncHandler";
 import { registerRegenerateCommand } from './commercial/sync/regenerateCommand';
 import { initializeAIChatParticipant } from "./commercial/ai/chatParticipant";
-import { setPreviewBridge, registerTools, setValidationBridge,initializePlugin } from '@mermaid-chart/vscode-utils';
+import {
+  setPreviewBridge,
+  registerTools,
+  setValidationBridge,
+  setDiagramDiffBridge,
+  initializePlugin,
+} from "@mermaid-chart/vscode-utils";;
 import { PreviewBridgeImpl } from "./commercial/ai/tools/previewTool";
 import { ValidationBridgeImpl } from "./commercial/ai/tools/validationTool";
+import { openDiagramDiffWebviews } from "./commercial/sync/diagramDiffView";
 import { injectMermaidTheme } from "./previewmarkdown/themeing";
 import { extendMarkdownItWithMermaid } from "./previewmarkdown/shared-md-mermaid";
 import * as packageJson from '../package.json'; 
@@ -64,6 +71,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize the bridge for commercial tools
   setPreviewBridge(new PreviewBridgeImpl());
   setValidationBridge(new ValidationBridgeImpl());
+  setDiagramDiffBridge({ openDiagramDiffWebviews });
   
   // Initialize AI chat participant after tools are registered
   initializeAIChatParticipant(context);
@@ -901,6 +909,27 @@ context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
 
 // Register the regenerate command from commercial directory
 registerRegenerateCommand(context, mcAPI);
+
+context.subscriptions.push(
+  vscode.commands.registerCommand(
+    'mermaidChart.openDiagramDiffWebviews',
+    (oldContent: string, newContent: string) => {
+      if (typeof oldContent !== 'string' || typeof newContent !== 'string') {
+        console.warn('[Mermaid Diagram Diff] Invalid args:', { oldContent: typeof oldContent, newContent: typeof newContent });
+        vscode.window.showErrorMessage('Diagram diff requires old and new content.');
+        return;
+      }
+      try {
+        openDiagramDiffWebviews(oldContent, newContent);
+      } catch (err) {
+        console.error('[Mermaid Diagram Diff] Command handler error:', err);
+        vscode.window.showErrorMessage(
+          `Diagram diff failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+  )
+);
 
 return {
   extendMarkdownIt(md: MarkdownIt) {

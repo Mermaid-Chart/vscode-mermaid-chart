@@ -79,6 +79,13 @@ export async function activate(context: vscode.ExtensionContext) {
   const mermaidWebviewProvider = new MermaidWebviewProvider(context);
 
   const mcAPI = new MermaidChartVSCode();
+  
+  // Create global RemoteSyncHandler instance
+  const remoteSyncHandler = new RemoteSyncHandler(mcAPI);
+  context.subscriptions.push({
+    dispose: () => remoteSyncHandler.dispose()
+  });
+  
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.login', async () => {
       await mcAPI.login();
@@ -375,7 +382,6 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
 
       if (projectId) {
 
-      const remoteSyncHandler = new RemoteSyncHandler(mcAPI);
       const syncDecision = await remoteSyncHandler.handleRemoteChanges(
         event.document,
           diagramId
@@ -451,7 +457,6 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
 
                 progress.report({ message: 'Checking for remote changes...' });
                 // Create a promise that resolves when remote sync is complete
-                const remoteSyncHandler = new RemoteSyncHandler(mcAPI);
                 const syncDecision = await remoteSyncHandler.handleRemoteChanges(
                     document,
                     diagramId

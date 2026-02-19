@@ -1,9 +1,12 @@
 import * as vscode from 'vscode';
 import { MermaidChartVSCode } from './mermaidChartVSCode';
 import { getDiagramFromCache, updateDiagramInCache } from './mermaidChartProvider';
+import { openDiagramDiffWebviews } from './commercial/sync/diagramDiffView';
 
 
 export class RemoteSyncHandler {
+    private openDiffPreviews: Set<string> = new Set();
+    
     constructor(private mcAPI: MermaidChartVSCode) {}
 
     private hasUnresolvedConflicts(content: string): boolean {
@@ -56,6 +59,12 @@ export class RemoteSyncHandler {
 
             if (result === 'Pull Remote Changes') {
                 const canSaveFile = await this.insertMergeConflictMarkers(document, remoteVersion.code);
+                
+                // If conflict markers were added, show diagram previews
+                if (!canSaveFile) {
+                    this.showDiagramPreviews(currentContent, remoteVersion.code, diagramId);
+                }
+                
                 return canSaveFile ? 'continue' : 'abort'; // Abort to prevent immediate save
             } else if (result === 'Force Push Local Changes') {
                 updateDiagramInCache(diagramId, currentContent);
@@ -193,5 +202,21 @@ export class RemoteSyncHandler {
             remoteIndex--;
         }
         return -1;
+    }
+
+    private showDiagramPreviews(localContent: string, remoteContent: string, diagramId: string): void {
+        try {
+            openDiagramDiffWebviews(localContent, remoteContent);
+            this.openDiffPreviews.add(diagramId);
+            vscode.window.showInformationMessage("Conflict detected. Diagram previews opened to help resolve differences. Edit the document to resolve conflicts, then save.");
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error('[Remote Sync Handler] Failed to open diagram diff previews:', err);
+            vscode.window.showErrorMessage(`Could not open diagram previews: ${msg}`);
+        }
+    }
+
+    public dispose(): void {
+        this.openDiffPreviews.clear();
     }
 } 

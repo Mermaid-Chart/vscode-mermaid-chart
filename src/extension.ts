@@ -434,25 +434,18 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
 
     try {
         const diagramId = extractIdFromCode(content);
-        
-        // Only proceed if diagram has an ID
-        if (!diagramId) {
-            return;
-        }
+        const tempUri = document.uri.toString();
 
+        // Check if this file actually needs syncing
+        const needsSync = TempFileCache.hasTempUri(context, tempUri) && diagramId;
+
+        if (needsSync) {
+            // Only show sync popup for files that actually need syncing
         const progressPromise = vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: 'Syncing diagram with Mermaid Chart...',
             cancellable: false
         }, async (progress) => {
-            const tempUri = document.uri.toString();
-
-            if (TempFileCache.hasTempUri(context, tempUri)) {
-                if (!diagramId) {
-                    vscode.window.showInformationMessage('This is a temporary buffer, it cannot be saved locally');
-                    return;
-                }
-
                 const projectId = getProjectIdForDocument(diagramId);
                 if (!projectId) {
                     vscode.window.showErrorMessage('No project ID found for this diagram.');
@@ -460,7 +453,7 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
                 }
 
                 progress.report({ message: 'Checking for remote changes...' });
-                // Create a promise that resolves when remote sync is complete
+                
                 const remoteSyncHandler = new RemoteSyncHandler(mcAPI);
                 const syncDecision = await remoteSyncHandler.handleRemoteChanges(
                     document,
@@ -473,32 +466,34 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
 
                 progress.report({ message: 'Saving changes...' });
                 
-                // Proceed with saving
                 await mcAPI.setDocument({
                     documentID: diagramId,
                     projectID: projectId,
                     code: document.getText(),
                 });
 
-                // Update the cache with the new code
                 updateDiagramInCache(diagramId, document.getText());
 
                 vscode.window.showInformationMessage(
                     `Diagram synced successfully with Mermaid Chart.`
                 );
-                return;
-            }
-
-            // Handle local file case
-            await vscode.commands.executeCommand('workbench.action.files.save');
         });
 
-        // Set a timeout to ensure the progress indicator doesn't hang
         const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('Sync operation timed out')), 100000);
         });
 
-        await Promise.race([progressPromise, timeoutPromise]);
+            await Promise.race([progressPromise, timeoutPromise]);
+        } else {
+            // For local files or temp files without IDs, just save normally
+            if (TempFileCache.hasTempUri(context, tempUri) && !diagramId) {
+                vscode.window.showInformationMessage('This is a temporary buffer, it cannot be saved locally');
+                return;
+            }
+            
+            // Normal save for local files
+            await vscode.commands.executeCommand('workbench.action.files.save');
+        }
 
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred.";

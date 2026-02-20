@@ -181,6 +181,8 @@ export class PreviewPanel {
         });
       } else if (message.type === "repairDiagram") {
         await this.handleRepairDiagram(message.code, message.errorMessage);
+      } else if (message.type === "openUrl" && message.url) {
+        await vscode.env.openExternal(vscode.Uri.parse(message.url));
       }
     });
 

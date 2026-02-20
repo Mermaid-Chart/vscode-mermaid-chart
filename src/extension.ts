@@ -28,8 +28,6 @@ import { createMermaidFile, getPreview, openMermaidPreview } from "./commands/cr
 import { handleTextDocumentChange } from "./eventHandlers";
 import { TempFileCache } from "./cache/tempFileCache";
 import { PreviewPanel } from "./panels/previewPanel";
-import { RepairCodeLensProvider } from "./panels/repairCodeLensProvider";
-import * as RepairCommands from "./panels/repairCommands";
 import { getSnippetsBasedOnDiagram } from "./constants/condSnippets";
 import { ensureIdField, extractIdFromCode, getFirstWordFromDiagram, normalizeMermaidText } from "./frontmatter";
 import { customErrorMessage } from "./constants/errorMessages";
@@ -84,16 +82,6 @@ export async function activate(context: vscode.ExtensionContext) {
   
   // Set the API instance for PreviewPanel to use for repair functionality
   PreviewPanel.setMcAPI(mcAPI);
-
-  // Register CodeLens provider for AI repair accept/reject buttons
-  const repairCodeLensProvider = new RepairCodeLensProvider();
-  PreviewPanel.codeLensProvider = repairCodeLensProvider;
-  context.subscriptions.push(
-    vscode.languages.registerCodeLensProvider(
-      [{ language: 'mermaid' }, { pattern: '**/*.mmd' }, { pattern: '**/*.mermaid' }],
-      repairCodeLensProvider
-    )
-  );
   
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.login', async () => {
@@ -445,12 +433,18 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
     }
 
     try {
+        const diagramId = extractIdFromCode(content);
+        
+        // Only proceed if diagram has an ID
+        if (!diagramId) {
+            return;
+        }
+
         const progressPromise = vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: 'Syncing diagram with Mermaid Chart...',
             cancellable: false
         }, async (progress) => {
-            const diagramId = extractIdFromCode(content);
             const tempUri = document.uri.toString();
 
             if (TempFileCache.hasTempUri(context, tempUri)) {
@@ -867,34 +861,6 @@ context.subscriptions.push(
   })
 );
 
-// Register AI repair accept/reject commands - work without preview panel
-context.subscriptions.push(
-  vscode.commands.registerCommand('mermaidChart.acceptSingleChange', async (uri: vscode.Uri, lineNumber: number) => {
-    console.log(`[Command] acceptSingleChange called with uri=${uri?.toString()}, line=${lineNumber}`);
-    await RepairCommands.acceptSingleChange(uri, lineNumber, repairCodeLensProvider);
-  })
-);
-
-context.subscriptions.push(
-  vscode.commands.registerCommand('mermaidChart.rejectSingleChange', async (uri: vscode.Uri, lineNumber: number) => {
-    console.log(`[Command] rejectSingleChange called with uri=${uri?.toString()}, line=${lineNumber}`);
-    await RepairCommands.rejectSingleChange(uri, lineNumber, repairCodeLensProvider);
-  })
-);
-
-context.subscriptions.push(
-  vscode.commands.registerCommand('mermaidChart.acceptAllChanges', async (uri: vscode.Uri) => {
-    console.log(`[Command] acceptAllChanges called with uri=${uri?.toString()}`);
-    await RepairCommands.acceptAllChanges(uri, repairCodeLensProvider);
-  })
-);
-
-context.subscriptions.push(
-  vscode.commands.registerCommand('mermaidChart.rejectAllChanges', async (uri: vscode.Uri) => {
-    console.log(`[Command] rejectAllChanges called with uri=${uri?.toString()}`);
-    await RepairCommands.rejectAllChanges(uri, repairCodeLensProvider);
-  })
-);
 
 context.subscriptions.push(
   vscode.languages.registerCompletionItemProvider(

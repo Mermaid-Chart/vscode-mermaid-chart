@@ -64,7 +64,7 @@
     }
     
     .error-title {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 600;
       font-weight: 400;
       color: #ffffff;
@@ -95,7 +95,7 @@
     }
     
     .error-details {
-      font-size: 10px;
+      font-size: 11px;
       line-height: 1.4;
       padding: 0px 0px 0px 30px;
       color: #ffffff;

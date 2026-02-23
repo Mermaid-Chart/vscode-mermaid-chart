@@ -262,10 +262,10 @@ Users can start login flow with their Mermaid Chart account and once logged-in, 
 
 #### Link diagram directly in your code files
 For each diagram in the Side Panel, user will see two options:
-- Download: This will open the mermaid chart diagram locally for editing and will be connected to the Mermaid chart. Once the edited diagram is saved, or the user does a  ctrl+s, it will sync diagrams back to mermaid chart accounts as well
+- Use diagram: This will open the mermaid chart diagram locally for editing and will be connected to the Mermaid chart. Once the edited diagram is saved, or the user does a  ctrl+s, it will sync diagrams back to mermaid chart accounts as well
 ![Download](https://mermaid.ai/docs/img/plugins/vscode-plugin-download.png)
-- Link Diagram : When you click on a diagram, that diagram (its diagram id) will be inserted into the code editor as a comment at the position of the cursor. And users will get an option to preview or edit the diagram from this diagram id.
-![Link Diagrams](https://mermaid.ai/docs/img/plugins/vscode-plugin-link-diagram.png)
+- Link diagram : When you click on a diagram, that diagram (its diagram id) will be inserted into the code editor as a comment at the position of the cursor. And users will get an option to preview or edit the diagram from this diagram id.
+![Link diagrams](https://mermaid.ai/docs/img/plugins/vscode-plugin-link-diagram.png)
 
 #### Smart Sync to promote collaboration
 When a  user modifies an existing diagram, before saving it to MermaidChart service, it smartly checks if any modification is made in the web view, and if found, it indicates to the user to resolve any conflicts, and then save the resolved diagram back. 

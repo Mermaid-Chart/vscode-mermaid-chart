@@ -43,8 +43,7 @@ export function generateWebviewContent(
       align-items: center;
       justify-content: center;
       background-color: var(--vscode-bg);
-      
-       font-family: "Recursive", serif;
+      font-family: "Recursive", serif;
 
     }
 
@@ -55,7 +54,7 @@ export function generateWebviewContent(
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 24px;
+      gap: 20px;
 
     }
 
@@ -71,48 +70,40 @@ export function generateWebviewContent(
       width: 80px;
       height: 80px  ;
     }
-    .welcome-msg{
-      margin: 0;
-      font-size: 24px;
-      line-height: 38px;
-      font-weight:420;    
-    }
 
-    .description {
-      font-weight: 400;
+    .description-text {
+      text-align: center;
       font-size: 14px;
       line-height: 20px;
-      margin: 0;
-      text-align: center;
     }
 
-    .bulletin {
-      width: 100%;
+    .welcome-msg {
+      margin: 0;
+      font-size: 24px;
+      line-height: 32px;
+      font-weight: 600;
+      color: #BEDDE3;
     }
-    
+
     .login-btn{
+       width: 100%;
        display: flex;
        justify-content: center;
      }
 
-    .bulletin ul {
-      color:#8585A4;
-      padding-left: 16px;
-    }
 
-    .bulletin li {
-      margin: 4px 0; 
-    }
 
-    .highlight-text {
+    .signing-text {
       margin: 0;
-      font-weight: 600;
-      font-size: 16px;
+      font-weight: 400;
+      font-size: 14px;
       text-align: center;
+      line-height: 20px;
     }
 
     button {
       padding: 12px 84px;
+      width: 100%;
       border-radius: 12px;
       background: #E0095F;
       color: white;
@@ -140,8 +131,15 @@ export function generateWebviewContent(
       color: var(--Color-Deep-Purple-800, #1E1A2E);
     }
 
-    .vscode-light body, .vscode-light .container .bulletin ul {
-      color: #272040;
+    /* Theme-specific styles for welcome message */
+    .vscode-light .welcome-msg {
+      color: #2B2542;
+    }
+
+    /* Theme-specific styles for description and signing text */
+    .vscode-light .description-text,
+    .vscode-light .signing-text {
+      color: #57546C;
     }
 
     </style>
@@ -155,21 +153,16 @@ export function generateWebviewContent(
             Official Mermaid Plugin
             </br></h2>
         </div>
-        <p class="description">
-          Created by the team behind Mermaid open source, this extension offers an advanced and seamless Mermaid editing experience.
-        </p>
-        <div class="bulletin">
-        <p>Sign in to unlock</p>
-    <ul style="font-size=14px,font-weight=400px">
-        <li>Diagram Sync Seamlessly</li>
-        <li>Clickable Diagram References</li>
-    </ul>
-</div>
+        <div class="description-text">
+        Work smoothly with automatic diagram sync 
+        <br> 
+        and quick, clickable references
+        </div>
 
-        <p class="highlight-text">Join now and supercharge your workflow!</p>
+        <p class="signing-text">Sign in to get the full experience.</p>
         <div class="login-btn"> 
         <button id="signInButton">Sign in</button>
-        </div>
+      </div>
     </div>
      <script>
         const vscode = acquireVsCodeApi();

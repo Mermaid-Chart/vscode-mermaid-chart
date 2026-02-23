@@ -136,6 +136,13 @@ export class PreviewPanel {
     });
   }
 
+  private async refreshAICredits() {
+    // Clear cache to force fresh fetch
+    this.cachedAICredits = null;
+    this.creditsFetched = false;
+    await this.fetchAndSendCredits();
+  }
+
   private setupListeners() {
     const debouncedUpdate = debounce(() => this.update(), 300);
     vscode.workspace.onDidChangeTextDocument((event) => {
@@ -181,6 +188,8 @@ export class PreviewPanel {
         });
       } else if (message.type === "repairDiagram") {
         await this.handleRepairDiagram(message.code, message.errorMessage);
+      } else if (message.type === "requestAICredits") {
+        await this.fetchAndSendCredits();
       } else if (message.type === "openUrl" && message.url) {
         await vscode.env.openExternal(vscode.Uri.parse(message.url));
       }
@@ -240,6 +249,8 @@ export class PreviewPanel {
   private async handleRepairDiagram(code: string, errorMessage: string) {
     try {
       await RepairDiagram.repairDiagram(code, errorMessage, this.document);
+      // Refresh AI credits after successful repair to reflect usage
+      await this.refreshAICredits();
     } catch (error: any) {
       console.error("Error in repair diagram handler:", error);
       vscode.window.showErrorMessage("Failed to repair diagram. Please try again.");

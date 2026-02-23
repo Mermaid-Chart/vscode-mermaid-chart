@@ -716,7 +716,7 @@
           "group": "inline@01"
         },
         {
-          "command": "mermaidChart.downloadDiagram",
+          "command": "mermaidChart.useDiagram",
           "when": "viewItem == document",
           "group": "inline@02"
         }
@@ -759,11 +759,11 @@
       },
       {
         "command": "mermaidChart.insertUuidIntoEditor",
-        "title": "Link Diagram"
+        "title": "Link diagram"
       },
       {
-        "command": "mermaidChart.downloadDiagram",
-        "title": "Download"
+        "command": "mermaidChart.useDiagram",
+        "title": "Use diagram"
       },
       {
         "command": "mermaidChart.syncDiagramWithMermaid",

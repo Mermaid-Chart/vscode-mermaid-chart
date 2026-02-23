@@ -22,6 +22,8 @@
   let maxTextSize = 90000;
   let maxEdges = 1000;
   let isExportModalOpen = false;
+  let isRepairing = false;
+  let aiCredits = null; // AI credits data: {remaining: number, total: number}
   $: sidebarBackgroundColor = theme?.includes("dark")? "#4d4d4d" : "white";
   $: iconBackgroundColor = theme?.includes("dark") ? "#4d4d4d" : "white";
   $: svgColor = theme?.includes("dark") ? "white" : "#2329D6";
@@ -45,6 +47,21 @@
     const newTheme = event.detail.theme;
     theme = newTheme;
     renderDiagram();
+  }
+
+  function handleRepair() {
+    if (!diagramContent || !errorMessage || isRepairing) {
+      return;
+    }
+    
+    isRepairing = true;
+    
+    // Send message to extension to call repair API
+    vscode.postMessage({
+      type: "repairDiagram",
+      code: diagramContent,
+      errorMessage: errorMessage
+    });
   }
 
     async function initializeMermaid() {
@@ -190,6 +207,21 @@
           type: "error",
           message: errorMessage,
         });
+        
+        // Always request AI credits when error occurs
+        vscode.postMessage({
+          type: "requestAICredits"
+        });
+        
+        // If aiCredits is null, request it again after a short delay to ensure it gets fetched
+        if (!aiCredits) {
+          setTimeout(() => {
+            vscode.postMessage({
+              type: "requestAICredits"
+            });
+          }, 100);
+        }
+        
         hasErrorOccured = true
         element.innerHTML = "";
       }
@@ -276,8 +308,14 @@
   }
 
   window.addEventListener("message", async (event) => {
-    const { type, content, currentTheme, isFileChange, validateOnly, maxZoom, maxCharLength, maxEdge } = event.data;
+    const { type, content, currentTheme, isFileChange, validateOnly, maxZoom, maxCharLength, maxEdge, aiCredits: receivedAICredits } = event.data;
     if (type === "update") {
+      // Update AI credits if provided
+      if (receivedAICredits) {
+        console.log('Received AI credits:', receivedAICredits);
+        aiCredits = receivedAICredits;
+      }
+      
       if (validateOnly && content) {
         // Just validate without updating UI
         await validateDiagramOnly(content);
@@ -296,6 +334,20 @@
         if (panzoomInstance) {
           panzoomInstance.setOptions({ maxScale: maxZoomLevel });
         } 
+      }
+    } else if (type === "repairComplete") {
+      // Repair is done, reset the repairing state and update credits if provided
+      isRepairing = false;
+      const { aiCredits: updatedCredits } = event.data;
+      if (updatedCredits) {
+        aiCredits = updatedCredits;
+      }
+    } else if (type === "aiCreditsUpdate") {
+      // Handle AI credits update
+      const { aiCredits: receivedCredits } = event.data;
+      if (receivedCredits) {
+        console.log('AI credits update received:', receivedCredits);
+        aiCredits = receivedCredits;
       }
     }
   });
@@ -347,7 +399,7 @@
 
 
 <div id="app-container" style="background: {theme?.includes('dark') ? '#1e1e1e' : 'white'}">
-  <ErrorMessage {errorMessage} />
+  <ErrorMessage {errorMessage} {isRepairing} {aiCredits} on:repair={handleRepair} />
   <div id="mermaid-diagram"></div>
   <div class="sidebar-container">
     {#if !errorMessage}

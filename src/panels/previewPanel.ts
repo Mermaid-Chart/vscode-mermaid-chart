@@ -4,6 +4,9 @@ import { getWebviewHTML } from "../templates/previewTemplate";
 import { isAuxFile } from "../util";
 import * as packageJson from "../../package.json";
 import { saveDiagramAsPng, saveDiagramAsSvg } from "../services/renderService";
+import { MermaidChartVSCode } from "../mermaidChartVSCode";
+import { RepairDiagram } from "./repairDiagram";
+import { MermaidChartAuthenticationProvider } from "../mermaidChartAuthenticationProvider";
 const DARK_THEME_KEY = "mermaid.vscode.dark";
 const LIGHT_THEME_KEY = "mermaid.vscode.light";
 const MAX_ZOOM= "mermaid.vscode.maxZoom";
@@ -13,12 +16,19 @@ const MAX_EDGES = "mermaid.vscode.maxEdges";
 
 export class PreviewPanel {
   private static currentPanel: PreviewPanel | undefined;
+  private static mcAPI: MermaidChartVSCode | undefined;
   private readonly panel: vscode.WebviewPanel;
   private document: vscode.TextDocument;
   private readonly disposables: vscode.Disposable[] = [];
   private isFileChange = false;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private lastContent: string = "";
+  
+  // Simple per-preview-panel caching
+  private cachedAICredits: {remaining: number, total: number} | null = null;
+  private creditsFetched: boolean = false;
+
+  // Use shared decoration manager
 
 
 
@@ -30,6 +40,11 @@ export class PreviewPanel {
 
     this.update();
     this.setupListeners();
+  }
+
+  public static setMcAPI(mcAPI: MermaidChartVSCode) {
+    PreviewPanel.mcAPI = mcAPI;
+    RepairDiagram.setMcAPI(mcAPI);
   }
 
   public static createOrShow(document: vscode.TextDocument) {
@@ -77,7 +92,10 @@ export class PreviewPanel {
   
     if (!this.panel.webview.html) {
       this.panel.webview.html = getWebviewHTML(this.panel, extensionPath, this.lastContent, currentTheme, false);
+      // Only fetch credits on initial panel creation
+      this.fetchAndSendCredits();
     }
+    
     this.panel.webview.postMessage({
       type: "update",
       content:this.lastContent,
@@ -86,8 +104,43 @@ export class PreviewPanel {
       maxZoom: maxZoom,
       maxCharLength: maxCharLength,
       maxEdge: maxEdges,
+      aiCredits: this.cachedAICredits, // Always send cached credits if available
     });
     this.isFileChange = false;
+  }
+
+  private async fetchAICredits(): Promise<{remaining: number, total: number} | null> {
+    try {
+      // Return cached credits if available
+      if (this.creditsFetched && this.cachedAICredits) {
+        return this.cachedAICredits;
+      }
+
+      if (PreviewPanel.mcAPI) {
+        const response = await PreviewPanel.mcAPI.getAICredits();
+        this.cachedAICredits = response.aiCredits;
+        this.creditsFetched = true;
+        return this.cachedAICredits;
+      }
+    } catch (error) {
+      console.log("Failed to fetch AI credits:", error);
+    }
+    return null;
+  }
+
+  private async fetchAndSendCredits() {
+    const aiCredits = await this.fetchAICredits();
+    this.panel.webview.postMessage({
+      type: "aiCreditsUpdate",
+      aiCredits: aiCredits
+    });
+  }
+
+  private async refreshAICredits() {
+    // Clear cache to force fresh fetch
+    this.cachedAICredits = null;
+    this.creditsFetched = false;
+    await this.fetchAndSendCredits();
   }
 
   private setupListeners() {
@@ -133,6 +186,12 @@ export class PreviewPanel {
         }, async () => {
           await saveDiagramAsSvg(this.document, message.svgBase64, this.lastContent);
         });
+      } else if (message.type === "repairDiagram") {
+        await this.handleRepairDiagram(message.code, message.errorMessage);
+      } else if (message.type === "requestAICredits") {
+        await this.fetchAndSendCredits();
+      } else if (message.type === "openUrl" && message.url) {
+        await vscode.env.openExternal(vscode.Uri.parse(message.url));
       }
     });
 
@@ -185,6 +244,24 @@ export class PreviewPanel {
       return { line, message };
     }
     return null;
+  }
+
+  private async handleRepairDiagram(code: string, errorMessage: string) {
+    try {
+      await RepairDiagram.repairDiagram(code, errorMessage, this.document);
+      // Refresh AI credits after successful repair to reflect usage
+      await this.refreshAICredits();
+    } catch (error: any) {
+      console.error("Error in repair diagram handler:", error);
+      vscode.window.showErrorMessage("Failed to repair diagram. Please try again.");
+    } finally {
+      // Notify webview that repair is complete
+      this.panel.webview.postMessage({ type: "repairComplete" });
+    }
+  }
+
+  public static getCurrentPanel(): PreviewPanel | undefined {
+    return PreviewPanel.currentPanel;
   }
 
   public dispose() {

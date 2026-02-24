@@ -87,6 +87,10 @@
       box-sizing: border-box;
     }
     
+    .credits-bottom.button-only {
+      justify-content: flex-end;
+    }
+    
     .credits-text {
       color: #ffffff;
       font-family: 'Segoe UI', system-ui, sans-serif;
@@ -166,8 +170,10 @@
       
       <!-- Credits and repair button container -->
       {#if aiCredits}
-        <div class="credits-bottom">
-          <span class="credits-text">Credits left: {aiCredits.remaining}</span>
+        <div class="credits-bottom" class:button-only={aiCredits.remaining > aiCredits.total}>
+          {#if aiCredits.remaining <= aiCredits.total}
+            <span class="credits-text">Credits left: {aiCredits.remaining}</span>
+          {/if}
           {#if aiCredits.remaining === 0}
             <button 
               class="repair-button" 

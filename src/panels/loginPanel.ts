@@ -99,7 +99,6 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
       );
     } catch (error) {
       console.error("Manual token validation failed:", error);
-      vscode.window.showErrorMessage("Token validation failed. Please check your token and try again.");
     }
   }
 }

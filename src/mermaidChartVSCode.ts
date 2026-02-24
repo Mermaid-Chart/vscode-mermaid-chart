@@ -242,8 +242,8 @@ export class MermaidChartVSCode extends MermaidChart {
     } catch (error: any) {
       this.resetAccessToken();
       const errorMessage = error.message || 'Invalid token';
-      vscode.window.showErrorMessage(`Token validation failed: ${errorMessage}`);
-      throw error;
+      // Throw custom error with token validation message - authentication provider will show it
+      throw new Error(`Token validation failed: ${errorMessage}`);
     }
   }
 

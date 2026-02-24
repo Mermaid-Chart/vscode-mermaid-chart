@@ -151,6 +151,9 @@ export function generateAuthOptionsContent(
       font-family: "Recursive", serif;
       font-size: 14px;
       box-sizing: border-box;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .token-input:focus {
@@ -278,7 +281,7 @@ export function generateAuthOptionsContent(
                     type="password" 
                     id="tokenInput" 
                     class="token-input" 
-                    placeholder="Paste your authentication token here..."
+                    placeholder="Paste your authentication token here"
                 />
                 <div class="help-text">
                     Get your token from: <a href="https://mermaid.ai/app/user/settings" target="_blank">mermaid.ai/app/user/settings</a>

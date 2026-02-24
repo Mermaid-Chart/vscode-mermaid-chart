@@ -6,7 +6,9 @@ import { openDiagramDiffWebviews } from './commercial/sync/diagramDiffView';
 
 export class RemoteSyncHandler {
     private openDiffPreviews: Set<string> = new Set();
-    
+    private disposeDiffPanels: (() => void) | undefined;
+    private diffPanelCloseWatcher: vscode.Disposable | undefined;
+
     constructor(private mcAPI: MermaidChartVSCode) {}
 
     private hasUnresolvedConflicts(content: string): boolean {
@@ -62,7 +64,7 @@ export class RemoteSyncHandler {
                 
                 // If conflict markers were added, show diagram previews
                 if (!canSaveFile) {
-                    this.showDiagramPreviews(currentContent, remoteVersion.code, diagramId);
+                    this.showDiagramPreviews(document, currentContent, remoteVersion.code, diagramId);
                 }
                 
                 return canSaveFile ? 'continue' : 'abort'; // Abort to prevent immediate save
@@ -204,10 +206,50 @@ export class RemoteSyncHandler {
         return -1;
     }
 
-    private showDiagramPreviews(localContent: string, remoteContent: string, diagramId: string): void {
+    private showDiagramPreviews(document: vscode.TextDocument, localContent: string, remoteContent: string, diagramId: string): void {
         try {
-            openDiagramDiffWebviews(localContent, remoteContent);
+            // Dispose any previously open preview panels before opening new ones
+            this.disposeDiffPanels?.();
+            this.diffPanelCloseWatcher?.dispose();
+
+            this.disposeDiffPanels = openDiagramDiffWebviews(localContent, remoteContent);
             this.openDiffPreviews.add(diagramId);
+
+            const docUri = document.uri.toString();
+            let cleaned = false;
+
+            const cleanup = () => {
+                if (cleaned) { return; }
+                cleaned = true;
+                this.disposeDiffPanels?.();
+                this.disposeDiffPanels = undefined;
+                onConflictResolvedDisposable.dispose();
+                onTabCloseDisposable.dispose();
+                this.diffPanelCloseWatcher = undefined;
+                this.openDiffPreviews.delete(diagramId);
+            };
+
+            // Trigger 1: user accepted current/incoming change — conflict markers removed from document
+            const onConflictResolvedDisposable = vscode.workspace.onDidChangeTextDocument((e) => {
+                if (e.document.uri.toString() === docUri && !this.hasUnresolvedConflicts(e.document.getText())) {
+                    cleanup();
+                }
+            });
+
+            // Trigger 2: user closed the conflict file tab entirely
+            const onTabCloseDisposable = vscode.window.tabGroups.onDidChangeTabs(({ closed }) => {
+                for (const tab of closed) {
+                    if (tab.input instanceof vscode.TabInputText &&
+                        tab.input.uri.toString() === docUri) {
+                        cleanup();
+                        return;
+                    }
+                }
+            });
+
+            // Store a single disposable so dispose() on the class cleans up both listeners
+            this.diffPanelCloseWatcher = { dispose: cleanup };
+
             vscode.window.showInformationMessage("Conflict detected. Diagram previews opened to help resolve differences. Edit the document to resolve conflicts, then save.");
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
@@ -217,6 +259,8 @@ export class RemoteSyncHandler {
     }
 
     public dispose(): void {
+        this.disposeDiffPanels?.();
+        this.diffPanelCloseWatcher?.dispose();
         this.openDiffPreviews.clear();
     }
 } 

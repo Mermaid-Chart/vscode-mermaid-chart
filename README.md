@@ -11,6 +11,7 @@ The official Mermaid extension for Visual Studio Code enables developers to seam
 ## Now with AI-Powered Diagramming! ✨
 
 Transform ideas into diagrams instantly with our AI integration! Our extension now includes:
+- **Repair Diagram with Mermaid AI** : Repair your broken diagram. 
 - **AI Chat Participant**: Simply describe your diagram needs in natural language with `@mermaid-chart` and watch as beautiful diagrams materialize
 - **Smart Diagram Regeneration**: Auto-detect changes in your source files and instantly update referenced diagrams with one click
 - **AI-Powered ER Diagrams**: Generate entity relationship diagrams from your codebase with simple commands
@@ -82,6 +83,19 @@ We provide two convenient authentication methods to accommodate different develo
 
 
 ![Authentication Flow](https://mermaid.ai/docs/img/plugins/vscode-plugin-authentication.gif)
+
+
+### AI-Powered Repair Diagram 
+- **Intelligent Error Detection & Repair**: When syntax errors occur in your Mermaid diagrams, our AI automatically detects issues and offers instant repair suggestions.<br>
+- **Credit-Based System**: Uses AI credits directly from your Mermaid account - see your available credits displayed right in the error panel.<br>
+- **Smart Diff Viewer**: After AI repairs your diagram, view a comprehensive diff comparison showing exactly what changed.<br>
+
+> **Note**<br/>
+> AI-powered repair diagram feature requires an active Mermaid account with available AI credits.
+
+![vscode-plugin-repair-diagram](https://mermaid.ai/docs/img/plugins/vscode-plugin-repair-diagram.gif)
+
+
 
 ### Generate AI-powered diagrams directly from your code!
 Transform your ideas and source code into clear, insightful diagrams with our new AI integration in VS Code.<br>
@@ -272,6 +286,17 @@ When a  user modifies an existing diagram, before saving it to MermaidChart serv
 ![Smart Sync to promote collaboration 1](https://mermaid.ai/docs/img/plugins/vscode-plugin-smart-indicator-view.png)
 
 ![Smart Sync to promote collaboration 2](https://mermaid.ai/docs/img/plugins/vscode-plugin-smart-indicator.png)
+
+
+### Diagram Diff Preview
+- **Visual Change Comparison**: When using regenerate diagram or remote sync functionality, instantly see what changed with side-by-side diagram previews.<br>
+- **Dual Preview Mode**: View both original and updated diagrams simultaneously to understand the impact of changes.<br>
+- **Interactive Diff View**: Navigate between changes with clear visual indicators showing additions, modifications, and deletions.<br>
+- **Context-Aware Comparison**: Understand not just what changed, but why - perfect for collaborative editing and version control.<br>
+- Perfect for reviewing AI-generated updates, collaborating with team members, and maintaining diagram version history.
+
+![vscode-plugin-diagram-diff](https://mermaid.ai/docs/img/plugins/vscode-plugin-diagram-diff.gif)
+
 
 #### Refresh 
 To get the latest changes of diagrams from Mermaid Chart, click on the button named Refresh at the top in the side panel.

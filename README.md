@@ -288,14 +288,19 @@ When a  user modifies an existing diagram, before saving it to MermaidChart serv
 ![Smart Sync to promote collaboration 2](https://mermaid.ai/docs/img/plugins/vscode-plugin-smart-indicator.png)
 
 
-### Diagram Diff Preview
-- **Visual Change Comparison**: When using regenerate diagram or remote sync functionality, instantly see what changed with side-by-side diagram previews.<br>
+### Remote Sync Diagram Diff Preview
+- **Visual Change Comparison**: When using remote sync functionality, instantly see what changed with side-by-side diagram previews.<br>
 - **Dual Preview Mode**: View both original and updated diagrams simultaneously to understand the impact of changes.<br>
 - **Interactive Diff View**: Navigate between changes with clear visual indicators showing additions, modifications, and deletions.<br>
-- **Context-Aware Comparison**: Understand not just what changed, but why - perfect for collaborative editing and version control.<br>
-- Perfect for reviewing AI-generated updates, collaborating with team members, and maintaining diagram version history.
+![vscode-plugin-remote-sync-preview](https://mermaid.ai/docs/img/plugins/vscode-plugin-remote-sync-preview.gif)
 
-![vscode-plugin-diagram-diff](https://mermaid.ai/docs/img/plugins/vscode-plugin-diagram-diff.gif)
+### Regenerate Diagram with Diff Preview
+- **Source File Integration**: When you create a .mmd file using any source file with our Mermaid handler, references get added to the front matter.<br>
+- **Smart Change Detection**: When you change your source file code, we provide a regenerate diagram option that reflects the same changes to the Mermaid diagram.<br>
+- **Diff Preview Visualization**: Includes diagram diff preview to help you understand exactly what changed before applying updates.<br>
+- **Synchronized Updates**: Ensures your diagrams stay synchronized with your evolving codebase through intelligent change tracking.<br>
+
+![vscode-plugin-regenerate-preview](https://mermaid.ai/docs/img/plugins/vscode-plugin-regenerate-preview.gif)
 
 
 #### Refresh 

@@ -11,7 +11,7 @@ The official Mermaid extension for Visual Studio Code enables developers to seam
 ## Now with AI-Powered Diagramming! ✨
 
 Transform ideas into diagrams instantly with our AI integration! Our extension now includes:
-- **Repair Diagram with Mermaid AI** : Repair your broken diagram. 
+- **AI-Powered Repair Diagram** : In just one click repair your broken mermaid digram  
 - **AI Chat Participant**: Simply describe your diagram needs in natural language with `@mermaid-chart` and watch as beautiful diagrams materialize
 - **Smart Diagram Regeneration**: Auto-detect changes in your source files and instantly update referenced diagrams with one click
 - **AI-Powered ER Diagrams**: Generate entity relationship diagrams from your codebase with simple commands
@@ -85,18 +85,6 @@ We provide two convenient authentication methods to accommodate different develo
 ![Authentication Flow](https://mermaid.ai/docs/img/plugins/vscode-plugin-authentication.gif)
 
 
-### AI-Powered Repair Diagram 
-- **Intelligent Error Detection & Repair**: When syntax errors occur in your Mermaid diagrams, our AI automatically detects issues and offers instant repair suggestions.<br>
-- **Credit-Based System**: Uses AI credits directly from your Mermaid account - see your available credits displayed right in the error panel.<br>
-- **Smart Diff Viewer**: After AI repairs your diagram, view a comprehensive diff comparison showing exactly what changed.<br>
-
-> **Note**<br/>
-> AI-powered repair diagram feature requires an active Mermaid account with available AI credits.
-
-![vscode-plugin-repair-diagram](https://mermaid.ai/docs/img/plugins/vscode-plugin-repair-diagram.gif)
-
-
-
 ### Generate AI-powered diagrams directly from your code!
 Transform your ideas and source code into clear, insightful diagrams with our new AI integration in VS Code.<br>
 Just mention **@mermaid-chart** in any GitHub Copilot Chat and describe the diagram you want to create — even link specific source code files!<br>
@@ -108,6 +96,19 @@ Let your code speak for itself — effortlessly.
 With Smart Diagram Regeneration, when your source code or requirements change, the extension can detect these changes and offer to update related diagrams with a single click.
 
 ![Image illustrating accessible diagrams in explorer panel](https://mermaid.ai/docs/img/plugins/vscode-plugin-update-diagram.gif)
+
+
+### AI-Powered Repair Diagram 
+- **Intelligent Error Detection & Repair**: When syntax errors occur in your Mermaid diagrams, our AI automatically detects issues and offers instant repair suggestions.<br>
+- **Credit-Based System**: Uses AI credits directly from your Mermaid account - see your available credits displayed right in the error panel.<br>
+- **Smart Diff Viewer**: After AI repairs your diagram, view a comprehensive diff comparison showing exactly what changed.<br>
+
+> **Note**<br/>
+> AI-powered repair diagram feature requires an active Mermaid account with available AI credits.
+
+![vscode-plugin-repair-diagram](https://mermaid.ai/docs/img/plugins/vscode-plugin-repair-diagram.gif)
+
+
 
 ### Visualize Cloud Infrastructure from Your Codebase
 - Instantly visualize your cloud infrastructure with our AI-powered diagram generator.<br>

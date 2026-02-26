@@ -1,6 +1,6 @@
 # Change Log
 
-### 2.5.9 - 
+### 2.5.9 - 2026-02-26
 - Updated authentication to support both OAuth and manual token flows.
 - Added Repair Diagram with Mermaid AI — when a diagram throws an error, users can run the repair command to fix it using Mermaid AI. It also displays the user’s remaining AI credits.
 - Added 2 preview support for Regenerate and Remote Sync, allowing users to visualize diagram differences.

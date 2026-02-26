@@ -336,6 +336,12 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+### 2.5.9 - 2026-02-26
+- Updated authentication to support both OAuth and manual token flows.
+- Added Repair Diagram with Mermaid AI — when a diagram throws an error, users can run the repair command to fix it using Mermaid AI. It also displays the user’s remaining AI credits.
+- Added 2 preview support for Regenerate and Remote Sync, allowing users to visualize diagram differences.
+- Improved the login UI design to make it more user-friendly.
+
 
 ### 2.5.6 - 2025-12-04
 - Added theme selector in preview allowing users to change diagram themes in real-time during current session

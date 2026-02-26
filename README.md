@@ -11,6 +11,7 @@ The official Mermaid extension for Visual Studio Code enables developers to seam
 ## Now with AI-Powered Diagramming! ✨
 
 Transform ideas into diagrams instantly with our AI integration! Our extension now includes:
+- **AI-Powered Repair Diagram** : In just one click repair your broken mermaid digram  
 - **AI Chat Participant**: Simply describe your diagram needs in natural language with `@mermaid-chart` and watch as beautiful diagrams materialize
 - **Smart Diagram Regeneration**: Auto-detect changes in your source files and instantly update referenced diagrams with one click
 - **AI-Powered ER Diagrams**: Generate entity relationship diagrams from your codebase with simple commands
@@ -83,6 +84,7 @@ We provide two convenient authentication methods to accommodate different develo
 
 ![Authentication Flow](https://mermaid.ai/docs/img/plugins/vscode-plugin-authentication.gif)
 
+
 ### Generate AI-powered diagrams directly from your code!
 Transform your ideas and source code into clear, insightful diagrams with our new AI integration in VS Code.<br>
 Just mention **@mermaid-chart** in any GitHub Copilot Chat and describe the diagram you want to create — even link specific source code files!<br>
@@ -94,6 +96,19 @@ Let your code speak for itself — effortlessly.
 With Smart Diagram Regeneration, when your source code or requirements change, the extension can detect these changes and offer to update related diagrams with a single click.
 
 ![Image illustrating accessible diagrams in explorer panel](https://mermaid.ai/docs/img/plugins/vscode-plugin-update-diagram.gif)
+
+
+### AI-Powered Repair Diagram 
+- **Intelligent Error Detection & Repair**: When syntax errors occur in your Mermaid diagrams, our AI automatically detects issues and offers instant repair suggestions.<br>
+- **Credit-Based System**: Uses AI credits directly from your Mermaid account - see your available credits displayed right in the error panel.<br>
+- **Smart Diff Viewer**: After AI repairs your diagram, view a comprehensive diff comparison showing exactly what changed.<br>
+
+> **Note**<br/>
+> AI-powered repair diagram feature requires an active Mermaid account with available AI credits.
+
+![vscode-plugin-repair-diagram](https://mermaid.ai/docs/img/plugins/vscode-plugin-repair-diagram.gif)
+
+
 
 ### Visualize Cloud Infrastructure from Your Codebase
 - Instantly visualize your cloud infrastructure with our AI-powered diagram generator.<br>
@@ -273,6 +288,22 @@ When a  user modifies an existing diagram, before saving it to MermaidChart serv
 
 ![Smart Sync to promote collaboration 2](https://mermaid.ai/docs/img/plugins/vscode-plugin-smart-indicator.png)
 
+
+### Remote Sync Diagram Diff Preview
+- **Visual Change Comparison**: When using remote sync functionality, instantly see what changed with side-by-side diagram previews.<br>
+- **Dual Preview Mode**: View both original and updated diagrams simultaneously to understand the impact of changes.<br>
+- **Interactive Diff View**: Navigate between changes with clear visual indicators showing additions, modifications, and deletions.<br>
+![vscode-plugin-remote-sync-preview](https://mermaid.ai/docs/img/plugins/vscode-plugin-remote-sync-preview.gif)
+
+### Regenerate Diagram with Diff Preview
+- **Source File Integration**: When you create a .mmd file using any source file with our Mermaid handler, references get added to the front matter.<br>
+- **Smart Change Detection**: When you change your source file code, we provide a regenerate diagram option that reflects the same changes to the Mermaid diagram.<br>
+- **Diff Preview Visualization**: Includes diagram diff preview to help you understand exactly what changed before applying updates.<br>
+- **Synchronized Updates**: Ensures your diagrams stay synchronized with your evolving codebase through intelligent change tracking.<br>
+
+![vscode-plugin-regenerate-preview](https://mermaid.ai/docs/img/plugins/vscode-plugin-regenerate-preview.gif)
+
+
 #### Refresh 
 To get the latest changes of diagrams from Mermaid Chart, click on the button named Refresh at the top in the side panel.
 
@@ -305,6 +336,12 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+### 2.5.9 - 2026-02-26
+- Updated authentication to support both OAuth and manual token flows.
+- Added Repair Diagram with Mermaid AI — when a diagram throws an error, users can run the repair command to fix it using Mermaid AI. It also displays the user’s remaining AI credits.
+- Added 2 preview support for Regenerate and Remote Sync, allowing users to visualize diagram differences.
+- Improved the login UI design to make it more user-friendly.
+
 
 ### 2.5.6 - 2025-12-04
 - Added theme selector in preview allowing users to change diagram themes in real-time during current session

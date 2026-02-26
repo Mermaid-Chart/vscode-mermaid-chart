@@ -13,9 +13,11 @@ export class MermaidChartVSCode extends MermaidChart {
   constructor() {
     const baseURL = getBaseUrl();
     const clientID = `469e30a6-2602-4022-aff8-2ab36842dc57`;
+    const requestTimeout = 120000; // The repair diagram API can take up to 120 seconds to complete
     super({
       baseURL,
       clientID,
+      requestTimeout,
     });
   }
 
@@ -242,8 +244,8 @@ export class MermaidChartVSCode extends MermaidChart {
     } catch (error: any) {
       this.resetAccessToken();
       const errorMessage = error.message || 'Invalid token';
-      vscode.window.showErrorMessage(`Token validation failed: ${errorMessage}`);
-      throw error;
+      // Throw custom error with token validation message - authentication provider will show it
+      throw new Error(`Token validation failed: ${errorMessage}`);
     }
   }
 

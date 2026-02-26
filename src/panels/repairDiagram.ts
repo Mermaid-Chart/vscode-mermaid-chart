@@ -91,13 +91,26 @@ export class RepairDiagram {
     try {
       // Use workspace folder root or document directory for temp files
       const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-      const rootDir = workspaceFolder?.uri.fsPath ?? path.dirname(document.fileName);
-      const tempDir = path.join(rootDir, ".temp");
+      const isUntitledDocument = document.isUntitled || !document.fileName || document.fileName.startsWith('Untitled-');
+      let rootDir: string;
+      
+      if (isUntitledDocument) {
+        // For untitled documents, use system temp directory directly
+        rootDir = require('os').tmpdir();
+      } else {
+        // For regular files, try workspace folder first, then document directory, then fallback to system temp
+        rootDir = workspaceFolder?.uri.fsPath ?? path.dirname(document.fileName);
+        if (!fs.existsSync(rootDir)) {
+          rootDir = require('os').tmpdir();
+        }
+      }
+      
+      const tempDir = path.join(rootDir, ".temp-repair");
       if (!fs.existsSync(tempDir)) {
         fs.mkdirSync(tempDir, { recursive: true });
       }
 
-      // Use .old and .new extensions so these temp files are not treated as mermaid and don't trigger sync
+      // Always use .old and .new extensions for all files to prevent sync issues
       const baseName = path.basename(document.fileName, path.extname(document.fileName));
       const originalFileName = `${baseName}-original.old`;
       const repairedFileName = `${baseName}-repaired.new`;
@@ -117,8 +130,12 @@ export class RepairDiagram {
       await vscode.languages.setTextDocumentLanguage(originalDoc, 'mermaid');
       await vscode.languages.setTextDocumentLanguage(repairedDoc, 'mermaid');
 
-      // Set up file watcher for the repaired temp file
-      RepairDiagram.setupTempFileWatcher(repairedTempPath, document, originalTempPath);
+      // Choose appropriate file watcher based on document type
+      if (isUntitledDocument) {
+        RepairDiagram.setupTempFileWatcherForTempDocument(repairedTempPath, document, originalUri, repairedUri);
+      } else {
+        RepairDiagram.setupTempFileWatcher(repairedTempPath, document, originalTempPath);
+      }
 
       // Open diff view
       await vscode.commands.executeCommand(
@@ -175,6 +192,7 @@ export class RepairDiagram {
       }
     };
 
+    // For regular files, intercept saves and apply to original document
     const onSaveDisposable = vscode.workspace.onDidSaveTextDocument(async (savedDocument) => {
       if (savedDocument.uri.fsPath !== tempFilePath) {
         return;
@@ -220,7 +238,7 @@ export class RepairDiagram {
       edit.replace(originalDocument.uri, fullRange, newContent);
       await vscode.workspace.applyEdit(edit);
 
-      await originalDocument.save();
+      // Don't save - just apply the edit to update document content without triggering save dialog
     } catch (error) {
       console.error("Error updating original document:", error);
       throw error;
@@ -235,6 +253,86 @@ export class RepairDiagram {
     const mermaidBlockRegex = /```mermaid\s*\n?([\s\S]*?)```/gi;
     const match = mermaidBlockRegex.exec(markdownText);
     return match && match[1] ? match[1].trim() : markdownText.trim();
+  }
+
+
+
+  /**
+   * Setup watcher for temp document diff view - intercepts saves to update temp document
+   */
+  private static setupTempFileWatcherForTempDocument(
+    repairedTempPath: string,
+    originalDocument: vscode.TextDocument,
+    originalUri: vscode.Uri,
+    repairedUri: vscode.Uri
+  ): void {
+    let cleaned = false;
+
+    const cleanup = async () => {
+      if (cleaned) {
+        return;
+      }
+      cleaned = true;
+      onWillSaveDisposable.dispose();
+      onTabCloseDisposable.dispose();
+      try {
+        await vscode.workspace.fs.delete(repairedUri, { recursive: true });
+      } catch (_) {
+        // Ignore deletion errors
+      }
+      try {
+        await vscode.workspace.fs.delete(originalUri, { recursive: true });
+      } catch (_) {
+        // Ignore deletion errors
+      }
+    };
+
+    // Intercept saves on diff view temp files - update temp document instead of saving
+    const onWillSaveDisposable = vscode.workspace.onWillSaveTextDocument(async (event) => {
+      if (event.document.uri.fsPath !== repairedTempPath) {
+        return;
+      }
+      
+      // Prevent the temp file from being saved, instead update the original temp document
+      event.waitUntil((async () => {
+        try {
+          const updatedContent = event.document.getText();
+          
+          // Update the original temp document content (not save it)
+          const fullRange = new vscode.Range(
+            originalDocument.positionAt(0),
+            originalDocument.positionAt(originalDocument.getText().length)
+          );
+          const edit = new vscode.WorkspaceEdit();
+          edit.replace(originalDocument.uri, fullRange, updatedContent);
+          await vscode.workspace.applyEdit(edit);
+
+          // Return empty edit to prevent actual save of diff temp file
+          return [];
+        } catch (error) {
+          console.error("Error updating temp document:", error);
+          vscode.window.showErrorMessage(`Failed to apply changes: ${error instanceof Error ? error.message : "Unknown error"}`);
+          // Return empty edit to still prevent save
+          return [];
+        }
+      })());
+    });
+
+    // Handle tab close cleanup
+    const onTabCloseDisposable = vscode.window.tabGroups.onDidChangeTabs(({ closed }) => {
+      for (const tab of closed) {
+        if (tab.input instanceof vscode.TabInputTextDiff) {
+          const { original, modified } = tab.input;
+          if (
+            original.toString() === originalUri.toString() ||
+            modified.toString() === repairedUri.toString()
+          ) {
+            cleanup();
+            return;
+          }
+        }
+      }
+    });
   }
 
 }

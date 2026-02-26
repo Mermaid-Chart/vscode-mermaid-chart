@@ -6,18 +6,30 @@ import * as packageJson from "../../../package.json";
 /**
  * Open the diagram diff view: two separate webviews (Current and Updated), each with
  * full preview UI (zoom, pan, theme, export).
+ *
+ * Returns a dispose function — call it to close both preview panels programmatically
+ * (e.g. when the associated diff editor or conflict document is closed).
  */
-export function openDiagramDiffWebviews(oldContent: string, newContent: string): void {
+export function openDiagramDiffWebviews(oldContent: string, newContent: string): () => void {
+  let panelCurrent: vscode.WebviewPanel | undefined;
+  let panelUpdated: vscode.WebviewPanel | undefined;
+
+  const disposePanels = (): void => {
+    panelCurrent?.dispose();
+    panelUpdated?.dispose();
+    panelCurrent = undefined;
+    panelUpdated = undefined;
+  };
+
   try {
     const { diagramText: oldDiagramText } = splitFrontMatter(oldContent);
     const { diagramText: newDiagramText } = splitFrontMatter(newContent);
 
-    // Get extension path directly - we know we exist since we're running!
     const extensionPath = vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
     if (!extensionPath) {
       console.error("[Mermaid Diagram Diff] Unable to resolve extension path");
       vscode.window.showErrorMessage("Unable to resolve extension path for diagram diff.");
-      return;
+      return disposePanels;
     }
 
     const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
@@ -27,7 +39,7 @@ export function openDiagramDiffWebviews(oldContent: string, newContent: string):
     const theme = isDarkTheme ? darkTheme : lightTheme;
 
     // Panel 1: Current (old) diagram – top, full preview UI (zoom, pan, theme)
-    const panelCurrent = vscode.window.createWebviewPanel(
+    panelCurrent = vscode.window.createWebviewPanel(
       "mermaidDiagramDiffCurrent",
       "Current Changes",
       vscode.ViewColumn.Beside,
@@ -42,7 +54,7 @@ export function openDiagramDiffWebviews(oldContent: string, newContent: string):
     );
 
     // Panel 2: Updated (new) diagram – bottom, full preview UI
-    const panelUpdated = vscode.window.createWebviewPanel(
+    panelUpdated = vscode.window.createWebviewPanel(
       "mermaidDiagramDiffUpdated",
       "Incoming Changes",
       vscode.ViewColumn.Beside,
@@ -57,21 +69,17 @@ export function openDiagramDiffWebviews(oldContent: string, newContent: string):
     );
 
     // Set editor layout: code diff on left, two diagram panels stacked vertically on right
-    // (Current on top, Updated on bottom)
     setTimeout(() => {
       void vscode.commands.executeCommand("vscode.setEditorLayout", {
-        orientation: 0, // horizontal: left | right
+        orientation: 0,
         groups: [
-          { size: 0.5 }, // Group 0: code diff (left)
+          { size: 0.5 },
           {
-            groups: [
-              { size: 0.5 }, // Group 1: Current diagram (top)
-              { size: 0.5 }  // Group 2: Updated diagram (bottom)
-            ],
+            groups: [{ size: 0.5 }, { size: 0.5 }],
             size: 0.5,
-            orientation: 1 // vertical
-          }
-        ]
+            orientation: 1,
+          },
+        ],
       });
     }, 150);
   } catch (err) {
@@ -79,4 +87,6 @@ export function openDiagramDiffWebviews(oldContent: string, newContent: string):
     console.error("[Mermaid Diagram Diff] Error opening diagram diff view:", err);
     vscode.window.showErrorMessage(`Diagram diff view failed: ${msg}`);
   }
+
+  return disposePanels;
 }

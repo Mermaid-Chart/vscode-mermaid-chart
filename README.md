@@ -5,7 +5,7 @@ The official Mermaid extension for Visual Studio Code enables developers to seam
 
 ## Getting Started 🚀
 
-1. Install [Marmaid Chart](https://marketplace.visualstudio.com/items?itemName=MermaidChart.vscode-mermaid-chart) from Marketplace
+1. Install [Mermaid Chart](https://marketplace.visualstudio.com/items?itemName=MermaidChart.vscode-mermaid-chart) from Marketplace
 2. Login using account for Mermaid Chart. Or [create new account](https://mermaid.ai/app/sign-up)
 
 ## Now with AI-Powered Diagramming! ✨

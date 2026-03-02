@@ -192,6 +192,8 @@ export class PreviewPanel {
         await this.fetchAndSendCredits();
       } else if (message.type === "openUrl" && message.url) {
         await vscode.env.openExternal(vscode.Uri.parse(message.url));
+      } else if (message.type === "showWarning" && message.message) {
+        await vscode.window.showWarningMessage(message.message as string);
       }
     });
 

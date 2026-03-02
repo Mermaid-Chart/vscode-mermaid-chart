@@ -1,11 +1,24 @@
 <script>
-  import PaletteIcon from '~icons/material-symbols/palette-outline';
+  import ThemeIcon from "./ThemeIcon.svelte";
   import { createEventDispatcher, onDestroy } from 'svelte';
 
-  export let iconBackgroundColor, shadowColor, svgColor;
+  export let iconBackgroundColor, shadowColor, sidebarBackgroundColor, svgColor;
   export let currentTheme;
 
   const dispatch = createEventDispatcher();
+
+  // Theme-aware icon colors
+  $: isDarkTheme = sidebarBackgroundColor === "#4d4d4d";
+  $: iconFillColor = isDarkTheme ? "#ffffff" : "#333333";
+  
+  // Diagram theme-aware dropdown colors
+  $: isDarkDiagramTheme = currentTheme?.includes('dark') || currentTheme === 'dark';
+  $: dropdownBg = isDarkDiagramTheme ? "#1e1e1e" : "#ffffff";
+  $: dropdownBorder = isDarkDiagramTheme ? "#464647" : "#e1e5e9";
+  $: dropdownTextColor = isDarkDiagramTheme ? "#cccccc" : "#333333";
+  $: dropdownHoverBg = isDarkDiagramTheme ? "#2A2D2E" : "#f0f0f0";
+  $: dropdownSelectedBg = isDarkDiagramTheme ? "#04395e" : "#0078d4";
+  $: dropdownSelectedText = "#ffffff";
 
   let isDropdownOpen = false;
   
@@ -63,94 +76,106 @@
 <style>
   .theme-container {
     position: relative;
-    display: inline-block;
+    display: flex;
+    align-items: center;
   }
   
-  .theme-button {
+  .icon {
     cursor: pointer;
     border: none;
-    background-color: var(--icon-bg);
-    padding: 14px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    background: none;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 32px;
+    height: 32px;
+    box-sizing: border-box;
   }
 
-  .theme-button:hover {
-    box-shadow: 0px 0px 4px var(--shadow-color);
-    background-color: var(--shadow-color);
+  .icon:hover {
+    background-color: var(--hover-bg);
   }
-  
-  .theme-label {
-    position: absolute;
-    top: -25px;
-    left: 0;
-    font-size: 12px;
-    color: var(--svg-color);
-    white-space: nowrap;
+
+  .icon.active {
+    background-color: var(--hover-bg);
   }
 
   .dropdown {
     position: absolute;
     top: 100%;
     left: 0;
-    background: var(--vscode-dropdown-background, #3c3c3c);
-    border: 1px solid var(--vscode-dropdown-border, #464647);
-    border-radius: 6px;
+    background: var(--dropdown-bg);
+    border: 1px solid var(--dropdown-border);
+    border-radius: 4px;
     min-width: 160px;
-    max-height: 300px;
-    overflow-y: auto;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 4px 14px 0px #00000024;
     margin-top: 4px;
   }
 
-  .dropdown-item {
-    padding: 10px 14px;
-    color: var(--vscode-dropdown-foreground, #cccccc);
-    font-size: 13px;
+  .dropdown-title {
+    padding: 8px 14px;
+    color: var(--dropdown-text);
+    font-size: 12px;
+    font-weight: normal;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    background: none;
+    width: 100%;
+    text-align: left;
+    border-bottom: 1px solid var(--dropdown-border);
+  }
+
+  .dropdown-item {
+    padding: 8px 14px;
+    color: var(--dropdown-text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
     border: none;
     background: none;
     width: 100%;
     text-align: left;
+    position: relative;
   }
 
   .dropdown-item:hover {
-    background-color: var(--vscode-list-hoverBackground, #2a2d2e);
+    background-color: var(--dropdown-hover-bg);
   }
 
   .dropdown-item.selected {
-    background-color: var(--vscode-list-activeSelectionBackground, #094771);
-    color: var(--vscode-list-activeSelectionForeground, #ffffff);
+    background-color: var(--dropdown-selected-bg);
+    color: var(--dropdown-selected-text);
   }
 
-  .dropdown-item:first-child {
-    border-radius: 5px 5px 0 0;
+  /* Theme variables */
+  .theme-container {
+    --text-color: var(--vscode-foreground, #333333);
+    --hover-bg: var(--vscode-toolbar-hoverBackground, rgba(0, 0, 0, 0.1));
   }
-
-  .dropdown-item:last-child {
-    border-radius: 0 0 5px 5px;
+  
+  /* Dark theme adjustments */
+  .theme-container.dark {
+    --text-color: var(--vscode-foreground, #cccccc);
+    --hover-bg: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
   }
 </style>
 
-<div class="theme-container">
-  <span class="theme-label">theme</span>
+<div class="theme-container {isDarkTheme ? 'dark' : 'light'}">
   <button 
-    class="theme-button" 
-    style="--icon-bg: {iconBackgroundColor}; --shadow-color: {shadowColor}; --svg-color: {svgColor};" 
+    class="icon {isDropdownOpen ? 'active' : ''}" 
     on:click={toggleDropdown} 
     aria-label="Select Theme" 
     title="Select Theme"
   >
-    <PaletteIcon color={svgColor} />
+    <ThemeIcon fill={iconFillColor} />
   </button>
 
   {#if isDropdownOpen}
-    <div class="dropdown">
+    <div class="dropdown" style="--dropdown-bg: {dropdownBg}; --dropdown-border: {dropdownBorder}; --dropdown-text: {dropdownTextColor}; --dropdown-hover-bg: {dropdownHoverBg}; --dropdown-selected-bg: {dropdownSelectedBg}; --dropdown-selected-text: {dropdownSelectedText};">
+      <div class="dropdown-title">Themes</div>
       {#each themes as theme}
         <button 
           class="dropdown-item {currentTheme === theme.key ? 'selected' : ''}"

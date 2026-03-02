@@ -1,103 +1,147 @@
 <script>
-  import PanIcon from "./PanIcon.svelte";
+  import HandIcon from "./HandIcon.svelte";
   import ZoomInIcon from "./ZoomInIcon.svelte";
   import ZoomOutIcon from "./ZoomOutIcon.svelte";
-  import ExportIcon from "./ExportIcon.svelte";
-  import SvgIcon from "./SvgIcon.svelte";
+  import FitAllIcon from "./FitAllIcon.svelte";
 
     export let panEnabled, iconBackgroundColor, shadowColor, sidebarBackgroundColor, svgColor, zoomLevel;
     export let togglePan, zoomOut, resetView, zoomIn;
+    
+    // Theme-aware icon colors
+    $: isDarkTheme = sidebarBackgroundColor === "#4d4d4d";
+    $: iconFillColor = isDarkTheme ? "#ffffff" : "#3B3B3B";
+    $: activeIconFillColor = "#ffffff"; // Always white for active state to contrast with blue background
+    
+    // Diagram theme-aware text color
+    $: isDarkDiagramTheme = sidebarBackgroundColor === "#4d4d4d";
+    $: zoomTextColor = isDarkDiagramTheme ? "#ffffff" : "#3B3B3B";
 </script>
 
   <style>
     .sidebar {
         position: absolute;
-        top: 5px;
-        right: 22px;
+        top: 8px;
+        right: 16px;
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 5px;
-        background-color: var(--sidebar-bg);
-        border: 1px solid #ddd;
-        padding: 4px;
+        z-index: 100;
+        gap: 0;
+        background: var(--sidebar-bg);
         border-radius: 4px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        transition: background-color 0.3s ease-in-out;
+        padding: 4px;
     }
+    
+    .hand-section {
+        display: flex;
+        align-items: center;
+        padding-right: 4px;
+        border-right: 1px solid var(--divider-color);
+        margin-right: 4px;
+    }
+    
+    .zoom-controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding-right: 4px;
+        border-right: 1px solid var(--divider-color);
+        margin-right: 8px;
+    }
+    
     .zoom-level {
         font-size: 14px;
-        font-weight: bold;
-        padding: 6px 8px;
-        border: 1px solid #ddd;
+        font-weight: 400;
         font-family: "Recursive", serif;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-left: 5px;
-        background-color: var(--icon-bg);
-        transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        color: var(--zoom-text-color);
     }
-    .zoom-level span{
-        color: var(--icon-bg);
-    }
-    .zoom-level:hover {
-        box-shadow: 0px 0px 4px var(--shadow-color);
-        background-color: var(--shadow-color); 
-    }
+    
     .icon {
         cursor: pointer;
         border: none;
-        font-family: "Recursive", serif;
-        background-color: var(--icon-bg);
-        padding: 3px;
-        border-radius: 6px;
-        transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        background: none;
+        padding: 4px;
+        border-radius: 4px;
+        transition: all 0.2s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        box-sizing: border-box;
     }
 
     .icon:hover {
-        box-shadow: 0px 0px 4px var(--shadow-color);
-        background-color: var(--shadow-color);
+        background-color: var(--hover-bg);
     }
+    
     .icon.active {
-        background-color: var(--shadow-color);
-        box-shadow: 0px 0px 4px var(--shadow-color);
+        background-color: var(--active-bg);
     }
-
-    .icon span {
-        width: 20px;
-        height: 20px;
-        color: var(--icon-bg);
-        font-size: 15px;
-        font-weight: 700;
+    
+    /* Theme variables */
+    .sidebar {
+        --divider-color: var(--vscode-panel-border, #e1e5e9);
+        --text-color: var(--vscode-foreground, #333333);
+        --hover-bg: var(--vscode-toolbar-hoverBackground, rgba(0, 0, 0, 0.1));
+        --active-bg: var(--vscode-button-background, #0060c0);
+        --sidebar-bg: #ffffff;
+    }
+    
+    /* Dark theme adjustments */
+    .sidebar.dark {
+        --divider-color: var(--vscode-panel-border, #464647);
+        --text-color: var(--vscode-foreground, #cccccc);
+        --hover-bg: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
+        --active-bg: var(--vscode-button-background, #0078d4);
+        --sidebar-bg: #1E1E1E;
     }
   </style>
   
   <div 
-      class="sidebar"
-      style="--sidebar-bg: {sidebarBackgroundColor};--shadow-color: {shadowColor}"
+      class="sidebar {isDarkTheme ? 'dark' : 'light'}"
     >
-    <button class="icon {panEnabled ? 'active' : ''}" 
-      style="--icon-bg: {iconBackgroundColor};"
-      on:click={togglePan} 
-      aria-label="Enable Pan"
-      title="Enable Pan">
-      <PanIcon stroke={svgColor} />
-    </button>
+    <!-- Hand icon section -->
+    <div class="hand-section">
+      <button 
+        class="icon {panEnabled ? 'active' : ''}" 
+        on:click={togglePan} 
+        aria-label="{panEnabled ? 'Disable Pan' : 'Enable Pan'}"
+        title="{panEnabled ? 'Disable Pan' : 'Enable Pan'}">
+        <HandIcon fill={panEnabled ? activeIconFillColor : iconFillColor} />
+      </button>
+    </div>
     
-    <button class="icon" style="--icon-bg: {iconBackgroundColor};" on:click={zoomOut} aria-label="Zoom Out" title="Zoom Out">
-      <ZoomOutIcon stroke={svgColor} />
-    </button>
+    <!-- Zoom controls section -->
+    <div class="zoom-controls">
+      <button 
+        class="icon" 
+        on:click={zoomOut} 
+        aria-label="Zoom Out" 
+        title="Zoom Out">
+        <ZoomOutIcon fill={iconFillColor} />
+      </button>
+      
+      <button 
+        class="icon" 
+        on:click={zoomIn} 
+        aria-label="Zoom In" 
+        title="Zoom In">
+        <ZoomInIcon fill={iconFillColor} />
+      </button>
+
+      <button 
+        class="icon" 
+        on:click={resetView} 
+        aria-label="Fit All" 
+        title="Fit All">
+        <FitAllIcon fill={iconFillColor} />
+      </button>
+
+
+    </div>
     
-    <button class="icon" style="--icon-bg: {iconBackgroundColor};" on:click={resetView} aria-label="Reset View" title="Reset View">
-      <span style="--icon-bg: {svgColor};">Reset</span>
-    </button>
-    
-    <button class="icon" style="--icon-bg: {iconBackgroundColor};" on:click={zoomIn} aria-label="Zoom In" title="Zoom In">
-      <ZoomInIcon fill={svgColor} />
-    </button>
-    <div class="zoom-level" style="--icon-bg: {iconBackgroundColor};">
-      <span style="--icon-bg: {svgColor};" title="Zoom Level">Zoom: {zoomLevel}%</span>
+    <!-- Zoom level display -->
+    <div class="zoom-level" style="--zoom-text-color: {zoomTextColor};">
+      <span title="Current Zoom Level">Zoom {zoomLevel}%</span>
     </div>
   </div>

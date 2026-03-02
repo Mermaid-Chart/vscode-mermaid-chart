@@ -122,6 +122,8 @@
     }
   }
 
+  let wheelHandler = null;
+
   async function renderDiagram() {
       await initializeMermaid();
 
@@ -134,8 +136,18 @@
           theme = parsed.config.theme;
         }
         errorMessage = "";
+        
+        // Save current panzoom state before re-rendering
         const currentScale = panzoomInstance?.getScale() || 1;
         const currentPan = panzoomInstance?.getPan() || { x: 0, y: 0 };
+        const wasZoomed = currentScale !== 1 || currentPan.x !== 0 || currentPan.y !== 0;
+        
+        // Destroy existing panzoom instance to prevent conflicts
+        if (panzoomInstance) {
+          panzoomInstance.destroy();
+          panzoomInstance = null;
+        }
+        
         const { svg } = await mermaid.render("diagram-graph", diagramContent);
         element.innerHTML = svg;
         if (theme?.includes("dark")) {
@@ -177,21 +189,39 @@
           svgElement.style.height = "100%";
           svgElement.style.width = "auto";
 
-          if (!panzoomInstance) {
+          // Remove existing wheel event listener to prevent duplicates
+          if (wheelHandler) {
+            element.removeEventListener("wheel", wheelHandler);
+          }
+          
+          // Always create a new panzoom instance after re-rendering
           panzoomInstance = Panzoom(element, {
             maxScale: maxZoomLevel,
             minScale: 0.5,
             contain: "outside",
           });
 
-          element.addEventListener("wheel", (event) => {
+          // Create and add wheel handler function
+          wheelHandler = (event) => {
             panzoomInstance?.zoomWithWheel(event);
             updateZoomLevel();
-          });
-        }
-        panzoomInstance.setOptions({ disablePan: !panEnabled });
-        panzoomInstance.zoom(currentScale, { animate: false });
-        panzoomInstance.pan(currentPan.x, currentPan.y, { animate: false });
+          };
+          element.addEventListener("wheel", wheelHandler);
+          
+          panzoomInstance.setOptions({ disablePan: !panEnabled });
+          
+          // Immediately update zoom level to ensure it's current
+          updateZoomLevel();
+          
+          // Only restore zoom/pan state if we were previously zoomed/panned
+          // Use setTimeout to ensure DOM is fully rendered
+          setTimeout(() => {
+            if (wasZoomed && panzoomInstance) {
+              panzoomInstance.zoom(currentScale, { animate: false });
+              panzoomInstance.pan(currentPan.x, currentPan.y, { animate: false });
+              updateZoomLevel();
+            }
+          }, 50);
 
           updateCursorStyle();
         }
@@ -320,11 +350,10 @@
         // Just validate without updating UI
         await validateDiagramOnly(content);
       } else if (content) {
-        // Regular rendering flow
+        // Regular rendering flow - do not overwrite theme so user's theme choice persists 
         diagramContent = content;
-        theme = currentTheme;
-      maxZoomLevel = maxZoom        
-      maxEdges = maxEdge; 
+      maxZoomLevel = maxZoom;
+      maxEdges = maxEdge;
       maxTextSize= maxCharLength;
         if (isFileChange) {
           panzoomInstance?.reset();

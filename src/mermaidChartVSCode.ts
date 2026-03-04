@@ -120,6 +120,10 @@ export class MermaidChartVSCode extends MermaidChart {
     return this.handleApiCall(() => super.getAICredits());
   }
 
+  public async deleteDocument(documentID: string): Promise<any> {
+    return this.handleApiCall(() => super.deleteDocument(documentID));
+  }
+
   public async login() {
     await this.loginToMermaidChart();
   }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onDestroy } from 'svelte';
   import { exportPng, exportSvg, getBase64SVG } from './services/exportService';
   import { vscode } from './utility/vscode';
   import ColorPickerIcon from './ColorPickerIcon.svelte';
@@ -37,10 +37,41 @@
     resetModalState();
   }
   
-  // Update preview when theme changes
+  // Update preview when background/format options change inside the modal
   $: if (isOpen && previewElement && (selectedTheme || selectedFormat || customBackgroundColor)) {
     updatePreview();
   }
+
+  // Watch #mermaid-diagram directly for re-renders (innerHTML replacement) so the preview stays live
+  let diagramObserver: MutationObserver | null = null;
+
+  function startObservingDiagram() {
+    if (diagramObserver) return;
+    const target = document.querySelector('#mermaid-diagram');
+    if (!target) return;
+    diagramObserver = new MutationObserver(() => {
+      // The main diagram's content just changed — refresh the modal preview
+      if (isOpen) updatePreview();
+    });
+    // childList only: fires when innerHTML is replaced; ignores attribute/panzoom changes
+    diagramObserver.observe(target, { childList: true });
+  }
+
+  function stopObservingDiagram() {
+    diagramObserver?.disconnect();
+    diagramObserver = null;
+  }
+
+  // Start/stop the observer when the modal opens or closes
+  $: if (isOpen) {
+    startObservingDiagram();
+  } else {
+    stopObservingDiagram();
+  }
+
+  onDestroy(() => {
+    stopObservingDiagram();
+  });
   
   function resetModalState() {
     selectedFormat = 'png';
@@ -93,25 +124,102 @@
     }
   }
   
-  function isLightBackground(hexColor: string): boolean {
-    // Remove # if present
-    const hex = hexColor.replace('#', '');
+  /**
+   * Only rename IDs that are actually referenced by url(#id) to avoid rendering conflicts.
+   * Leaves structural IDs unchanged to minimize DOM modifications.
+   */
+  function uniquifyCloneIds(clone: SVGElement): void {
+    const prefix = 'export-preview-';
     
-    // Validate hex color format
-    if (hex.length !== 6 || !/^[0-9A-Fa-f]+$/.test(hex)) {
-      return true; // Default to light if invalid
-    }
+    // First, find all IDs that are referenced by url(#id) anywhere in the SVG
+    const referencedIds = new Set<string>();
+    const urlAttrNames = ['fill', 'stroke', 'clip-path', 'mask', 'filter', 'marker-start', 'marker-mid', 'marker-end'];
     
-    // Convert to RGB
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
+    // Scan all elements for url(#id) references
+    clone.querySelectorAll('*').forEach((el) => {
+      // Check attributes
+      urlAttrNames.forEach((attr) => {
+        const val = el.getAttribute(attr);
+        if (val?.includes('url(#')) {
+          const matches = val.match(/url\(#([^)]+)\)/g);
+          matches?.forEach(match => {
+            const id = match.slice(5, -1); // Remove 'url(#' and ')'
+            referencedIds.add(id);
+          });
+        }
+      });
+      
+      // Check style attribute
+      const style = el.getAttribute('style');
+      if (style?.includes('url(#')) {
+        const matches = style.match(/url\(#([^)]+)\)/g);
+        matches?.forEach(match => {
+          const id = match.slice(5, -1);
+          referencedIds.add(id);
+        });
+      }
+      
+      // Check href/xlink:href
+      ['href', 'xlink:href'].forEach((attr) => {
+        const val = el.getAttribute(attr) || el.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+        if (val?.startsWith('#')) {
+          referencedIds.add(val.slice(1));
+        }
+      });
+    });
     
-    // Calculate luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    // Only rename the IDs that are actually referenced
+    const idMap = new Map<string, string>();
+    referencedIds.forEach(id => {
+      const newId = prefix + id;
+      idMap.set(id, newId);
+      
+      // Find and rename the element with this ID
+      const element = clone.querySelector(`[id="${id}"]`);
+      if (element) {
+        element.setAttribute('id', newId);
+      }
+    });
     
-    return luminance > 0.5;
+    // Now update all the references to use the new IDs
+    clone.querySelectorAll('*').forEach((el) => {
+      // Update url(#id) references in attributes
+      urlAttrNames.forEach((attr) => {
+        const val = el.getAttribute(attr);
+        if (val?.includes('url(#')) {
+          let newVal = val;
+          idMap.forEach((newId, oldId) => {
+            newVal = newVal.replace(new RegExp(`url\\(#${oldId}\\)`, 'g'), `url(#${newId})`);
+          });
+          el.setAttribute(attr, newVal);
+        }
+      });
+      
+      // Update url(#id) references in style
+      const style = el.getAttribute('style');
+      if (style?.includes('url(#')) {
+        let newStyle = style;
+        idMap.forEach((newId, oldId) => {
+          newStyle = newStyle.replace(new RegExp(`url\\(#${oldId}\\)`, 'g'), `url(#${newId})`);
+        });
+        el.setAttribute('style', newStyle);
+      }
+      
+      // Update href/xlink:href references
+      ['href', 'xlink:href'].forEach((attr) => {
+        const val = el.getAttribute(attr) || el.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+        if (val?.startsWith('#')) {
+          const oldId = val.slice(1);
+          const newId = idMap.get(oldId);
+          if (newId) {
+            el.setAttribute(attr === 'xlink:href' ? 'xlink:href' : 'href', '#' + newId);
+          }
+        }
+      });
+    });
   }
+
+
   
   async function updatePreview() {
     const contentEl = previewContentElement ?? previewElement?.querySelector('.preview-content');
@@ -123,60 +231,18 @@
       if (mainDiagram) {
         // Clone the SVG and scale it down for preview
         const clonedSvg = mainDiagram.cloneNode(true) as SVGElement;
+        uniquifyCloneIds(clonedSvg);
+
+        // Only clear conflicting styles, keep original dimensions
+        clonedSvg.style.removeProperty('max-width');
+        clonedSvg.style.removeProperty('max-height');
         
-        // Set preview styling
+        // Set clean preview styling
         const backgroundColor = previewBackgroundColor;
         clonedSvg.style.backgroundColor = backgroundColor;
         clonedSvg.style.width = '100%';
         clonedSvg.style.height = '100%';
-        clonedSvg.style.maxWidth = '100%';
-        clonedSvg.style.maxHeight = '100%';
-        clonedSvg.style.objectFit = 'contain';
-        
-        // Apply theme-specific styling if needed
-        const isDarkPreview = previewTheme.includes('dark');
-        const isCustomTheme = selectedTheme === 'custom';
-        
-        if (!isDarkPreview || isCustomTheme) {
-          // For light theme or custom theme, ensure good contrast
-          const textElements = clonedSvg.querySelectorAll('text, .nodeLabel, tspan');
-          textElements.forEach(el => {
-            if (el instanceof HTMLElement || el instanceof SVGElement) {
-              const currentFill = el.getAttribute('fill') || el.style.fill;
-              if (currentFill === 'white' || currentFill === '#ffffff' || currentFill === '#fff') {
-                // For custom colors, choose text color based on background brightness
-                if (isCustomTheme && customBackgroundColor) {
-                  const textColor = isLightBackground(customBackgroundColor) ? '#000000' : '#ffffff';
-                  el.setAttribute('fill', textColor);
-                  el.style.fill = textColor;
-                } else {
-                  el.setAttribute('fill', '#000000');
-                  el.style.fill = '#000000';
-                }
-              }
-            }
-          });
-          
-          // Update any paths or shapes that might be white
-          const shapes = clonedSvg.querySelectorAll('path, rect, circle, ellipse');
-          shapes.forEach(el => {
-            if (el instanceof SVGElement) {
-              const currentFill = el.getAttribute('fill') || el.style.fill;
-              const currentStroke = el.getAttribute('stroke') || el.style.stroke;
-              
-              if (currentFill === 'white' || currentFill === '#ffffff') {
-                // Don't change background shapes, only text containers
-                if (!el.classList.contains('background') && !el.getAttribute('class')?.includes('background')) {
-                  el.setAttribute('fill', '#f9f9f9');
-                }
-              }
-              
-              if (currentStroke === 'white' || currentStroke === '#ffffff') {
-                el.setAttribute('stroke', '#333333');
-              }
-            }
-          });
-        }
+        clonedSvg.style.display = 'block';
         
         // Clear only the preview content area (keeps copy button intact)
         contentEl.innerHTML = '';

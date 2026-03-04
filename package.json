@@ -719,6 +719,16 @@
           "command": "mermaidChart.useDiagram",
           "when": "viewItem == document",
           "group": "inline@02"
+        },
+        {
+          "command": "mermaidChart.renameDiagram",
+          "when": "viewItem == document",
+          "group": "manage@01"
+        },
+        {
+          "command": "mermaidChart.deleteDiagram",
+          "when": "viewItem == document",
+          "group": "manage@02"
         }
       ],
       "editor/context": [
@@ -797,6 +807,16 @@
       {
         "command": "mermaidChart.connectDiagramToMermaidChart",
         "title": "MermaidChart: Connect Diagram"
+      },
+      {
+        "command": "mermaidChart.renameDiagram",
+        "title": "Rename",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "mermaidChart.deleteDiagram",
+        "title": "Delete",
+        "icon": "$(trash)"
       },
       {
         "command": "mermaidChart.showCompletions",

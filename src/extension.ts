@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import type MarkdownIt from 'markdown-it';
 import { MermaidChartProvider, MCTreeItem, getAllTreeViewProjectsCache, getProjectIdForDocument, Document, getDiagramFromCache, updateDiagramInCache } from "./mermaidChartProvider";
 import { MermaidChartVSCode } from "./mermaidChartVSCode";
+import { DiagramManager } from "./diagramManager";
 import {
   applyMermaidChartTokenHighlighting,
   configSection,
@@ -110,6 +111,9 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   await mcAPI.initialize(context, mermaidWebviewProvider, mermaidChartProvider);
+
+  // Register diagram management commands (rename and delete)
+  DiagramManager.registerCommands(context, mcAPI, mermaidChartProvider);
 
 
   

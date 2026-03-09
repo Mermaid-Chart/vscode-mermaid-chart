@@ -52,6 +52,7 @@ export function getWebviewHTML(panel: vscode.WebviewPanel, extensionPath: string
         }
         body {
           font-family: "Recursive", serif;
+          padding: 0px;
         }
       </style>
     </head>

@@ -1,5 +1,5 @@
 <script>
-  import ExportIcon from "./ExportIcon.svelte";
+  import DownloadIcon from "./DownloadIcon.svelte";
   import ThemeSelector from "./ThemeSelector.svelte";
   import { createEventDispatcher } from 'svelte';
 
@@ -8,85 +8,94 @@
 
   const dispatch = createEventDispatcher();
 
+  // Theme-aware icon colors
+  $: isDarkTheme = sidebarBackgroundColor === "#4d4d4d";
+  $: iconFillColor = isDarkTheme ? "#ffffff" : "#333333";
+
   function handleExportClick() {
     dispatch('openExportModal');
-  }
-
-  function handleThemeChange(event) {
-    dispatch('themeChange', event.detail);
   }
 </script>
 
 <style>
   .left-sidebar {
     position: absolute;
-    top: 5px;
-    left: 22px;
+    top: 8px;
+    left: 16px;
     display: flex;
-    flex-direction: row;
-    gap: 8px;
+    align-items: center;
     z-index: 100;
+    gap: 4px;
+    background: var(--sidebar-bg);
     border-radius: 4px;
     padding: 4px;
   }
   
-  .button-container {
+  .theme-container {
     position: relative;
+    display: flex;
+    align-items: center;
+    padding-right: 4px;
+    border-right: 1px solid var(--divider-color);
+    margin-right: 4px;
   }
   
   .icon {
     cursor: pointer;
     border: none;
-    background-color: var(--icon-bg);
-    padding: 14px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    background: none;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 32px;
+    height: 32px;
+    box-sizing: border-box;
   }
 
   .icon:hover {
-    box-shadow: 0px 0px 4px var(--shadow-color);
-    background-color: var(--shadow-color);
+    background-color: var(--hover-bg);
+  }
+
+  /* Theme variables */
+  .left-sidebar {
+    --text-color: var(--vscode-foreground, #333333);
+    --hover-bg: var(--vscode-toolbar-hoverBackground, rgba(0, 0, 0, 0.1));
+    --divider-color: var(--vscode-panel-border, #e1e5e9);
+    --sidebar-bg: #ffffff;
   }
   
-  .export-label {
-    position: absolute;
-    top: -25px;
-    left: 0;
-    font-size: 12px;
-    color: var(--svg-color);
-    white-space: nowrap;
+  /* Dark theme adjustments */
+  .left-sidebar.dark {
+    --text-color: var(--vscode-foreground, #cccccc);
+    --hover-bg: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
+    --divider-color: var(--vscode-panel-border, #464647);
+    --sidebar-bg: #1E1E1E;
   }
 </style>
 
-<div 
-  class="left-sidebar"
-  style="--sidebar-bg: {sidebarBackgroundColor}; --shadow-color: {shadowColor}; --svg-color: {svgColor}"
->
-  <!-- Theme Selector -->
-  <div class="button-container">
+<div class="left-sidebar {isDarkTheme ? 'dark' : 'light'}">
+  <!-- Theme selector -->
+  <div class="theme-container">
     <ThemeSelector 
       {iconBackgroundColor} 
       {shadowColor} 
-      {svgColor}
+      {sidebarBackgroundColor} 
+      {svgColor} 
       {currentTheme}
-      on:themeChange={handleThemeChange}
+      on:themeChange
     />
   </div>
   
-  <!-- Export Button -->
-  <div class="button-container">
-    <span class="export-label">export</span>
-    <button 
-      class="icon" 
-      style="--icon-bg: {iconBackgroundColor};" 
-      on:click={handleExportClick} 
-      aria-label="Export" 
-      title="Export"
-    >
-      <ExportIcon fill={svgColor} />
-    </button>
-  </div>
-</div> 
+  <!-- Download button -->
+  <button 
+    class="icon" 
+    on:click={handleExportClick} 
+    aria-label="Export" 
+    title="Export"
+  >
+    <DownloadIcon fill={iconFillColor} />
+  </button>
+</div>

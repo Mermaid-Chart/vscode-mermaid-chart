@@ -282,6 +282,14 @@ For each diagram in the Side Panel, user will see two options:
 - Link diagram : When you click on a diagram, that diagram (its diagram id) will be inserted into the code editor as a comment at the position of the cursor. And users will get an option to preview or edit the diagram from this diagram id.
 ![Link diagrams](https://mermaid.ai/docs/img/plugins/vscode-plugin-link-diagram.png)
 
+#### Rename and Delete Diagram Links
+Manage your Mermaid diagrams directly from VS Code with our new context menu options:
+- **Rename Diagrams**: Right-click on any diagram in the side panel to rename it with a custom name 
+- **Delete Diagrams**: Remove unwanted diagrams directly from your diagram list with a simple right-click and delete option
+- **Seamless Management**: Changes are synced automatically with your Mermaid Chart account for consistent diagram management across platforms
+
+![Rename and Delete Options](https://mermaid.ai/docs/img/plugins/vscode-plugin-rename-delete-popup.png)
+
 #### Smart Sync to promote collaboration
 When a  user modifies an existing diagram, before saving it to MermaidChart service, it smartly checks if any modification is made in the web view, and if found, it indicates to the user to resolve any conflicts, and then save the resolved diagram back. 
 ![Smart Sync to promote collaboration 1](https://mermaid.ai/docs/img/plugins/vscode-plugin-smart-indicator-view.png)
@@ -336,6 +344,12 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.6.0 - 2026-03-09
+- Updated preview panel design and it also dynamically adapt to both diagram themes and VS Code themes for better visual consistency.
+- Added copy PNG and SVG functionality directly within the export modal, allowing users to copy diagrams to clipboard without downloading.
+- Introduced rename and delete options for Mermaid diagram links — right-click on any diagram in the list to access a context menu for renaming or deleting diagrams directly from VS Code.
+
 ### 2.5.9 - 2026-02-26
 - Updated authentication to support both OAuth and manual token flows.
 - Added Repair Diagram with Mermaid AI — when a diagram throws an error, users can run the repair command to fix it using Mermaid AI. It also displays the user’s remaining AI credits.

@@ -1,5 +1,9 @@
 # Change Log
 
+### 2.6.0 - 2026-03-09
+- Updated preview panel design and it also dynamically adapt to both diagram themes and VS Code themes for better visual consistency.
+- Added copy PNG and SVG functionality directly within the export modal, allowing users to copy diagrams to clipboard without downloading.
+- Introduced rename and delete options for Mermaid diagram links — right-click on any diagram in the list to access a context menu for renaming or deleting diagrams directly from VS Code.
 ### 2.5.9 - 2026-02-26
 - Updated authentication to support both OAuth and manual token flows.
 - Added Repair Diagram with Mermaid AI — when a diagram throws an error, users can run the repair command to fix it using Mermaid AI. It also displays the user’s remaining AI credits.

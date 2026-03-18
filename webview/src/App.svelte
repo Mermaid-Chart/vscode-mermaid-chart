@@ -140,8 +140,7 @@
         // Save current panzoom state before re-rendering
         const currentScale = panzoomInstance?.getScale() || 1;
         const currentPan = panzoomInstance?.getPan() || { x: 0, y: 0 };
-        const wasZoomed = currentScale !== 1 || currentPan.x !== 0 || currentPan.y !== 0;
-        
+
         // Destroy existing panzoom instance to prevent conflicts
         if (panzoomInstance) {
           panzoomInstance.destroy();
@@ -193,7 +192,7 @@
           if (wheelHandler) {
             element.removeEventListener("wheel", wheelHandler);
           }
-          
+
           // Always create a new panzoom instance after re-rendering
           panzoomInstance = Panzoom(element, {
             maxScale: maxZoomLevel,
@@ -201,23 +200,22 @@
             contain: "outside",
           });
 
-          // Create and add wheel handler function
           wheelHandler = (event) => {
             panzoomInstance?.zoomWithWheel(event);
             updateZoomLevel();
           };
           element.addEventListener("wheel", wheelHandler);
-          
-          panzoomInstance.setOptions({ disablePan: !panEnabled });
-          
-          // Immediately update zoom level to ensure it's current
+
+          // Re-apply constraints (prevents races where Panzoom booted with defaults)
+          panzoomInstance.setOptions({ maxScale: maxZoomLevel, disablePan: !panEnabled });
+
           updateZoomLevel();
-          
-          // Only restore zoom/pan state if we were previously zoomed/panned
-          // Use setTimeout to ensure DOM is fully rendered
+
+          // Restore zoom/pan state; clamp scale so a prior lower cap can't "stick"
+          const clampedScale = Math.min(Math.max(currentScale, 0.5), maxZoomLevel);
           setTimeout(() => {
-            if (wasZoomed && panzoomInstance) {
-              panzoomInstance.zoom(currentScale, { animate: false });
+            if (panzoomInstance) {
+              panzoomInstance.zoom(clampedScale, { animate: false });
               panzoomInstance.pan(currentPan.x, currentPan.y, { animate: false });
               updateZoomLevel();
             }
@@ -350,19 +348,19 @@
         // Just validate without updating UI
         await validateDiagramOnly(content);
       } else if (content) {
-        // Regular rendering flow - do not overwrite theme so user's theme choice persists 
+        // Regular rendering flow - do not overwrite theme so user's theme choice persists
         diagramContent = content;
-      maxZoomLevel = maxZoom;
-      maxEdges = maxEdge;
-      maxTextSize= maxCharLength;
+        maxZoomLevel = maxZoom;
+        maxEdges = maxEdge;
+        maxTextSize = maxCharLength;
+        // Apply options immediately so any reset/render uses the latest limits
+        panzoomInstance?.setOptions({ maxScale: maxZoomLevel, disablePan: !panEnabled });
         if (isFileChange) {
           panzoomInstance?.reset();
           updateZoomLevel();
         }
         await renderDiagram();
-        if (panzoomInstance) {
-          panzoomInstance.setOptions({ maxScale: maxZoomLevel });
-        } 
+        panzoomInstance?.setOptions({ maxScale: maxZoomLevel, disablePan: !panEnabled });
       }
     } else if (type === "repairComplete") {
       // Repair is done, reset the repairing state and update credits if provided
@@ -385,6 +383,22 @@
     const appElement = document.getElementById("app");
     const initialContent = appElement?.dataset.initialContent;
     const currentTheme = appElement?.dataset.currentTheme;
+    const initialMaxZoom = appElement?.dataset.maxZoom;
+    const initialMaxCharLength = appElement?.dataset.maxCharLength;
+    const initialMaxEdges = appElement?.dataset.maxEdges;
+
+    if (initialMaxZoom) {
+      const parsed = Number(decodeURIComponent(initialMaxZoom));
+      if (!Number.isNaN(parsed) && parsed > 0) maxZoomLevel = parsed;
+    }
+    if (initialMaxCharLength) {
+      const parsed = Number(decodeURIComponent(initialMaxCharLength));
+      if (!Number.isNaN(parsed) && parsed > 0) maxTextSize = parsed;
+    }
+    if (initialMaxEdges) {
+      const parsed = Number(decodeURIComponent(initialMaxEdges));
+      if (!Number.isNaN(parsed) && parsed > 0) maxEdges = parsed;
+    }
     if (initialContent) {
       diagramContent = decodeURIComponent(initialContent);
       theme = decodeURIComponent(currentTheme) as "default" | "base" | "dark" | "forest" | "neutral" | "null";

@@ -91,7 +91,11 @@ export class PreviewPanel {
     const initialContent = this.document.getText() || " ";
   
     if (!this.panel.webview.html) {
-      this.panel.webview.html = getWebviewHTML(this.panel, extensionPath, this.lastContent, currentTheme, false);
+      this.panel.webview.html = getWebviewHTML(this.panel, extensionPath, this.lastContent, currentTheme, false, {
+        maxZoom,
+        maxCharLength,
+        maxEdges,
+      });
       // Only fetch credits on initial panel creation
       this.fetchAndSendCredits();
     }
@@ -164,6 +168,19 @@ export class PreviewPanel {
     vscode.window.onDidChangeActiveColorTheme(() => {
       this.update(); 
   }, this.disposables);
+
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (
+        event.affectsConfiguration(DARK_THEME_KEY) ||
+        event.affectsConfiguration(LIGHT_THEME_KEY) ||
+        event.affectsConfiguration(MAX_ZOOM) ||
+        event.affectsConfiguration(MAX_CHAR_LENGTH) ||
+        event.affectsConfiguration(MAX_EDGES) ||
+        event.affectsConfiguration("workbench.colorTheme")
+      ) {
+        this.update();
+      }
+    }, this.disposables);
 
     this.panel.webview.onDidReceiveMessage(async (message) => {
       if (message.type === "error" && message.message) {

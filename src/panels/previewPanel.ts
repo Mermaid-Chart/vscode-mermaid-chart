@@ -62,7 +62,7 @@ export class PreviewPanel {
     PreviewPanel.currentPanel = new PreviewPanel(panel, document);
   }
 
-  private update() {
+  private async update() {
     const extensionPath = vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
     const activeEditor = vscode.window.activeTextEditor;
     
@@ -108,7 +108,8 @@ export class PreviewPanel {
       maxZoom: maxZoom,
       maxCharLength: maxCharLength,
       maxEdge: maxEdges,
-      aiCredits: this.cachedAICredits, // Always send cached credits if available
+      aiCredits: this.cachedAICredits,
+      isAuthenticated: await this.checkAuthenticationStatus()
     });
     this.isFileChange = false;
   }
@@ -132,11 +133,26 @@ export class PreviewPanel {
     return null;
   }
 
+  private async checkAuthenticationStatus(): Promise<boolean> {
+    try {
+      if (PreviewPanel.mcAPI) {
+        // Try to get AI credits to check if user is authenticated
+        await PreviewPanel.mcAPI.getAICredits();
+        return true;
+      }
+    } catch (error) {
+      console.log("User not authenticated:", error);
+    }
+    return false;
+  }
+
   private async fetchAndSendCredits() {
     const aiCredits = await this.fetchAICredits();
+    const isAuthenticated = await this.checkAuthenticationStatus();
     this.panel.webview.postMessage({
       type: "aiCreditsUpdate",
-      aiCredits: aiCredits
+      aiCredits: aiCredits,
+      isAuthenticated: isAuthenticated
     });
   }
 
@@ -206,8 +222,18 @@ export class PreviewPanel {
       } else if (message.type === "repairDiagram") {
         await this.handleRepairDiagram(message.code, message.errorMessage);
       } else if (message.type === "requestAICredits") {
-        await this.fetchAndSendCredits();
-      } else if (message.type === "openUrl" && message.url) {
+        await this.fetchAndSendCredits();      } else if (message.type === "login") {
+        // Trigger OAuth login flow
+        try {
+          await vscode.commands.executeCommand('mermaidChart.login');
+          // Refresh authentication status and credits after login attempt
+          setTimeout(async () => {
+            await this.refreshAICredits();
+          }, 1000);
+        } catch (error) {
+          console.error("Error during login:", error);
+          vscode.window.showErrorMessage("Failed to initiate login. Please try again.");
+        }      } else if (message.type === "openUrl" && message.url) {
         await vscode.env.openExternal(vscode.Uri.parse(message.url));
       } else if (message.type === "showWarning" && message.message) {
         await vscode.window.showWarningMessage(message.message as string);

@@ -5,6 +5,7 @@
     export let errorMessage: string;
     export let isRepairing: boolean = false;
     export let aiCredits: { remaining: number; total: number } | null = null;
+    export let isAuthenticated: boolean = false;
     
     // Debug logging
     $: if (aiCredits) {
@@ -15,6 +16,10 @@
     
     function handleRepair() {
       dispatch('repair');
+    }
+    
+    function handleLogin() {
+      dispatch('login');
     }
     
     function handleUpgrade() {
@@ -169,7 +174,17 @@
       </div>
       
       <!-- Credits and repair button container -->
-      {#if aiCredits}
+      {#if !isAuthenticated}
+        <!-- Show login button when user is not authenticated -->
+        <div class="credits-bottom button-only">
+          <button 
+            class="repair-button" 
+            on:click={handleLogin}
+          >
+            Log in to repair with AI
+          </button>
+        </div>
+      {:else if aiCredits}
         <div class="credits-bottom" class:button-only={aiCredits.remaining > aiCredits.total}>
           {#if aiCredits.remaining <= aiCredits.total}
             <span class="credits-text">Credits left: {aiCredits.remaining}</span>

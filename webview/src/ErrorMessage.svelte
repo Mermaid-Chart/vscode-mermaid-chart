@@ -111,6 +111,27 @@
       word-break: break-word;
       overflow-wrap: break-word;
       font-family: 'Segoe UI', system-ui, sans-serif;
+      max-height: 150px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+    }
+    
+    .error-details::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .error-details::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .error-details::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+    
+    .error-details::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(255, 255, 255, 0.5);
     }
     
     .repair-button {

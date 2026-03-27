@@ -24,6 +24,7 @@
   let isExportModalOpen = false;
   let isRepairing = false;
   let aiCredits = null; // AI credits data: {remaining: number, total: number}
+  let isAuthenticated = false; // Authentication status
   $: sidebarBackgroundColor = theme?.includes("dark")? "#4d4d4d" : "white";
   $: iconBackgroundColor = theme?.includes("dark") ? "#4d4d4d" : "white";
   $: svgColor = theme?.includes("dark") ? "white" : "#2329D6";
@@ -61,6 +62,13 @@
       type: "repairDiagram",
       code: diagramContent,
       errorMessage: errorMessage
+    });
+  }
+
+  function handleLogin() {
+    // Send message to extension to trigger login flow
+    vscode.postMessage({
+      type: "login"
     });
   }
 
@@ -140,8 +148,7 @@
         // Save current panzoom state before re-rendering
         const currentScale = panzoomInstance?.getScale() || 1;
         const currentPan = panzoomInstance?.getPan() || { x: 0, y: 0 };
-        const wasZoomed = currentScale !== 1 || currentPan.x !== 0 || currentPan.y !== 0;
-        
+
         // Destroy existing panzoom instance to prevent conflicts
         if (panzoomInstance) {
           panzoomInstance.destroy();
@@ -186,14 +193,27 @@
         });
 
         if (svgElement) {
-          svgElement.style.height = "100%";
+          // Expand the viewBox to include ALL rendered content (e.g. pie chart legends
+          // that Mermaid positions outside the original viewBox)
+          const bbox = svgElement.getBBox();
+          if (bbox.width > 0 && bbox.height > 0) {
+            const pad = 10;
+            svgElement.setAttribute("viewBox",
+              `${bbox.x - pad} ${bbox.y - pad} ${bbox.width + pad * 2} ${bbox.height + pad * 2}`);
+          }
+          // Let the SVG scale to fit the container via CSS (preserveAspectRatio handles aspect ratio)
+          svgElement.removeAttribute("width");
+          svgElement.removeAttribute("height");
+          svgElement.style.maxWidth = "100%";
+          svgElement.style.maxHeight = "100%";
           svgElement.style.width = "auto";
+          svgElement.style.height = "auto";
 
           // Remove existing wheel event listener to prevent duplicates
           if (wheelHandler) {
             element.removeEventListener("wheel", wheelHandler);
           }
-          
+
           // Always create a new panzoom instance after re-rendering
           panzoomInstance = Panzoom(element, {
             maxScale: maxZoomLevel,
@@ -201,23 +221,22 @@
             contain: "outside",
           });
 
-          // Create and add wheel handler function
           wheelHandler = (event) => {
             panzoomInstance?.zoomWithWheel(event);
             updateZoomLevel();
           };
           element.addEventListener("wheel", wheelHandler);
-          
-          panzoomInstance.setOptions({ disablePan: !panEnabled });
-          
-          // Immediately update zoom level to ensure it's current
+
+          // Re-apply constraints (prevents races where Panzoom booted with defaults)
+          panzoomInstance.setOptions({ maxScale: maxZoomLevel, disablePan: !panEnabled });
+
           updateZoomLevel();
-          
-          // Only restore zoom/pan state if we were previously zoomed/panned
-          // Use setTimeout to ensure DOM is fully rendered
+
+          // Restore zoom/pan state; clamp scale so a prior lower cap can't "stick"
+          const clampedScale = Math.min(Math.max(currentScale, 0.5), maxZoomLevel);
           setTimeout(() => {
-            if (wasZoomed && panzoomInstance) {
-              panzoomInstance.zoom(currentScale, { animate: false });
+            if (panzoomInstance) {
+              panzoomInstance.zoom(clampedScale, { animate: false });
               panzoomInstance.pan(currentPan.x, currentPan.y, { animate: false });
               updateZoomLevel();
             }
@@ -338,8 +357,14 @@
   }
 
   window.addEventListener("message", async (event) => {
-    const { type, content, currentTheme, isFileChange, validateOnly, maxZoom, maxCharLength, maxEdge, aiCredits: receivedAICredits } = event.data;
+    const { type, content, currentTheme, isFileChange, validateOnly, maxZoom, maxCharLength, maxEdge, aiCredits: receivedAICredits, isAuthenticated: receivedAuth } = event.data;
     if (type === "update") {
+      // Update authentication status if provided
+      if (receivedAuth !== undefined) {
+        isAuthenticated = receivedAuth;
+        console.log('Authentication status updated:', isAuthenticated);
+      }
+      
       // Update AI credits if provided
       if (receivedAICredits) {
         console.log('Received AI credits:', receivedAICredits);
@@ -350,19 +375,19 @@
         // Just validate without updating UI
         await validateDiagramOnly(content);
       } else if (content) {
-        // Regular rendering flow - do not overwrite theme so user's theme choice persists 
+        // Regular rendering flow - do not overwrite theme so user's theme choice persists
         diagramContent = content;
-      maxZoomLevel = maxZoom;
-      maxEdges = maxEdge;
-      maxTextSize= maxCharLength;
+        maxZoomLevel = maxZoom;
+        maxEdges = maxEdge;
+        maxTextSize = maxCharLength;
+        // Apply options immediately so any reset/render uses the latest limits
+        panzoomInstance?.setOptions({ maxScale: maxZoomLevel, disablePan: !panEnabled });
         if (isFileChange) {
           panzoomInstance?.reset();
           updateZoomLevel();
         }
         await renderDiagram();
-        if (panzoomInstance) {
-          panzoomInstance.setOptions({ maxScale: maxZoomLevel });
-        } 
+        panzoomInstance?.setOptions({ maxScale: maxZoomLevel, disablePan: !panEnabled });
       }
     } else if (type === "repairComplete") {
       // Repair is done, reset the repairing state and update credits if provided
@@ -372,11 +397,15 @@
         aiCredits = updatedCredits;
       }
     } else if (type === "aiCreditsUpdate") {
-      // Handle AI credits update
-      const { aiCredits: receivedCredits } = event.data;
+      // Handle AI credits and authentication update
+      const { aiCredits: receivedCredits, isAuthenticated: receivedAuthStatus } = event.data;
       if (receivedCredits) {
         console.log('AI credits update received:', receivedCredits);
         aiCredits = receivedCredits;
+      }
+      if (receivedAuthStatus !== undefined) {
+        isAuthenticated = receivedAuthStatus;
+        console.log('Authentication status updated:', isAuthenticated);
       }
     }
   });
@@ -385,6 +414,22 @@
     const appElement = document.getElementById("app");
     const initialContent = appElement?.dataset.initialContent;
     const currentTheme = appElement?.dataset.currentTheme;
+    const initialMaxZoom = appElement?.dataset.maxZoom;
+    const initialMaxCharLength = appElement?.dataset.maxCharLength;
+    const initialMaxEdges = appElement?.dataset.maxEdges;
+
+    if (initialMaxZoom) {
+      const parsed = Number(decodeURIComponent(initialMaxZoom));
+      if (!Number.isNaN(parsed) && parsed > 0) maxZoomLevel = parsed;
+    }
+    if (initialMaxCharLength) {
+      const parsed = Number(decodeURIComponent(initialMaxCharLength));
+      if (!Number.isNaN(parsed) && parsed > 0) maxTextSize = parsed;
+    }
+    if (initialMaxEdges) {
+      const parsed = Number(decodeURIComponent(initialMaxEdges));
+      if (!Number.isNaN(parsed) && parsed > 0) maxEdges = parsed;
+    }
     if (initialContent) {
       diagramContent = decodeURIComponent(initialContent);
       theme = decodeURIComponent(currentTheme) as "default" | "base" | "dark" | "forest" | "neutral" | "null";
@@ -398,11 +443,15 @@
 
 <style>
   #mermaid-diagram {
-    height: 100vh;
+    flex: 1;
+    min-height: 0;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
+    padding: 16px;
+    box-sizing: border-box;
   }
   
   :global(#mermaid-diagram.pan-enabled) {
@@ -414,10 +463,12 @@
   }
   
   #app-container {
+    display: flex;
     flex-direction: column;
     width: 100%;
     height: 100vh;
     gap: 10px;
+    overflow: hidden;
   }
   .sidebar-container {
     display: flex;
@@ -428,7 +479,7 @@
 
 
 <div id="app-container" style="background: {theme?.includes('dark') ? '#1e1e1e' : 'white'}">
-  <ErrorMessage {errorMessage} {isRepairing} {aiCredits} on:repair={handleRepair} />
+  <ErrorMessage {errorMessage} {isRepairing} {aiCredits} {isAuthenticated} on:repair={handleRepair} on:login={handleLogin} />
   <div id="mermaid-diagram"></div>
   <div class="sidebar-container">
     {#if !errorMessage}

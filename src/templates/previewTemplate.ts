@@ -1,7 +1,18 @@
 import * as vscode from "vscode";
 import * as path from "path";
 
-export function getWebviewHTML(panel: vscode.WebviewPanel, extensionPath: string, initialContent: string, currentTheme:string, validateOnly:boolean): string {
+export function getWebviewHTML(
+  panel: vscode.WebviewPanel,
+  extensionPath: string,
+  initialContent: string,
+  currentTheme: string,
+  validateOnly: boolean,
+  options?: {
+    maxZoom?: number;
+    maxCharLength?: number;
+    maxEdges?: number;
+  }
+): string {
   const scriptUri = panel.webview.asWebviewUri(
     vscode.Uri.file(path.join(extensionPath, "out", "svelte", "bundle.js"))
   );
@@ -57,7 +68,14 @@ export function getWebviewHTML(panel: vscode.WebviewPanel, extensionPath: string
       </style>
     </head>
     <body>
-      <div id="app" data-initial-content="${encodeURIComponent(initialContent)}" data-current-theme="${encodeURIComponent(currentTheme)}"></div>
+      <div
+        id="app"
+        data-initial-content="${encodeURIComponent(initialContent)}"
+        data-current-theme="${encodeURIComponent(currentTheme)}"
+        data-max-zoom="${encodeURIComponent(String(options?.maxZoom ?? 5))}"
+        data-max-char-length="${encodeURIComponent(String(options?.maxCharLength ?? 90000))}"
+        data-max-edges="${encodeURIComponent(String(options?.maxEdges ?? 1000))}"
+      ></div>
     </body>
     </html>
   `;

@@ -5,6 +5,7 @@
     export let errorMessage: string;
     export let isRepairing: boolean = false;
     export let aiCredits: { remaining: number; total: number } | null = null;
+    export let isAuthenticated: boolean = false;
     
     // Debug logging
     $: if (aiCredits) {
@@ -15,6 +16,10 @@
     
     function handleRepair() {
       dispatch('repair');
+    }
+    
+    function handleLogin() {
+      dispatch('login');
     }
     
     function handleUpgrade() {
@@ -106,6 +111,27 @@
       word-break: break-word;
       overflow-wrap: break-word;
       font-family: 'Segoe UI', system-ui, sans-serif;
+      max-height: 150px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+    }
+    
+    .error-details::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .error-details::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .error-details::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+    
+    .error-details::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(255, 255, 255, 0.5);
     }
     
     .repair-button {
@@ -169,7 +195,17 @@
       </div>
       
       <!-- Credits and repair button container -->
-      {#if aiCredits}
+      {#if !isAuthenticated}
+        <!-- Show login button when user is not authenticated -->
+        <div class="credits-bottom button-only">
+          <button 
+            class="repair-button" 
+            on:click={handleLogin}
+          >
+            Log in to repair with AI
+          </button>
+        </div>
+      {:else if aiCredits}
         <div class="credits-bottom" class:button-only={aiCredits.remaining > aiCredits.total}>
           {#if aiCredits.remaining <= aiCredits.total}
             <span class="credits-text">Credits left: {aiCredits.remaining}</span>

@@ -138,6 +138,7 @@ export async function activate(context: vscode.ExtensionContext) {
       handleTextDocumentChange(event, diagramMappings, false);
       updateMermaidChartTokenHighlighting();
       triggerSuggestIfEmpty(event.document);
+      updateMermaidIdContext(event.document);
     },
     null,
     context.subscriptions
@@ -147,6 +148,7 @@ export async function activate(context: vscode.ExtensionContext) {
     (event) => {
       handleTextDocumentChange(event, diagramMappings, true);
       updateMermaidChartTokenHighlighting();
+      updateMermaidIdContext(event?.document);
     },
     null,
     context.subscriptions
@@ -217,7 +219,29 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
+  function updateMermaidIdContext(document?: vscode.TextDocument) {
+    if (!document) {
+      vscode.commands.executeCommand("setContext", "mermaid.hasId", false);
+      return;
+    }
+
+    // Check if document is a mermaid file
+    const isMermaidFile = document.languageId.startsWith("mermaid") || 
+                         document.fileName.match(/\.(mmd|mermaid)$/);
+    
+    if (!isMermaidFile) {
+      vscode.commands.executeCommand("setContext", "mermaid.hasId", false);
+      return;
+    }
+
+    // Check if the mermaid document has an ID
+    const content = document.getText();
+    const hasId = extractIdFromCode(content) !== undefined;
+    vscode.commands.executeCommand("setContext", "mermaid.hasId", hasId);
+  }
+
   updateMermaidChartTokenHighlighting();
+  updateMermaidIdContext(vscode.window.activeTextEditor?.document);
 
 
   const viewCommandDisposable = vscode.commands.registerCommand(

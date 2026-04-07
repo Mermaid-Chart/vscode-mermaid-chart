@@ -729,6 +729,11 @@
           "command": "mermaidChart.deleteDiagram",
           "when": "viewItem == document",
           "group": "manage@02"
+        },
+        {
+          "command": "mermaidChart.duplicateDiagram",
+          "when": "viewItem == document",
+          "group": "manage@03"
         }
       ],
       "editor/context": [
@@ -812,6 +817,11 @@
         "command": "mermaidChart.renameDiagram",
         "title": "Rename",
         "icon": "$(edit)"
+      },
+      {
+        "command": "mermaidChart.duplicateDiagram",
+        "title": "Duplicate",
+        "icon": "$(copy)"
       },
       {
         "command": "mermaidChart.deleteDiagram",

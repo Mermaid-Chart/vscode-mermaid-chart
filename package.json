@@ -721,6 +721,11 @@
           "group": "inline@02"
         },
         {
+          "command": "mermaidChart.addDiagram",
+          "when": "viewItem == project",
+          "group": "inline@01"
+        },
+        {
           "command": "mermaidChart.renameDiagram",
           "when": "viewItem == document",
           "group": "manage@01"
@@ -807,6 +812,11 @@
       {
         "command": "mermaidChart.connectDiagramToMermaidChart",
         "title": "MermaidChart: Connect Diagram"
+      },
+      {
+        "command": "mermaidChart.addDiagram",
+        "title": "Add Diagram",
+        "icon": "$(add)"
       },
       {
         "command": "mermaidChart.renameDiagram",

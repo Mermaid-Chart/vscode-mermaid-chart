@@ -208,7 +208,7 @@ export class DiagramManager {
    * Generate a title for the duplicate diagram
    */
   private generateDuplicateTitle(originalTitle: string): string {
-    return `Copy of ${originalTitle}`;
+    return `${originalTitle} - Copy`;
   }
 
   /**

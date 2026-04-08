@@ -20,9 +20,6 @@ class Analytics {
     });
   }
 
-  public trackActivation() {
-    this.sendEvent('VS Code Extension Activated','VS_CODE_PLUGIN_ACTIVATION');
-  }
 
   public trackException(error: any) {
     if (error instanceof Error) {
@@ -50,9 +47,6 @@ class Analytics {
   
   public trackRegenerateCommandInvoked() {
     this.sendEvent('VS Code Regenerate Command Invoked','VS_CODE_PLUGIN_REGENERATE_DIAGRAM');
-  }
-  public trackModelNotFound() {
-    this.sendEvent('VS Code AI  Model Not Found','VS_CODE_PLUGIN_MODEL_NOT_FOUND');
   }
 }
 

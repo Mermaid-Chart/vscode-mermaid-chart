@@ -739,7 +739,7 @@
         },
         {
           "command": "mermaidChart.connectDiagramToMermaidChart",
-          "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/",
+          "when": "(resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/) && !mermaid.hasId",
           "group": "navigation"
         }
       ]

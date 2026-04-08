@@ -161,7 +161,29 @@ export class MermaidChartProvider
   implements vscode.TreeDataProvider<MCTreeItem>
 {
   public static isSyncing: boolean = false;
-  constructor(private mcAPI: MermaidChartVSCode) {}
+  private lastClickTime = 0;
+  private lastClickedUuid = '';
+  private readonly doubleClickDelay = 300; // milliseconds
+  
+  constructor(private mcAPI: MermaidChartVSCode) {
+    // Register a smart double-click command
+    vscode.commands.registerCommand('mermaidChart.smartClick', (uuid: string) => {
+      const currentTime = Date.now();
+      const timeSinceLastClick = currentTime - this.lastClickTime;
+      
+      if (uuid === this.lastClickedUuid && timeSinceLastClick < this.doubleClickDelay) {
+        // Double-click detected - trigger edit
+        vscode.commands.executeCommand('mermaidChart.editLocally', uuid);
+        // Reset to prevent triple clicks
+        this.lastClickTime = 0;
+        this.lastClickedUuid = '';
+      } else {
+        // Single click - just remember it
+        this.lastClickTime = currentTime;
+        this.lastClickedUuid = uuid;
+      }
+    });
+  }
 
   private _onDidChangeTreeData: vscode.EventEmitter<
     MCTreeItem | undefined | void
@@ -239,12 +261,14 @@ export class MermaidChartProvider
   
     const treeItem = new vscode.TreeItem(`${element.title}`, collapsibleState);
   
-   
-    treeItem.command = {
-      command: "mermaidChart.insertUuidIntoEditor",
-      title: "Insert UUID",
-      arguments: [element]
-    };
+    // Set smart double-click command for documents (diagrams)
+    if (element instanceof Document) {
+      treeItem.command = {
+        command: "mermaidChart.smartClick",
+        title: "Smart Click",
+        arguments: [element.uuid]
+      };
+    }
      
     treeItem.contextValue = element.children ? "project" : "document";
   

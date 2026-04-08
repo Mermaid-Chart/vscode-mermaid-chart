@@ -619,32 +619,6 @@ context.subscriptions.push(
   })
 );
 
-  vscode.commands.registerCommand(
-    "mermaidChart.useDiagram",
-    async (item: Document) => {
-      if (!(await ensureAuthenticated())) {
-        return;
-      }
-      if (!item || !item.code) {
-        vscode.window.showErrorMessage("No code found for this diagram.");
-        return;
-      }
-
-      const projectId = getProjectIdForDocument(item.uuid);
-      if (!projectId) {
-        vscode.window.showErrorMessage("No project ID found for this diagram.");
-        return;
-      }
-      const processedCode = ensureIdField(item.code, item.uuid);
-      await mcAPI.setDocument({
-        documentID: item.uuid,
-        projectID: projectId,
-        code: processedCode,
-      });
-      updateDiagramInCache(item.uuid, processedCode);
-      createMermaidFile(context, processedCode, false);
-    },
-  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("mermaidChart.focus", () => {

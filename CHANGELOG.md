@@ -1,5 +1,8 @@
 # Change Log
 
+### 2.6.2 - 2026-03-27
+- Added privacy policy and data collection documentation detailing user data usage and analytics practices 
+
 ### 2.6.0 - 2026-03-09
 - Updated preview panel design and it also dynamically adapt to both diagram themes and VS Code themes for better visual consistency.
 - Added copy PNG and SVG functionality directly within the export modal, allowing users to copy diagrams to clipboard without downloading.

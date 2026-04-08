@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid",
   "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.6.1",
+  "version": "2.6.2",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -734,6 +734,11 @@
           "command": "mermaidChart.deleteDiagram",
           "when": "viewItem == document",
           "group": "manage@02"
+        },
+        {
+          "command": "mermaidChart.duplicateDiagram",
+          "when": "viewItem == document",
+          "group": "manage@03"
         }
       ],
       "editor/context": [
@@ -744,7 +749,7 @@
         },
         {
           "command": "mermaidChart.connectDiagramToMermaidChart",
-          "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/",
+          "when": "(resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/) && !mermaid.hasId",
           "group": "navigation"
         }
       ]
@@ -822,6 +827,11 @@
         "command": "mermaidChart.renameDiagram",
         "title": "Rename",
         "icon": "$(edit)"
+      },
+      {
+        "command": "mermaidChart.duplicateDiagram",
+        "title": "Duplicate",
+        "icon": "$(copy)"
       },
       {
         "command": "mermaidChart.deleteDiagram",

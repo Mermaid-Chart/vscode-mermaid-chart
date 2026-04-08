@@ -5,7 +5,7 @@ The official Mermaid extension for Visual Studio Code enables developers to seam
 
 ## Getting Started 🚀
 
-1. Install [Marmaid Chart](https://marketplace.visualstudio.com/items?itemName=MermaidChart.vscode-mermaid-chart) from Marketplace
+1. Install [Mermaid Chart](https://marketplace.visualstudio.com/items?itemName=MermaidChart.vscode-mermaid-chart) from Marketplace
 2. Login using account for Mermaid Chart. Or [create new account](https://mermaid.ai/app/sign-up)
 
 ## Now with AI-Powered Diagramming! ✨
@@ -30,6 +30,46 @@ Now we offer a feature rich experience to create, visualize and edit Mermaid dia
 Optionally, by creating a free MermaidChart account you can save and sync diagrams on the cloud, explore Mermaid AI, and experience the intuitive best-in-class drag-drop UI for Mermaid diagrams. 
 
 ![Image illustrating accessible diagrams in explorer panel](https://mermaid.ai/docs/img/plugins/vscode-plugin.gif)
+
+
+## 🔒 Privacy Policy & Data Collection
+
+**What Data Do We Collect?**
+
+This extension collects limited analytics data to improve functionality and user experience:
+
+- **Machine Identifier**: A unique VS Code machine ID (`vscode.env.machineId`) is transmitted to mermaid.ai for analytics purposes
+- **Usage Analytics**: Events such as extension activation, login/logout, AI feature usage, and error reports
+- **Diagram Types**: Information about which types of diagrams are being created to improve our features
+
+**When Is Data Transmitted?**
+
+Data is automatically sent to `https://mermaid.ai/` Servers 
+when:
+- The extension is activated/loaded
+- You sign in or sign out of your Mermaid Chart account
+- AI-powered features are used (chat participant, diagram generation, repair)
+- Errors or exceptions occur
+
+**How Is Data Used?**
+
+- **Service Improvement**: To understand feature usage and improve extension functionality
+- **Error Tracking**: To identify and fix bugs and technical issues
+- **Feature Analytics**: To prioritize development of new features and improvements
+
+**Data Security & Privacy**
+
+- All data transmission occurs over secure HTTPS connections
+- No personal files, diagram content, or source code is transmitted
+- No personally identifiable information (PII) beyond the VS Code machine ID is collected
+
+
+**Your Control**
+
+Currently, analytics collection cannot be disabled within the extension settings. If you have privacy concerns, you may choose not to install or use this extension.
+
+For questions about data collection or privacy practices, contact us at [info@mermaidchart.com](mailto:privacy@mermaidchart.com).
+
 
 ## Features
 
@@ -344,6 +384,9 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.6.2 - 2026-03-27
+- Added privacy policy and data collection documentation detailing user data usage and analytics practices 
 
 ### 2.6.0 - 2026-03-09
 - Updated preview panel design and it also dynamically adapt to both diagram themes and VS Code themes for better visual consistency.

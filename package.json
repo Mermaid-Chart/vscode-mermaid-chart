@@ -713,12 +713,22 @@
         {
           "command": "mermaidChart.insertUuidIntoEditor",
           "when": "viewItem == document",
-          "group": "inline@01"
+          "group": "link@01"
         },
         {
-          "command": "mermaidChart.useDiagram",
+          "command": "mermaidChart.viewDiagram",
           "when": "viewItem == document",
-          "group": "inline@02"
+          "group": "link@02"
+        },
+        {
+          "command": "mermaidChart.editDiagramInMermaidChart",
+          "when": "viewItem == document",
+          "group": "link@03"
+        },
+        {
+          "command": "mermaidChart.editDiagramLocally",
+          "when": "viewItem == document",
+          "group": "link@04"
         },
         {
           "command": "mermaidChart.addDiagram",
@@ -782,8 +792,16 @@
         "title": "Link diagram"
       },
       {
-        "command": "mermaidChart.useDiagram",
-        "title": "Use diagram"
+        "command": "mermaidChart.viewDiagram",
+        "title": "View diagram"
+      },
+      {
+        "command": "mermaidChart.editDiagramInMermaidChart",
+        "title": "Edit in Mermaid Chart"
+      },
+      {
+        "command": "mermaidChart.editDiagramLocally",
+        "title": "Edit locally"
       },
       {
         "command": "mermaidChart.syncDiagramWithMermaid",

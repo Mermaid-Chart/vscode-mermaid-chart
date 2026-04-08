@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { MermaidChartVSCode } from './mermaidChartVSCode';
-import { MermaidChartProvider, MCTreeItem, Document, getDiagramFromCache, updateDiagramInCache, getProjectIdForDocument, getAllTreeViewProjectsCache } from './mermaidChartProvider';
+import { MermaidChartProvider, MCTreeItem, Document, getDiagramFromCache, getProjectIdForDocument } from './mermaidChartProvider';
 import { createMermaidFile } from './commands/createFile';
 import { ensureIdField } from './frontmatter';
 import { getDiagramTemplates } from './util';
@@ -337,6 +337,94 @@ export class DiagramManager {
   }
 
   /**
+   * Link diagram - inserts diagram token into active editor
+   */
+  public async linkDiagram(item: MCTreeItem): Promise<void> {
+    if (!(item instanceof Document)) {
+      vscode.window.showErrorMessage('Only diagrams can be linked.');
+      return;
+    }
+
+    try {
+      await vscode.commands.executeCommand(
+        "mermaidChart.insertUuidIntoEditor",
+        item,
+      );
+    } catch (error: any) {
+      console.error('Error linking diagram:', error);
+      vscode.window.showErrorMessage(`Failed to link diagram: ${error.message || error}`);
+    }
+  }
+
+  /**
+   * View diagram in Mermaid Chart (opens in browser)
+   */
+  public async viewDiagram(item: MCTreeItem): Promise<void> {
+    if (!(item instanceof Document)) {
+      vscode.window.showErrorMessage('Only diagrams can be viewed.');
+      return;
+    }
+
+    try {
+      await vscode.commands.executeCommand('mermaidChart.viewMermaidChart', item.uuid);
+    } catch (error: any) {
+      console.error('Error viewing diagram:', error);
+      
+      // Handle specific error cases
+      if (error?.response?.status === 400 || error?.status === 400 || 
+          (error.message && error.message.includes('400'))) {
+        vscode.window.showErrorMessage(
+          `Cannot view diagram "${item.title}". The diagram may have syntax errors. Please check your diagram syntax on Mermaid Chart or edit it locally to fix any issues.`,
+          'Edit Locally',
+          'Edit in Mermaid Chart'
+        ).then(selection => {
+          if (selection === 'Edit Locally') {
+            this.editDiagramLocally(item);
+          } else if (selection === 'Edit in Mermaid Chart') {
+            this.editDiagramInMermaidChart(item);
+          }
+        });
+      } else {
+        vscode.window.showErrorMessage(`Failed to view diagram: ${error.message || error}`);
+      }
+    }
+  }
+
+  /**
+   * Edit diagram in Mermaid Chart (opens web editor)
+   */
+  public async editDiagramInMermaidChart(item: MCTreeItem): Promise<void> {
+    if (!(item instanceof Document)) {
+      vscode.window.showErrorMessage('Only diagrams can be edited.');
+      return;
+    }
+
+    try {
+      await vscode.commands.executeCommand('extension.editMermaidChart', item.uuid);
+    } catch (error: any) {
+      console.error('Error editing diagram in Mermaid Chart:', error);
+      vscode.window.showErrorMessage(`Failed to edit diagram in Mermaid Chart: ${error.message || error}`);
+    }
+  }
+
+  /**
+   * Edit diagram locally (creates temporary buffer)
+   */
+  public async editDiagramLocally(item: MCTreeItem): Promise<void> {
+    if (!(item instanceof Document)) {
+      vscode.window.showErrorMessage('Only diagrams can be edited locally.');
+      return;
+    }
+
+    try {
+      await vscode.commands.executeCommand('mermaidChart.editLocally', item.uuid);
+    } catch (error: any) {
+      console.error('Error editing diagram locally:', error);
+      vscode.window.showErrorMessage(`Failed to edit diagram locally: ${error.message || error}`);
+    }
+  }
+
+  /**
    * Register the diagram management commands
    */
   public static registerCommands(
@@ -381,5 +469,41 @@ export class DiagramManager {
       }
     );
     context.subscriptions.push(deleteCommand);
+
+    // Register link diagram command
+    const linkDiagramCommand = vscode.commands.registerCommand(
+      'mermaidChart.linkDiagram',
+      async (item: MCTreeItem) => {
+        await diagramManager.linkDiagram(item);
+      }
+    );
+    context.subscriptions.push(linkDiagramCommand);
+
+    // Register view diagram command
+    const viewDiagramCommand = vscode.commands.registerCommand(
+      'mermaidChart.viewDiagram',
+      async (item: MCTreeItem) => {
+        await diagramManager.viewDiagram(item);
+      }
+    );
+    context.subscriptions.push(viewDiagramCommand);
+
+    // Register edit diagram in Mermaid Chart command
+    const editDiagramInMermaidChartCommand = vscode.commands.registerCommand(
+      'mermaidChart.editDiagramInMermaidChart',
+      async (item: MCTreeItem) => {
+        await diagramManager.editDiagramInMermaidChart(item);
+      }
+    );
+    context.subscriptions.push(editDiagramInMermaidChartCommand);
+
+    // Register edit diagram locally command
+    const editDiagramLocallyCommand = vscode.commands.registerCommand(
+      'mermaidChart.editDiagramLocally',
+      async (item: MCTreeItem) => {
+        await diagramManager.editDiagramLocally(item);
+      }
+    );
+    context.subscriptions.push(editDiagramLocallyCommand);
   }
 }

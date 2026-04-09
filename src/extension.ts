@@ -62,9 +62,6 @@ export async function activate(context: vscode.ExtensionContext) {
   console.log("Activating Mermaid Chart extension");
 
   initializePlugin(pluginID);
-
-  analytics.trackActivation();
-  
   // Register AI tools first to ensure they're available
   console.log("[MermaidExtension] Registering AI tools...");
   registerTools(context);

@@ -1,5 +1,13 @@
 # Change Log
 
+### 2.6.3 - 2026-04-09
+- Enhanced diagram management with comprehensive right-click context menu
+- Moved Link Diagram functionality from hover to right-click menu for better accessibility
+- Removed "Use Diagram" option for simplified workflow
+- Consolidated all diagram operations (Link, View, Edit in Mermaid Chart, Edit Locally) into right-click context menu
+- Added Duplicate diagram, Delete diagram, Rename diagram option to context menu 
+- Added project-level add diagram button (+) for quick diagram creation
+
 ### 2.6.2 - 2026-03-27
 - Added privacy policy and data collection documentation detailing user data usage and analytics practices 
 

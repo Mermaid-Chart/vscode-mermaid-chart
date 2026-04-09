@@ -315,20 +315,25 @@ You can explore all the these options by signing-up for a free account on https:
 Users can start login flow with their Mermaid Chart account and once logged-in, in the side panel all the projects and diagrams from your account will be loaded in the side panel.
 ![Fetch & Use existing diagrams in Side Panel](https://mermaid.ai/docs/img/plugins/vscode-plugin-activitybar.png)
 
-#### Link diagram directly in your code files
-For each diagram in the Side Panel, user will see two options:
-- Use diagram: This will open the mermaid chart diagram locally for editing and will be connected to the Mermaid chart. Once the edited diagram is saved, or the user does a  ctrl+s, it will sync diagrams back to mermaid chart accounts as well
-![Download](https://mermaid.ai/docs/img/plugins/vscode-plugin-download.png)
-- Link diagram : When you click on a diagram, that diagram (its diagram id) will be inserted into the code editor as a comment at the position of the cursor. And users will get an option to preview or edit the diagram from this diagram id.
-![Link diagrams](https://mermaid.ai/docs/img/plugins/vscode-plugin-link-diagram.png)
+#### Enhanced Diagram Management with Context Menu
+Manage your Mermaid diagrams effortlessly with our comprehensive right-click context menu. Right-click on any diagram in the Side Panel to access all available options:
 
-#### Rename and Delete Diagram Links
-Manage your Mermaid diagrams directly from VS Code with our new context menu options:
-- **Rename Diagrams**: Right-click on any diagram in the side panel to rename it with a custom name 
-- **Delete Diagrams**: Remove unwanted diagrams directly from your diagram list with a simple right-click and delete option
-- **Seamless Management**: Changes are synced automatically with your Mermaid Chart account for consistent diagram management across platforms
+**Diagram Operations:**
+- **Link Diagram**: Insert the diagram ID into your code editor as a comment at the cursor position for easy reference
+- **View Diagram**: Preview the diagram directly in VS Code
+- **Edit in Mermaid Chart**: Open the diagram in the web editor at mermaid.ai for advanced editing
+- **Edit Locally**: Open the diagram locally for editing while maintaining sync with Mermaid Chart
 
-![Rename and Delete Options](https://mermaid.ai/docs/img/plugins/vscode-plugin-rename-delete-popup.png)
+**Management Options:**
+- **Rename**: Change the diagram name with a custom title
+- **Delete**: Remove unwanted diagrams from your workspace
+- **Duplicate**: Create a copy of the diagram for variations or backup
+![Rigth-Click Context Menu](https://mermaid.ai/docs/img/plugins/vscode-plugin-right-click-list.png)
+
+**Quick Add Diagram Feature:**
+Use the **+** button at the project level to quickly add new diagrams to your workspace.
+![Add Diagram button](https://mermaid.ai/docs/img/plugins/vscode-plugin-add-diagram-icon.png)
+
 
 #### Smart Sync to promote collaboration
 When a  user modifies an existing diagram, before saving it to MermaidChart service, it smartly checks if any modification is made in the web view, and if found, it indicates to the user to resolve any conflicts, and then save the resolved diagram back. 
@@ -384,6 +389,14 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.6.3 - 2026-04-09
+- Enhanced diagram management with comprehensive right-click context menu
+- Moved Link Diagram functionality from hover to right-click menu for better accessibility
+- Removed "Use Diagram" option for simplified workflow
+- Consolidated all diagram operations (Link, View, Edit in Mermaid Chart, Edit Locally) into right-click context menu
+- Added Duplicate diagram, Delete diagram, Rename diagram option to context menu 
+- Added project-level add diagram button (+) for quick diagram creation
 
 ### 2.6.2 - 2026-03-27
 - Added privacy policy and data collection documentation detailing user data usage and analytics practices 

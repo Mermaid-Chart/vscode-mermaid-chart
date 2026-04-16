@@ -357,6 +357,28 @@ When a  user modifies an existing diagram, before saving it to MermaidChart serv
 ![vscode-plugin-regenerate-preview](https://mermaid.ai/docs/img/plugins/vscode-plugin-regenerate-preview.gif)
 
 
+### Diagram Diff Highlighting
+- **Enhanced Visual Clarity**: Our diagram diff previews now include advanced change highlighting to make differences even more visible and understandable.<br>
+- **Color-Coded Changes**:
+  -  🟢 Added elements are highlighted in green
+  -  🟡 modified elements in yellow
+  -  🔴 deleted elements highlighted in red, with precise highlighting that doesn't obscure diagram text.<br>
+- **Available in Two Scenarios**:
+  - **Remote Sync**: When you connect your diagrams to Mermaid Chart and make changes remotely, the diff preview shows highlighted differences
+  - **Regenerate Diagram**: When you modify source files and regenerate diagrams, see exactly what changed with diagram highlighting<br>
+- **Supports Two Diagram Types**: Works seamlessly with flowchart and sequence diagrams
+
+**Flowchart Diagram Highlighting Example:**
+<!-- Flowchart diagram highlighting example will be added here -->
+![vscode-plugin-diff-highlighting-flowchart](https://mermaid.ai/docs/img/plugins/vscode-plugin-diff-highlighting-flowchart.png) 
+
+**Sequence Diagram Highlighting Example:**
+<!-- Sequence diagram highlighting example will be added here -->
+
+![vscode-plugin-diff-highlighting-sequence](https://mermaid.ai/docs/img/plugins/vscode-plugin-diff-highlighting-sequence.png)
+
+
+
 #### Refresh 
 To get the latest changes of diagrams from Mermaid Chart, click on the button named Refresh at the top in the side panel.
 
@@ -389,6 +411,9 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.6.4 - 2026-04-16
+- Added **Diagram Diff Highlighting** for Remote Sync and Regenerate Diagram features. it's Enhanced dual preview mode with precise highlighting for both flowchart and sequence diagrams
 
 ### 2.6.3 - 2026-04-09
 - Enhanced diagram management with comprehensive right-click context menu

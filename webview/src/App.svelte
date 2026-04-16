@@ -9,6 +9,10 @@
   import { diagramContent as diagramData } from './diagramData';
   import LeftSideBar from './LeftSideBar.svelte';
   import ExportModal from './ExportModal.svelte';
+  import type { HighlightInstruction } from '../../src/commercial/sync/diagramDiffHighlighter';
+
+  /** Matches extension postMessage payload from diagramDiffHighlighter (applyHighlights). */
+  type DiffHighlightChangeType = HighlightInstruction['changeType'];
 
   $: diagramContent = diagramData;
  
@@ -25,6 +29,7 @@
   let isRepairing = false;
   let aiCredits = null; // AI credits data: {remaining: number, total: number}
   let isAuthenticated = false; // Authentication status
+  let highlightInstructions: HighlightInstruction[] = [];
   $: sidebarBackgroundColor = theme?.includes("dark")? "#4d4d4d" : "white";
   $: iconBackgroundColor = theme?.includes("dark") ? "#4d4d4d" : "white";
   $: svgColor = theme?.includes("dark") ? "white" : "#2329D6";
@@ -107,7 +112,9 @@
           theme: theme,
           maxEdges: maxEdges,
           maxTextSize: maxTextSize,
-        });
+          flowchart: { parser: 'jison' },
+          sequence: { parser: 'antlr' }
+        } as any);
       } catch (error) {
         console.error('Error initializing Mermaid:', error);
       }
@@ -275,6 +282,9 @@
         element.innerHTML = "";
       }
     }
+
+    // Apply diff highlights after rendering
+    applyDiffHighlights();
   }
 
   function togglePan() {
@@ -356,6 +366,241 @@
     }
   }
 
+  /**
+   * Apply highlights to all elements based on diff instructions
+   */
+  function applyDiffHighlights() {
+    if (!highlightInstructions || highlightInstructions.length === 0) return;
+
+    // Clear existing highlights
+    clearDiffHighlights();
+
+    // Apply highlights based on instructions
+    for (const instruction of highlightInstructions) {
+      applyHighlight(instruction);
+    }
+  }
+
+  /**
+   * Highlight a sequence diagram message (both arrow and text) with colored overlay.
+   *
+   * Text association strategy (in priority order):
+   *   1. Walk backwards through DOM siblings — in mermaid SVG the text for a message
+   *      is always the closest preceding `text.messageText` sibling before the arrow line.
+   *   2. Index fallback: use the numeric index from data-id="iN" to select the Nth
+   *      `text.messageText` in the SVG (same order as arrows).
+   *
+   * We do NOT use Y-coordinate proximity because in diagrams with multiple messages the
+   * next message's text can be closer (in Y) to the current arrow than the current
+   * message's own text — causing the wrong text to be included in the overlay.
+   */
+  function highlightSequenceMessage(messageLine: SVGElement, changeType: 'added' | 'modified' | 'removed') {
+    // Get the SVG root to add overlay
+    const svgElement = document.querySelector("#mermaid-diagram svg");
+    if (!svgElement) return;
+
+    // Get the bounding box of the message line
+    const lineBBox = (messageLine as SVGGraphicsElement).getBBox();
+    
+    // --- Strategy 1: backwards sibling traversal ---
+    // In mermaid sequence SVG, each message text element is the closest preceding
+    // sibling of its corresponding arrow line. Walk backwards stopping if we hit
+    // another message arrow (which means we've gone past the correct text).
+    let messageText: SVGTextElement | null = null;
+    let sibling: Element | null = messageLine.previousElementSibling;
+    while (sibling) {
+      if (sibling.tagName.toLowerCase() === 'text' && sibling.classList.contains('messageText')) {
+        messageText = sibling as SVGTextElement;
+        break;
+      }
+      // Stop if we hit another message line — we've passed the boundary
+      if (sibling.getAttribute('data-et') === 'message') break;
+      sibling = sibling.previousElementSibling;
+    }
+
+    // --- Strategy 2: index-based fallback ---
+    // Extract index N from data-id="iN" and pick the Nth text.messageText element.
+    if (!messageText) {
+      const dataId = messageLine.getAttribute('data-id') || '';
+      const idx = parseInt(dataId.replace('i', ''), 10);
+      if (!isNaN(idx)) {
+        const allTexts = Array.from(svgElement.querySelectorAll('text.messageText'));
+        if (idx < allTexts.length) {
+          messageText = allTexts[idx] as SVGTextElement;
+          console.log(`[DIFF-HIGHLIGHT] Found text via index fallback (i${idx}):`, messageText.textContent);
+        }
+      }
+    }
+
+    // Found associated message text or highlighting arrow only
+    
+    let combinedBBox = lineBBox;
+    
+    // Combine bounding boxes of the arrow and its associated text
+    if (messageText) {
+      const textBBox = messageText.getBBox();
+      const minX = Math.min(lineBBox.x, textBBox.x);
+      const minY = Math.min(lineBBox.y, textBBox.y);
+      const maxX = Math.max(lineBBox.x + lineBBox.width, textBBox.x + textBBox.width);
+      const maxY = Math.max(lineBBox.y + lineBBox.height, textBBox.y + textBBox.height);
+      combinedBBox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY } as DOMRect;
+    }
+    
+    // Create a highlight overlay rectangle
+    const highlightRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const padding = 5;
+    highlightRect.setAttribute('x', String(combinedBBox.x - padding));
+    highlightRect.setAttribute('y', String(combinedBBox.y - padding));
+    highlightRect.setAttribute('width', String(combinedBBox.width + 2 * padding));
+    highlightRect.setAttribute('height', String(combinedBBox.height + 2 * padding));
+    
+    // Set colors based on change type
+    let color;
+    switch (changeType) {
+      case 'added':
+        color = '#4CAF50'; // Green
+        break;
+      case 'modified':
+        color = '#FFC107'; // Yellow
+        break;
+      case 'removed':
+        color = '#F44336'; // Red
+        break;
+    }
+    
+    // Use light background fill with low opacity for readability
+    highlightRect.setAttribute('fill', color);
+    highlightRect.setAttribute('fill-opacity', '0.1');
+    highlightRect.setAttribute('stroke', color);
+    highlightRect.setAttribute('stroke-width', '2');
+    highlightRect.setAttribute('rx', '3');
+    highlightRect.setAttribute('ry', '3');
+    highlightRect.style.pointerEvents = 'none';
+    highlightRect.classList.add(`highlight-${changeType}`, 'sequence-diff-overlay');
+    
+    // Insert the highlight before the message line so it appears behind
+    messageLine.before(highlightRect);
+  }
+
+  /**
+   * Apply highlight to a single diagram element using improved selector strategy.
+   *
+   * Priority order for element lookup:
+   *   1. svgSelector  – direct ANTLR selector (most reliable for sequence diagrams)
+   *   2. svgId        – '#<id>' or data-id lookup
+   *   3. elementId    – '[data-id]' / '#<id>' fallback
+   *   4. svg_message_N legacy conversion → [data-id="iN"]
+   */
+  function applyHighlight(instruction: HighlightInstruction) {
+    const svgElement = document.querySelector("#mermaid-diagram svg");
+    if (!svgElement) return;
+
+    // 1. Try direct svgSelector from ANTLR (most precise — e.g. '[data-et="message"][data-id="i0"]')
+    if (instruction.svgSelector) {
+      const el = svgElement.querySelector(instruction.svgSelector);
+      if (el) {
+        console.log(`[DIFF-HIGHLIGHT] Found via svgSelector: ${instruction.svgSelector}`);
+        const dataEt = el.getAttribute('data-et');
+        if (dataEt === 'message') {
+          highlightSequenceMessage(el as SVGElement, instruction.changeType);
+        } else if (dataEt === 'participant' || dataEt === 'actor') {
+          highlightSequenceParticipant(el as SVGElement, instruction.changeType);
+        } else {
+          el.classList.add(`highlight-${instruction.changeType}`);
+        }
+        return;
+      }
+    }
+
+    // 2. Try standard selectors (svgId as CSS id, then elementId as data-id or CSS id)
+    const selectors: (string | null)[] = [
+      instruction.svgId ? `#${CSS.escape(instruction.svgId)}` : null,
+      instruction.elementId ? `[data-id="${instruction.elementId}"]` : null,
+      instruction.elementId ? `#${CSS.escape(instruction.elementId)}` : null,
+    ];
+
+    let element: Element | null = null;
+    for (const selector of selectors) {
+      if (!selector) continue;
+      element = svgElement.querySelector(selector);
+      if (element) {
+        console.log(`[DIFF-HIGHLIGHT] Found element using selector: ${selector}`);
+        break;
+      }
+    }
+
+    // 3. Legacy fallback: backend sends 'svg_message_N' → convert to '[data-id="iN"]'
+    if (!element && instruction.type === 'edge' && instruction.svgId?.startsWith('svg_message_')) {
+      const messageIndex = instruction.svgId.replace('svg_message_', '');
+      const dataIdSelector = `[data-id="i${messageIndex}"]`;
+      const messageLine = svgElement.querySelector(dataIdSelector);
+      if (messageLine) {
+        console.log(`[DIFF-HIGHLIGHT] Found via legacy sequence fallback`);
+        highlightSequenceMessage(messageLine as SVGElement, instruction.changeType);
+        return;
+      }
+    }
+
+    if (element) {
+      const dataEt = element.getAttribute('data-et');
+      if (dataEt === 'message') {
+        highlightSequenceMessage(element as SVGElement, instruction.changeType);
+      } else if (dataEt === 'participant' || dataEt === 'actor') {
+        highlightSequenceParticipant(element as SVGElement, instruction.changeType);
+      } else {
+        element.classList.add(`highlight-${instruction.changeType}`);
+        console.log(`[DIFF-HIGHLIGHT] Applied CSS highlight-${instruction.changeType} to element`);
+      }
+    } else {
+      console.warn(`[DIFF-HIGHLIGHT] Could not find ${instruction.type} element: ${instruction.elementId}`);
+    }
+  }
+
+  /**
+   * Highlight a sequence diagram participant box with a colored overlay rectangle.
+   */
+  function highlightSequenceParticipant(participantEl: SVGElement, changeType: 'added' | 'modified' | 'removed') {
+    const bbox = (participantEl as SVGGraphicsElement).getBBox();
+    const color = changeType === 'added' ? '#4CAF50' : changeType === 'modified' ? '#FFC107' : '#F44336';
+
+    const highlightRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const padding = 5;
+    highlightRect.setAttribute('x', String(bbox.x - padding));
+    highlightRect.setAttribute('y', String(bbox.y - padding));
+    highlightRect.setAttribute('width', String(bbox.width + 2 * padding));
+    highlightRect.setAttribute('height', String(bbox.height + 2 * padding));
+    // Use light background fill with low opacity for readability
+    highlightRect.setAttribute('fill', color);
+    highlightRect.setAttribute('fill-opacity', '0.1');
+    highlightRect.setAttribute('stroke', color);
+    highlightRect.setAttribute('stroke-width', '2');
+    highlightRect.setAttribute('rx', '5');
+    highlightRect.setAttribute('ry', '5');
+    highlightRect.style.pointerEvents = 'none';
+    highlightRect.classList.add(`highlight-${changeType}`, 'sequence-diff-overlay');
+    participantEl.insertBefore(highlightRect, participantEl.firstChild);
+  }
+
+  /**
+   * Clear all diff highlighting from the diagram
+   */
+  function clearDiffHighlights() {
+    const svgElement = document.querySelector("#mermaid-diagram svg");
+    if (!svgElement) return;
+
+    // Remove highlight classes from elements
+    const highlightedElements = svgElement.querySelectorAll('.highlight-added, .highlight-modified, .highlight-removed');
+    highlightedElements.forEach(element => {
+      element.classList.remove('highlight-added', 'highlight-modified', 'highlight-removed');
+    });
+
+    // Remove sequence diagram overlay elements
+    const overlayElements = svgElement.querySelectorAll('.sequence-diff-overlay');
+    overlayElements.forEach(element => {
+      element.remove();
+    });
+  }
+
   window.addEventListener("message", async (event) => {
     const { type, content, currentTheme, isFileChange, validateOnly, maxZoom, maxCharLength, maxEdge, aiCredits: receivedAICredits, isAuthenticated: receivedAuth } = event.data;
     if (type === "update") {
@@ -407,6 +652,18 @@
         isAuthenticated = receivedAuthStatus;
         console.log('Authentication status updated:', isAuthenticated);
       }
+    } else if (type === "applyHighlights") {
+      // Handle diagram diff highlighting
+      const { highlights } = event.data;
+      if (highlights && Array.isArray(highlights)) {
+        console.log('Applying diff highlights:', highlights);
+        highlightInstructions = highlights as HighlightInstruction[];
+        applyDiffHighlights();
+      }
+    } else if (type === "clearHighlights") {
+      // Clear all highlighting
+      highlightInstructions = [];
+      clearDiffHighlights();
     }
   });
 
@@ -474,6 +731,25 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  /* Diff highlight styles */
+  :global(.highlight-added) {
+    filter: drop-shadow(0 0 4px #4CAF50) drop-shadow(0 0 8px #66BB6A) !important;
+    stroke: #4CAF50 !important;
+    stroke-width: 3px !important;
+  }
+  
+  :global(.highlight-modified) {
+    filter: drop-shadow(0 0 4px #FFC107) drop-shadow(0 0 8px #FFD54F) !important;
+    stroke: #FFC107 !important;
+    stroke-width: 3px !important;
+  }
+  
+  :global(.highlight-removed) {
+    filter: drop-shadow(0 0 4px #F44336) drop-shadow(0 0 8px #EF5350) !important;
+    stroke: #F44336 !important;
+    stroke-width: 3px !important;
   }
 </style>
 

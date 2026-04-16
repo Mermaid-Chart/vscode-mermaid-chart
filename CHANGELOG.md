@@ -1,5 +1,8 @@
 # Change Log
 
+### 2.6.4 - 2026-04-16
+- Added **Diagram Diff Highlighting** for Remote Sync and Regenerate Diagram features. it's Enhanced dual preview mode with precise highlighting for both flowchart and sequence diagrams
+
 ### 2.6.3 - 2026-04-09
 - Enhanced diagram management with comprehensive right-click context menu
 - Moved Link Diagram functionality from hover to right-click menu for better accessibility

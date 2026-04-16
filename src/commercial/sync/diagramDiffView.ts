@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { splitFrontMatter } from "../../frontmatter";
 import { getWebviewHTML } from "../../templates/previewTemplate";
 import * as packageJson from "../../../package.json";
+import { calculateDiagramDiff, createHighlightInstructions } from "./diagramDiffHighlighter";
 
 /**
  * Open the diagram diff view: two separate webviews (Current and Updated), each with
@@ -25,11 +26,15 @@ export function openDiagramDiffWebviews(oldContent: string, newContent: string):
     const { diagramText: oldDiagramText } = splitFrontMatter(oldContent);
     const { diagramText: newDiagramText } = splitFrontMatter(newContent);
 
+    // Calculate what changed between the diagrams using AST-enhanced approach (async)
+    calculateDiagramDiff(oldDiagramText, newDiagramText).then(async (diagramDiff) => {
+      const { newDiagramInstructions, oldDiagramInstructions } = await createHighlightInstructions(diagramDiff);
+
     const extensionPath = vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
     if (!extensionPath) {
       console.error("[Mermaid Diagram Diff] Unable to resolve extension path");
       vscode.window.showErrorMessage("Unable to resolve extension path for diagram diff.");
-      return disposePanels;
+      return;
     }
 
     const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
@@ -68,6 +73,27 @@ export function openDiagramDiffWebviews(oldContent: string, newContent: string):
       false
     );
 
+    // Set up highlighting for both panels after a short delay to ensure rendering is complete
+    if (newDiagramInstructions.length > 0 || oldDiagramInstructions.length > 0) {
+      setTimeout(() => {
+        // Send added/modified highlights to the new (updated) panel
+        if (newDiagramInstructions.length > 0) {
+          panelUpdated?.webview.postMessage({
+            type: "applyHighlights",
+            highlights: newDiagramInstructions
+          });
+        }
+        
+        // Send removed highlights to the old (current) panel  
+        if (oldDiagramInstructions.length > 0) {
+          panelCurrent?.webview.postMessage({
+            type: "applyHighlights",
+            highlights: oldDiagramInstructions
+          });
+        }
+      }, 1000); // Wait 1 second for diagram to render
+    }
+
     // Set editor layout: code diff on left, two diagram panels stacked vertically on right
     setTimeout(() => {
       void vscode.commands.executeCommand("vscode.setEditorLayout", {
@@ -82,6 +108,10 @@ export function openDiagramDiffWebviews(oldContent: string, newContent: string):
         ],
       });
     }, 150);
+    }).catch(error => {
+      console.error('[Mermaid Diagram Diff] Error in async diff calculation:', error);
+      vscode.window.showErrorMessage(`Failed to calculate diagram differences: ${error.message}`);
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[Mermaid Diagram Diff] Error opening diagram diff view:", err);

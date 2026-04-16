@@ -87,10 +87,6 @@ function initializeMermaidWithAST(): void {
     sequence: { parser: "antlr" } as MermaidConfig["sequence"], // ANTLR for sequences
     maxTextSize: 90000,
   };
-
-  console.log(
-    "[AST-Diff] Initializing with Jison parser for flowcharts, ANTLR for sequences",
-  );
   mermaid.initialize(config as MermaidConfig);
 }
 
@@ -164,20 +160,16 @@ function detectDiagramType(code: string): 'flowchart' | 'sequence' | 'unknown' {
 function deduplicateSequenceElementMappings(mappings: ElementMapping[]): ElementMapping[] {
   if (!mappings || mappings.length === 0) return mappings;
   
-  console.log(`[AST-Diff] Sequence deduplication: processing ${mappings.length} initial mappings`);
-  
   const seen = new Set<string>();
   const deduplicated = mappings.filter(mapping => {
     const visualKey = mapping.svgId || mapping.id;
     if (seen.has(visualKey)) {
-      console.log(`[AST-Diff] Skipping duplicate mapping ${mapping.id} (visual key: ${visualKey})`);
       return false;
     }
     seen.add(visualKey);
     return true;
   });
   
-  console.log(`[AST-Diff] Sequence deduplication complete: ${mappings.length} -> ${deduplicated.length} mappings`);
   return deduplicated;
 }
 
@@ -186,7 +178,6 @@ function deduplicateSequenceElementMappings(mappings: ElementMapping[]): Element
  */
 export async function calculateDiagramDiff(oldCode: string, newCode: string): Promise<DiagramDiff & { oldAST?: DiagramAST; newAST?: DiagramAST; diagramType?: string }> {
   const diagramType = detectDiagramType(newCode);
-  console.log(`[AST-Diff] Detected diagram type: ${diagramType}`);
 
   // Only support flowchart and sequence diagrams with AST
   if (diagramType !== 'flowchart' && diagramType !== 'sequence') {
@@ -203,8 +194,6 @@ export async function calculateDiagramDiff(oldCode: string, newCode: string): Pr
     if (!oldAST?.elementMappings || !newAST?.elementMappings) {
       throw new Error(`Failed to parse ${diagramType} diagrams - AST element mappings not available`);
     }
-
-    console.log(`[AST-Diff] Successfully parsed both diagrams with AST`);
     
     // // For sequence diagrams, deduplicate mappings to avoid ANTLR parser issues
     if (diagramType === 'sequence') {
@@ -242,11 +231,6 @@ function calculateASTBasedDiff(oldAST: DiagramAST, newAST: DiagramAST, diagramTy
   const oldElements = oldAST.elementMappings || [];
   const newElements = newAST.elementMappings || [];
   
-  console.log('[AST-Diff] Analyzing elements:', {
-    old: oldElements.length,
-    new: newElements.length
-  });
-  
   // Helper to check if element is a node  
   function isNodeElement(element: ElementMapping): boolean {
     return element.type === 'vertex' || element.type === 'participant';
@@ -264,12 +248,10 @@ function calculateASTBasedDiff(oldAST: DiagramAST, newAST: DiagramAST, diagramTy
       const { from, to } = element.data;
       // Use svgId (more stable) or fallback to participants + position for uniqueness
       const stableId = element.svgId || `msg_${from}_${to}`;
-      console.log('[AST-Diff] Sequence message logical ID:', { elementId: element.id, svgId: element.svgId, from, to, logicalId: `${stableId}:${from}->${to}` });
       return `${stableId}:${from}->${to}`;
     }
     // For other elements, use data.id or fallback to element.id
     const logicalId = element.data?.id || element.id;
-    console.log('[AST-Diff] Element logical ID:', { type: element.type, elementId: element.id, logicalId });
     return logicalId;
   }
 
@@ -313,7 +295,6 @@ function calculateASTBasedDiff(oldAST: DiagramAST, newAST: DiagramAST, diagramTy
     const bestVertex = getBestVertex(oldElements, logicalId);
     if (bestVertex) {
       oldNodesMap.set(logicalId, bestVertex);
-      console.log('[AST-Diff] Old node (best):', bestVertex.id, `-> logical ID: '${logicalId}'`, 'type:', bestVertex.type, 'data:', bestVertex.data);
     }
   }
   
@@ -322,7 +303,6 @@ function calculateASTBasedDiff(oldAST: DiagramAST, newAST: DiagramAST, diagramTy
     if (isEdgeElement(element)) {
       const logicalId = getLogicalId(element, diagramType);
       oldEdgesMap.set(logicalId, element);
-      console.log('[AST-Diff] Old edge:', element.id, `-> logical ID: '${logicalId}'`, 'type:', element.type, 'data:', element.data);
     }
   });
   
@@ -387,14 +367,12 @@ function calculateASTBasedDiff(oldAST: DiagramAST, newAST: DiagramAST, diagramTy
     if (!newNodesMap.has(logicalId)) {
       const removedVertex = oldNodesMap.get(logicalId)!;
       diff.removedNodes.push(removedVertex.id);
-      console.log('[AST-Diff] Removed node:', removedVertex.id, `(logical: ${logicalId})`);
     }
   }
   
   oldEdgesMap.forEach((element, logicalId) => {
     if (!newEdgesMap.has(logicalId)) {
       diff.removedEdges.push(element.id);
-      console.log('[AST-Diff] Removed edge:', element.id, `(logical: ${logicalId})`);
     }
   });
   
@@ -426,7 +404,6 @@ export async function createHighlightInstructions(
   // Helper to find element mapping by ID
   const findElementMapping = (ast: DiagramAST | undefined, elementId: string) => {
     const mapping = ast?.elementMappings?.find(mapping => mapping.id === elementId);
-    console.log(`[AST-Diff] Finding mapping for '${elementId}':`, mapping ? `Found (svgId: '${mapping.svgId}')` : 'Not found');
     return mapping;
   };
 
@@ -506,9 +483,6 @@ export async function createHighlightInstructions(
     oldDiagram: oldDiagramInstructions.length
   });
   
-  console.log('[AST-Diff] New diagram instructions:', newDiagramInstructions);
-  console.log('[AST-Diff] Old diagram instructions:', oldDiagramInstructions);
-
   return { newDiagramInstructions, oldDiagramInstructions };
 }
 
@@ -524,11 +498,6 @@ function isNodeModified(oldNode: ElementMapping, newNode: ElementMapping): boole
   const textFields = ['text', 'label', 'labelText', 'value', 'title'];
   for (const field of textFields) {
     if (oldData[field] !== newData[field]) {
-      console.log(`[AST-Diff] Node ${field} changed:`, {
-        nodeId: `${oldNode.id} (logical: ${oldData.id || oldNode.id})`,
-        old: oldData[field],
-        new: newData[field]
-      });
       return true;
     }
   }

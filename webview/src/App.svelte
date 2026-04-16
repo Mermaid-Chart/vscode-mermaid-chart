@@ -395,8 +395,6 @@
    * message's own text — causing the wrong text to be included in the overlay.
    */
   function highlightSequenceMessage(messageLine: SVGElement, changeType: 'added' | 'modified' | 'removed') {
-    console.log(`[DIFF-HIGHLIGHT] Highlighting sequence message with ${changeType}`);
-    
     // Get the SVG root to add overlay
     const svgElement = document.querySelector("#mermaid-diagram svg");
     if (!svgElement) return;
@@ -434,11 +432,7 @@
       }
     }
 
-    if (messageText) {
-      console.log(`[DIFF-HIGHLIGHT] Found associated message text:`, messageText.textContent);
-    } else {
-      console.log(`[DIFF-HIGHLIGHT] No associated text found, highlighting arrow only`);
-    }
+    // Found associated message text or highlighting arrow only
     
     let combinedBBox = lineBBox;
     
@@ -486,8 +480,6 @@
     
     // Insert the highlight before the message line so it appears behind
     messageLine.before(highlightRect);
-    
-    console.log(`[DIFF-HIGHLIGHT] Created overlay for sequence message`);
   }
 
   /**
@@ -501,10 +493,7 @@
    */
   function applyHighlight(instruction: HighlightInstruction) {
     const svgElement = document.querySelector("#mermaid-diagram svg");
-    console.log(`SVG element for highlighting:`, svgElement);
     if (!svgElement) return;
-
-    console.log(`[DIFF-HIGHLIGHT] Highlighting ${instruction.type} ${instruction.elementId} (svgId: ${instruction.svgId}, svgSelector: ${instruction.svgSelector})`);
 
     // 1. Try direct svgSelector from ANTLR (most precise — e.g. '[data-et="message"][data-id="i0"]')
     if (instruction.svgSelector) {
@@ -544,7 +533,6 @@
     if (!element && instruction.type === 'edge' && instruction.svgId?.startsWith('svg_message_')) {
       const messageIndex = instruction.svgId.replace('svg_message_', '');
       const dataIdSelector = `[data-id="i${messageIndex}"]`;
-      console.log(`[DIFF-HIGHLIGHT] Sequence fallback selector: ${dataIdSelector}`);
       const messageLine = svgElement.querySelector(dataIdSelector);
       if (messageLine) {
         console.log(`[DIFF-HIGHLIGHT] Found via legacy sequence fallback`);
@@ -591,7 +579,6 @@
     highlightRect.style.pointerEvents = 'none';
     highlightRect.classList.add(`highlight-${changeType}`, 'sequence-diff-overlay');
     participantEl.insertBefore(highlightRect, participantEl.firstChild);
-    console.log(`[DIFF-HIGHLIGHT] Created participant overlay (${changeType})`);
   }
 
   /**

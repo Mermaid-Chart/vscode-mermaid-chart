@@ -370,12 +370,12 @@ When a  user modifies an existing diagram, before saving it to MermaidChart serv
 
 **Flowchart Diagram Highlighting Example:**
 <!-- Flowchart diagram highlighting example will be added here -->
-![vscode-plugin-diff-highlighting-flowchart](https://mermaid.ai/docs/img/plugins/vscode-plugin-diff-highlighting-flowchart.gif) 
+![vscode-plugin-diff-highlighting-flowchart](https://mermaid.ai/docs/img/plugins/vscode-plugin-diff-highlighting-flowchart.png) 
 
 **Sequence Diagram Highlighting Example:**
 <!-- Sequence diagram highlighting example will be added here -->
 
-![vscode-plugin-diff-highlighting-sequence](https://mermaid.ai/docs/img/plugins/vscode-plugin-diff-highlighting-sequence.gif)
+![vscode-plugin-diff-highlighting-sequence](https://mermaid.ai/docs/img/plugins/vscode-plugin-diff-highlighting-sequence.png)
 
 
 
@@ -411,6 +411,9 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.6.4 - 2026-04-16
+- Added **Diagram Diff Highlighting** for Remote Sync and Regenerate Diagram features. it's Enhanced dual preview mode with precise highlighting for both flowchart and sequence diagrams
 
 ### 2.6.3 - 2026-04-09
 - Enhanced diagram management with comprehensive right-click context menu

@@ -82,7 +82,6 @@ export function openDiagramDiffWebviews(oldContent: string, newContent: string):
             type: "applyHighlights",
             highlights: newDiagramInstructions
           });
-          console.log('[Mermaid Diagram Diff] Sent', newDiagramInstructions.length, 'highlights to Updated panel');
         }
         
         // Send removed highlights to the old (current) panel  
@@ -91,7 +90,6 @@ export function openDiagramDiffWebviews(oldContent: string, newContent: string):
             type: "applyHighlights",
             highlights: oldDiagramInstructions
           });
-          console.log('[Mermaid Diagram Diff] Sent', oldDiagramInstructions.length, 'highlights to Current panel');
         }
       }, 1000); // Wait 1 second for diagram to render
     }

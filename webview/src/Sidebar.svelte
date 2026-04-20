@@ -4,17 +4,16 @@
   import ZoomOutIcon from "./ZoomOutIcon.svelte";
   import FitAllIcon from "./FitAllIcon.svelte";
 
-    export let panEnabled, iconBackgroundColor, shadowColor, sidebarBackgroundColor, svgColor, zoomLevel;
+    export let panEnabled, sidebarBackgroundColor, svgColor, accentColor, zoomLevel;
     export let togglePan, zoomOut, resetView, zoomIn;
     
-    // Theme-aware icon colors
-    $: isDarkTheme = sidebarBackgroundColor === "#4d4d4d";
-    $: iconFillColor = isDarkTheme ? "#ffffff" : "#3B3B3B";
-    $: activeIconFillColor = "#ffffff"; // Always white for active state to contrast with blue background
+    $: iconFillColor = svgColor;
+    /** Icon on filled accent control (pan active) */
+    $: activeIconFillColor = "#ffffff";
     
-    // Diagram theme-aware text color
-    $: isDarkDiagramTheme = sidebarBackgroundColor === "#4d4d4d";
-    $: zoomTextColor = isDarkDiagramTheme ? "#ffffff" : "#3B3B3B";
+    // Determine if sidebar background is dark for text color
+    $: isDarkSidebar = sidebarBackgroundColor?.includes('#1E1E1E') || sidebarBackgroundColor?.includes('#1F1F1F') || sidebarBackgroundColor?.includes('#000000');
+    $: zoomTextColor = isDarkSidebar ? "#ffffff" : "#333333";
 </script>
 
   <style>
@@ -78,27 +77,23 @@
         background-color: var(--active-bg);
     }
     
-    /* Theme variables */
+    /* Dynamic theme variables set via style attribute */
     .sidebar {
-        --divider-color: var(--vscode-panel-border, #e1e5e9);
-        --text-color: var(--vscode-foreground, #333333);
-        --hover-bg: var(--vscode-toolbar-hoverBackground, rgba(0, 0, 0, 0.1));
-        --active-bg: var(--vscode-button-background, #0060c0);
-        --sidebar-bg: #ffffff;
+        --divider-color: rgba(0, 0, 0, 0.1);
+        --hover-bg: rgba(0, 0, 0, 0.1);
+        background: var(--sidebar-bg);
     }
     
-    /* Dark theme adjustments */
+    /* Dark sidebar adjustments */
     .sidebar.dark {
-        --divider-color: var(--vscode-panel-border, #464647);
-        --text-color: var(--vscode-foreground, #cccccc);
-        --hover-bg: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
-        --active-bg: var(--vscode-button-background, #0078d4);
-        --sidebar-bg: #1E1E1E;
+        --divider-color: rgba(255, 255, 255, 0.2);
+        --hover-bg: rgba(255, 255, 255, 0.1);
     }
   </style>
   
   <div 
-      class="sidebar {isDarkTheme ? 'dark' : 'light'}"
+      class="sidebar {isDarkSidebar ? 'dark' : 'light'}"
+      style="--sidebar-bg: {sidebarBackgroundColor}; --active-bg: {accentColor};"
     >
     <!-- Hand icon section -->
     <div class="hand-section">

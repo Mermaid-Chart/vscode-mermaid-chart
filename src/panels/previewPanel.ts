@@ -7,6 +7,7 @@ import { saveDiagramAsPng, saveDiagramAsSvg } from "../services/renderService";
 import { MermaidChartVSCode } from "../mermaidChartVSCode";
 import { RepairDiagram } from "./repairDiagram";
 import { MermaidChartAuthenticationProvider } from "../mermaidChartAuthenticationProvider";
+import { getThemeColors } from "../../webview/src/themes/themeConfig";
 const DARK_THEME_KEY = "mermaid.vscode.dark";
 const LIGHT_THEME_KEY = "mermaid.vscode.light";
 const MAX_ZOOM= "mermaid.vscode.maxZoom";
@@ -75,6 +76,8 @@ export class PreviewPanel {
 
     // Fetch the configuration from VSCode workspace
     const config = vscode.workspace.getConfiguration();
+    const vscodeThemeName = config.get<string>("workbench.colorTheme","Default Light+");
+    console.log(`VS Code theme: ${vscodeThemeName} (${isDarkTheme ? "dark" : "light"})`);
 
     // Get the theme settings from configuration
     const darkTheme = config.get<string>(DARK_THEME_KEY, "redux-dark");
@@ -85,10 +88,12 @@ export class PreviewPanel {
 
     // Determine the current theme based on the user's preference and the active color theme
     const currentTheme = isDarkTheme ? darkTheme : lightTheme;
-      this.lastContent = this.document.getText() || " ";
+    // Get VS Code theme colors using shared config
+    const vscodeThemeColors = getThemeColors(vscodeThemeName);
+    
+    console.log('Theme colors:', vscodeThemeColors);
 
-// Initial content to be used (defaults to a single space if empty)
-    const initialContent = this.document.getText() || " ";
+      this.lastContent = this.document.getText() || " ";
   
     if (!this.panel.webview.html) {
       this.panel.webview.html = getWebviewHTML(this.panel, extensionPath, this.lastContent, currentTheme, false, {
@@ -104,6 +109,8 @@ export class PreviewPanel {
       type: "update",
       content:this.lastContent,
       currentTheme: currentTheme,
+      vscodeThemeName: vscodeThemeName,
+      vscodeThemeColors: vscodeThemeColors,
       isFileChange: this.isFileChange,
       maxZoom: maxZoom,
       maxCharLength: maxCharLength,

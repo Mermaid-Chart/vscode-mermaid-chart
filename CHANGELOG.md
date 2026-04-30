@@ -1,5 +1,8 @@
 # Change Log
 
+### 2.6.5 - 2026-04-29
+- Enhanced VS Code theme integration with automatic preview panel UI synchronization
+
 ### 2.6.4 - 2026-04-16
 - Added **Diagram Diff Highlighting** for Remote Sync and Regenerate Diagram features. it's Enhanced dual preview mode with precise highlighting for both flowchart and sequence diagrams
 

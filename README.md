@@ -420,6 +420,9 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 2.6.6 - 2026-05-5
+- remove the login pop-up 
+
 ### 2.6.5 - 2026-04-29
 - Enhanced VS Code theme integration with automatic preview panel UI synchronization
 

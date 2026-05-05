@@ -11,7 +11,8 @@ export function getWebviewHTML(
     maxZoom?: number;
     maxCharLength?: number;
     maxEdges?: number;
-  }
+  },
+  highlightAddedNodeIds?: string[],
 ): string {
   const scriptUri = panel.webview.asWebviewUri(
     vscode.Uri.file(path.join(extensionPath, "out", "svelte", "bundle.js"))
@@ -39,6 +40,10 @@ export function getWebviewHTML(
     // Optional cleanup code here
   });
   
+  const initialHighlightJson = highlightAddedNodeIds && highlightAddedNodeIds.length > 0
+    ? JSON.stringify(highlightAddedNodeIds)
+    : "[]";
+
   return /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
@@ -65,6 +70,28 @@ export function getWebviewHTML(
           font-family: "Recursive", serif;
           padding: 0px;
         }
+        /* Tint nodes added by Mermaid Sync. SVG outline is unreliable on
+           shape elements, so we tint the fill and thicken the stroke
+           directly — using VS Code's git-added theme colors so it follows
+           light/dark mode automatically. */
+        .mermaid-pr-review-added > rect,
+        .mermaid-pr-review-added > circle,
+        .mermaid-pr-review-added > polygon,
+        .mermaid-pr-review-added > path,
+        .mermaid-pr-review-added > ellipse {
+          fill: var(--vscode-diffEditor-insertedLineBackground, rgba(155, 185, 85, 0.25)) !important;
+          stroke: var(--vscode-gitDecoration-addedResourceForeground, #4caf50) !important;
+          stroke-width: 2.5px !important;
+          animation: mermaid-pr-review-fade-in 240ms ease-out;
+        }
+        .mermaid-pr-review-added .label,
+        .mermaid-pr-review-added text {
+          font-weight: 600;
+        }
+        @keyframes mermaid-pr-review-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
       </style>
     </head>
     <body>
@@ -76,6 +103,84 @@ export function getWebviewHTML(
         data-max-char-length="${encodeURIComponent(String(options?.maxCharLength ?? 90000))}"
         data-max-edges="${encodeURIComponent(String(options?.maxEdges ?? 1000))}"
       ></div>
+      <script>
+        // PR-review node highlighting. Watches the SVG that the Svelte bundle
+        // renders and tags any <g class="node"> whose Mermaid id encodes one of
+        // the bot-added node ids. Re-applies on Mermaid re-render and on
+        // postMessage so the outline survives theme switches.
+        (function () {
+          let added = ${initialHighlightJson};
+          const HIGHLIGHT_CLASS = "mermaid-pr-review-added";
+
+          function nodeMatches(g) {
+            const id = g.getAttribute("id") || "";
+            // Mermaid flowchart ids look like "flowchart-NODEID-N" (older) or
+            // "flowchart-NODEID-N-N" (newer). State / class diagrams reuse the
+            // pattern. Matching the id segment between dashes covers all of
+            // them without parsing the diagram type.
+            return added.some(function (nodeId) {
+              if (!nodeId) return false;
+              const parts = id.split("-");
+              return parts.indexOf(nodeId) !== -1;
+            });
+          }
+
+          // Auto-zoom-to-change runs once per render: when we tag the
+          // first matching node, scroll it into view so the user lands on
+          // the change instead of having to hunt for it. We don't repeat
+          // it on subsequent re-applies, otherwise pan/zoom by the user
+          // would keep getting reset.
+          let hasZoomed = false;
+
+          function applyHighlight() {
+            if (!added.length) return;
+            let firstHighlighted = null;
+            document.querySelectorAll("g.node, g.classGroup, g.stateGroup").forEach(function (g) {
+              const matched = nodeMatches(g);
+              g.classList.toggle(HIGHLIGHT_CLASS, matched);
+              if (matched && !firstHighlighted) {
+                firstHighlighted = g;
+              }
+            });
+            if (firstHighlighted && !hasZoomed) {
+              // Defer to the next paint so the highlight class has applied
+              // and any layout reflow has settled before we measure.
+              requestAnimationFrame(function () {
+                try {
+                  firstHighlighted.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                    inline: "center",
+                  });
+                  hasZoomed = true;
+                } catch (e) {
+                  // Older Chromium in some VS Code builds dislikes the
+                  // smooth-scroll arg; fall back to the boolean form.
+                  try { firstHighlighted.scrollIntoView(false); hasZoomed = true; } catch { /* ignore */ }
+                }
+              });
+            }
+          }
+
+          const observer = new MutationObserver(function () {
+            applyHighlight();
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+
+          window.addEventListener("message", function (event) {
+            const msg = event && event.data;
+            if (!msg || msg.type !== "highlightNodes") return;
+            added = Array.isArray(msg.addedNodeIds) ? msg.addedNodeIds : [];
+            // A new set of node ids resets the once-only zoom: this is a
+            // fresh review surface, the user expects to land on the new
+            // change again.
+            hasZoomed = false;
+            applyHighlight();
+          });
+
+          applyHighlight();
+        })();
+      </script>
     </body>
     </html>
   `;

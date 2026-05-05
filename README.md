@@ -412,6 +412,9 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 2.6.5 - 2026-05-5
+- remove the login pop-up 
+
 ### 2.6.4 - 2026-04-16
 - Added **Diagram Diff Highlighting** for Remote Sync and Regenerate Diagram features. it's Enhanced dual preview mode with precise highlighting for both flowchart and sequence diagrams
 

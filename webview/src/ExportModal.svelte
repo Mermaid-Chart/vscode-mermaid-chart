@@ -562,10 +562,6 @@
     margin-bottom: 4px;
   }
   
-  .radio-option:hover {
-    background-color: var(--hover-bg);
-  }
-  
   .radio-option.selected {
     background-color: var(--selected-bg);
     color: var(--selected-text, #ffffff);

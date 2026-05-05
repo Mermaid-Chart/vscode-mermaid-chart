@@ -264,6 +264,14 @@ Simply click the palette icon next to the export button to access the theme drop
 
 ![Theme Selector](https://mermaid.ai/docs/img/plugins/vscode-plugin-theme-selector.png)
 
+### VS Code Theme Integration for Preview Panel
+we've enhanced preview panelkby automatically synchronizing the preview panel UI with your active VS Code theme while keeping diagram backgrounds independent.
+
+• **Smart Theme System with Dynamic Color Adaptation** – Both the sidebar buttons and UI elements now intelligently adapt to match your VS Code theme:
+  🎨 **Diagram backgrounds** follow the selected Mermaid theme (dark/light/redux etc.)
+  🖌️ **Preview panel UI** matches your VS Code theme colors (kimbie, solarized, Monokai, Red, etc.)
+  ⚪ **All components** automatically adjust
+
 ### Export Diagrams
 Export your diagrams easily in both SVG and PNG formats with enhanced customization options. This makes it simple to:
 - Include diagrams in documentation
@@ -412,8 +420,12 @@ This extension contributes the following settings:
 
 ## Release Notes
 
-### 2.6.5 - 2026-05-5
+### 2.6.6 - 2026-05-5
 - remove the login pop-up 
+
+### 2.6.5 - 2026-04-29
+- Enhanced VS Code theme integration with automatic preview panel UI synchronization
+
 
 ### 2.6.4 - 2026-04-16
 - Added **Diagram Diff Highlighting** for Remote Sync and Regenerate Diagram features. it's Enhanced dual preview mode with precise highlighting for both flowchart and sequence diagrams

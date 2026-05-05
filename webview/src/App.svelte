@@ -6,15 +6,16 @@
   import { vscode } from './utility/vscode'
   import ErrorMessage from './ErrorMessage.svelte';
   import Sidebar from './Sidebar.svelte';
-  import { diagramContent as diagramData } from './diagramData';
   import LeftSideBar from './LeftSideBar.svelte';
   import ExportModal from './ExportModal.svelte';
   import type { HighlightInstruction } from '../../src/commercial/sync/diagramDiffHighlighter';
+  import { getThemeColors, getIconColor, type ThemeColors } from './themes/themeConfig';
+  import { diagramContent as defaultDiagramContent } from './diagramData';
 
   /** Matches extension postMessage payload from diagramDiffHighlighter (applyHighlights). */
   type DiffHighlightChangeType = HighlightInstruction['changeType'];
 
-  $: diagramContent = diagramData;
+  let diagramContent = defaultDiagramContent;
  
   let errorMessage = "";
   let panzoomInstance: ReturnType<typeof Panzoom> | null = null;
@@ -30,10 +31,18 @@
   let aiCredits = null; // AI credits data: {remaining: number, total: number}
   let isAuthenticated = false; // Authentication status
   let highlightInstructions: HighlightInstruction[] = [];
-  $: sidebarBackgroundColor = theme?.includes("dark")? "#4d4d4d" : "white";
-  $: iconBackgroundColor = theme?.includes("dark") ? "#4d4d4d" : "white";
-  $: svgColor = theme?.includes("dark") ? "white" : "#2329D6";
-  $: shadowColor = theme?.includes("dark")? "#6b6b6b" : "#A3BDFF";
+  
+  let vscodeThemeName = 'Default Light+';
+  /** Workbench UI palette from extension; always initialized so child components never read null. */
+  let vscodeThemeColors: ThemeColors = getThemeColors(vscodeThemeName);
+
+  // Diagram canvas vs chrome: diagram uses Mermaid theme; toolbars/modals use VS Code workbench colors.
+  $: isDarkDiagram = theme?.includes('dark') || theme === 'dark';
+  $: sidebarBackgroundColor = theme?.includes("dark") ? "#1E1E1E" : "white";
+  $: iconBackgroundColor = sidebarBackgroundColor;
+  // Dark diagram → white icons. Light diagram + dark VS Code theme → accent. Light diagram + light VS Code theme → #333333 (accent too pale on white).
+  $: svgColor = isDarkDiagram ? '#ffffff' : (vscodeThemeColors.isDark ? vscodeThemeColors.accentColor : '#333333');
+  $: shadowColor = isDarkDiagram ? '#6b6b6b' : '#A3BDFF';
 
   let panEventHandlers = {
     mouseDown: null,
@@ -602,8 +611,16 @@
   }
 
   window.addEventListener("message", async (event) => {
-    const { type, content, currentTheme, isFileChange, validateOnly, maxZoom, maxCharLength, maxEdge, aiCredits: receivedAICredits, isAuthenticated: receivedAuth } = event.data;
+    const { type, content, currentTheme, vscodeThemeName: receivedVSCodeThemeName, vscodeThemeColors: receivedVSCodeThemeColors, isFileChange, validateOnly, maxZoom, maxCharLength, maxEdge, aiCredits: receivedAICredits, isAuthenticated: receivedAuth } = event.data;
     if (type === "update") {
+      if (receivedVSCodeThemeName) {
+        vscodeThemeName = receivedVSCodeThemeName;
+      }
+      if (receivedVSCodeThemeColors) {
+        vscodeThemeColors = receivedVSCodeThemeColors;
+      } else if (receivedVSCodeThemeName) {
+        vscodeThemeColors = getThemeColors(receivedVSCodeThemeName);
+      }
       // Update authentication status if provided
       if (receivedAuth !== undefined) {
         isAuthenticated = receivedAuth;
@@ -620,8 +637,12 @@
         // Just validate without updating UI
         await validateDiagramOnly(content);
       } else if (content) {
-        // Regular rendering flow - do not overwrite theme so user's theme choice persists
+        // Regular rendering flow
         diagramContent = content;
+        // Update theme to match extension's currentTheme
+        if (currentTheme) {
+          theme = currentTheme as "default" | "base" | "dark" | "forest" | "neutral" | "neo" | "neo-dark" | "redux" | "redux-dark" | "redux-color" | "redux-dark-color" | "mc" | "null";
+        }
         maxZoomLevel = maxZoom;
         maxEdges = maxEdge;
         maxTextSize = maxCharLength;
@@ -760,15 +781,14 @@
   <div class="sidebar-container">
     {#if !errorMessage}
     <LeftSideBar 
-      {iconBackgroundColor} 
       {sidebarBackgroundColor} 
-      {shadowColor} 
       {svgColor}
+      {vscodeThemeColors}
       currentTheme={theme}
       on:openExportModal={handleOpenExportModal}
       on:themeChange={handleThemeChange}
     />
-    <Sidebar {panEnabled} {iconBackgroundColor} {sidebarBackgroundColor} {shadowColor} {svgColor} {zoomLevel} {togglePan} {zoomOut} {resetView} {zoomIn} />
+    <Sidebar {panEnabled} {sidebarBackgroundColor} {svgColor} accentColor={vscodeThemeColors.accentColor} {zoomLevel} {togglePan} {zoomOut} {resetView} {zoomIn} />
   {/if}
   </div>
 
@@ -776,6 +796,7 @@
   <ExportModal 
     isOpen={isExportModalOpen} 
     currentTheme={theme}
+    {vscodeThemeColors}
     on:close={handleCloseExportModal} 
   />
 </div>

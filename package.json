@@ -877,6 +877,10 @@
         "title": "MermaidChart: Generate Docker Diagram"
       },
       {
+        "command": "mermaidChart.generateDiagramFromCode",
+        "title": "MermaidChart: Generate Diagram from Code"
+      },
+      {
         "command": "mermaidChart.openDiagramDiffWebviews",
         "title": "MermaidChart: Open Diagram Diff (Current vs Updated)"
       }
@@ -912,6 +916,10 @@
           {
             "name": "generate_dependency_diagram",
             "description": "Generate dependency security visualization diagram"
+          },
+          {
+            "name": "generate_diagram_from_code",
+            "description": "Generate Mermaid diagram from code file analysis"
           },
           {
             "name": "generate_c4_topdown_architecture",

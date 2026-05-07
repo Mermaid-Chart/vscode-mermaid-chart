@@ -852,6 +852,50 @@ context.subscriptions.push(
   )
 );
 
+// Register the generate diagram from code command
+context.subscriptions.push(
+  vscode.commands.registerCommand(
+    "mermaidChart.generateDiagramFromCode",
+    async () => {
+      try {
+        // Check if Copilot Chat is available
+        const copilotExtension = vscode.extensions.getExtension("GitHub.copilot-chat");
+        if (!copilotExtension) {
+          const installOption = "Install GitHub Copilot Chat";
+          const selection = await vscode.window.showErrorMessage(
+            "GitHub Copilot Chat extension is not installed. Please install it from the VS Code Marketplace.",
+            installOption
+          );
+  
+          if (selection === installOption) {
+            await vscode.commands.executeCommand("extension.open", "GitHub.copilot-chat");
+          }
+          return;
+        }
+        
+        // Focus and prepare chat
+        await vscode.commands.executeCommand("workbench.panel.chat.view.copilot.focus");
+        await vscode.commands.executeCommand("workbench.action.chat.focusInput");
+        
+        // Clear existing input
+        await vscode.commands.executeCommand("deleteAllLeft");
+        
+        // Type the command - commercial extension will handle file detection and diagram type selection
+        const command = `@mermaid-chart /generate_diagram_from_code`;
+        await vscode.commands.executeCommand("default:type", { text: command });
+        
+        // Submit the command
+        await vscode.commands.executeCommand("workbench.action.chat.submit");
+        
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error in DiagramFromCodeService.execute:', error);
+        vscode.window.showErrorMessage(`Failed to execute command: ${errorMessage}`);
+      }
+    }
+  )
+);
+
 context.subscriptions.push(
   vscode.commands.registerCommand('mermaidChart.openResponsePreview', async (mermaidCode: string) => {
     if (!mermaidCode) {

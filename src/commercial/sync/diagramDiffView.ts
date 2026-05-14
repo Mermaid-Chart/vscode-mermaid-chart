@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { splitFrontMatter } from "../../frontmatter";
 import { getWebviewHTML } from "../../templates/previewTemplate";
 import * as packageJson from "../../../package.json";
-import { calculateDiagramDiff, createHighlightInstructions } from "./diagramDiffHighlighter";
+import { calculateDiagramDiff, createHighlightInstructions, type HighlightInstruction } from "./diagramDiffHighlighter";
 
 /**
  * Open the diagram diff view: two separate webviews (Current and Updated), each with
@@ -22,14 +22,12 @@ export function openDiagramDiffWebviews(oldContent: string, newContent: string):
     panelUpdated = undefined;
   };
 
-  try {
-    const { diagramText: oldDiagramText } = splitFrontMatter(oldContent);
-    const { diagramText: newDiagramText } = splitFrontMatter(newContent);
-
-    // Calculate what changed between the diagrams using AST-enhanced approach (async)
-    calculateDiagramDiff(oldDiagramText, newDiagramText).then(async (diagramDiff) => {
-      const { newDiagramInstructions, oldDiagramInstructions } = await createHighlightInstructions(diagramDiff);
-
+  const openPanels = async (
+    oldDiagramText: string,
+    newDiagramText: string,
+    newDiagramInstructions: HighlightInstruction[],
+    oldDiagramInstructions: HighlightInstruction[]
+  ): Promise<void> => {
     const extensionPath = vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
     if (!extensionPath) {
       console.error("[Mermaid Diagram Diff] Unable to resolve extension path");
@@ -108,10 +106,24 @@ export function openDiagramDiffWebviews(oldContent: string, newContent: string):
         ],
       });
     }, 150);
-    }).catch(error => {
-      console.error('[Mermaid Diagram Diff] Error in async diff calculation:', error);
-      vscode.window.showErrorMessage(`Failed to calculate diagram differences: ${error.message}`);
-    });
+  };
+
+  try {
+    const { diagramText: oldDiagramText } = splitFrontMatter(oldContent);
+    const { diagramText: newDiagramText } = splitFrontMatter(newContent);
+
+    void calculateDiagramDiff(oldDiagramText, newDiagramText)
+      .then(async (diagramDiff) => {
+        const { newDiagramInstructions, oldDiagramInstructions } =
+          await createHighlightInstructions(diagramDiff);
+        await openPanels(oldDiagramText, newDiagramText, newDiagramInstructions, oldDiagramInstructions);
+      })
+      .catch(async (error: unknown) => {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error({ err: msg }, "[Mermaid Diagram Diff] AST diff failed; opening previews without highlights");
+        vscode.window.showWarningMessage(`Diagram diff highlights unavailable: ${msg}`);
+        await openPanels(oldDiagramText, newDiagramText, [], []);
+      });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[Mermaid Diagram Diff] Error opening diagram diff view:", err);

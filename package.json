@@ -39,7 +39,8 @@
   ],
   "capabilities": {
     "authentication": [
-      "mermaidChartAuthProvider"
+      "mermaidChartAuthProvider",
+      "github"
     ]
   },
   "activationEvents": [
@@ -761,6 +762,11 @@
           "command": "mermaidChart.connectDiagramToMermaidChart",
           "when": "(resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/) && !mermaid.hasId",
           "group": "navigation"
+        },
+        {
+          "command": "mermaidChart.reviewBotCommits",
+          "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/",
+          "group": "botReview"
         }
       ]
     },
@@ -879,6 +885,58 @@
       {
         "command": "mermaidChart.openDiagramDiffWebviews",
         "title": "MermaidChart: Open Diagram Diff (Current vs Updated)"
+      },
+      {
+        "command": "mermaidChart.reviewBotCommits",
+        "title": "MermaidChart: Review Mermaid Diagram sync app Commits"
+      },
+      {
+        "command": "mermaidChart.showBotSyncInfo",
+        "title": "MermaidChart: Show app Sync Info"
+      },
+      {
+        "command": "mermaidChart.showBotReviewStatus",
+        "title": "MermaidChart: Show app Review Status"
+      },
+      {
+        "command": "mermaidChart.commitBotReview",
+        "title": "MermaidChart: Commit app Review"
+      },
+      {
+        "command": "mermaidChart.acceptModifiedChanges",
+        "title": "MermaidChart: Accept Modified app Review"
+      },
+      {
+        "command": "mermaidChart.botReviewBackToPending",
+        "title": "MermaidChart: app Review — Back to Pending (restore app proposal)"
+      },
+      {
+        "command": "mermaidChart.submitBotReview",
+        "title": "MermaidChart: Close app Review (this file)"
+      },
+      {
+        "command": "mermaidChart.openBotReview",
+        "title": "MermaidChart: Open app Review"
+      },
+      {
+        "command": "mermaidChart.openReviewFileDiff",
+        "title": "MermaidChart: Open Review File Diff"
+      },
+      {
+        "command": "mermaidChart.botReviewAccept",
+        "title": "MermaidChart: Accept app Review"
+      },
+      {
+        "command": "mermaidChart.botReviewReject",
+        "title": "MermaidChart: Reject app Review"
+      },
+      {
+        "command": "mermaidChart.connectGitHub",
+        "title": "MermaidChart: Connect GitHub for Mermaid Diagram sync app"
+      },
+      {
+        "command": "mermaidChart.disconnectGitHub",
+        "title": "MermaidChart: Disconnect GitHub for Mermaid Diagram sync app"
       }
     ],
     "chatParticipants": [
@@ -1098,6 +1156,7 @@
     "@mermaidchart/sdk": "0.2.3",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",
     "@vscode/prompt-tsx": "^0.3.0-alpha.12",
+    "@octokit/rest": "^19.0.0",
     "axios": "^1.7.9",
     "markdown-it": "^14.1.0",
     "@mermaid-chart/mermaid": "11.14.0-b.2",

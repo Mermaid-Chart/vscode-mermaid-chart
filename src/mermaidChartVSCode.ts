@@ -107,6 +107,10 @@ export class MermaidChartVSCode extends MermaidChart {
     return this.handleApiCall(() => super.repairDiagram(request));
   }
 
+  public async regenerateDiagram(request: any): Promise<any> {
+    return this.handleApiCall(() => super.regenerateDiagram(request));
+  }
+
   public async getAICredits(): Promise<any> {
     return this.handleApiCall(() => super.getAICredits());
   }

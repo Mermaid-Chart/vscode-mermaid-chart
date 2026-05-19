@@ -662,6 +662,11 @@
           "type": "boolean",
           "default": "false",
           "description": "Automatic name suggestion for exported diagrams"
+        },
+        "mermaidChart.preCommitSync.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable pre-commit Mermaid diagram sync. When enabled, you will be notified to regenerate diagrams when staged source files match diagram references."
         }
       }
     },
@@ -879,6 +884,10 @@
       {
         "command": "mermaidChart.openDiagramDiffWebviews",
         "title": "MermaidChart: Open Diagram Diff (Current vs Updated)"
+      },
+      {
+        "command": "mermaidChart.regenerateDiagramWithMermaidAI",
+        "title": "MermaidChart: Regenerate with Mermaid AI"
       }
     ],
     "chatParticipants": [

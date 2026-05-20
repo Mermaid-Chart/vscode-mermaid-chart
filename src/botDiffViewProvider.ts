@@ -3,6 +3,7 @@ import * as path from "path";
 import * as crypto from "crypto";
 import * as os from "node:os";
 import { BotReviewIntegration, type ReviewFileMapping } from "./botReviewIntegration";
+import { reviewPathKey } from "./botReviewPaths";
 import { BotFileDecorationProvider } from "./botFileDecorationProvider";
 import { openDiagramDiffWebviews } from "./commercial/sync/diagramDiffView";
 
@@ -13,7 +14,7 @@ function fileUrisMatch(a: vscode.Uri, b: vscode.Uri): boolean {
   if (a.toString() === b.toString()) {
     return true;
   }
-  return path.normalize(a.fsPath) === path.normalize(b.fsPath);
+  return reviewPathKey(a.fsPath) === reviewPathKey(b.fsPath);
 }
 
 /**
@@ -41,7 +42,7 @@ export class BotDiffViewProvider {
   ) {}
 
   async restoreBotProposalAndPending(fileUri: vscode.Uri): Promise<void> {
-    const mapping = this.botReviewIntegration.getReviewMapping(path.normalize(fileUri.fsPath));
+    const mapping = this.botReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
       return;
     }
@@ -60,9 +61,9 @@ export class BotDiffViewProvider {
 
   /** Close any open bot diff session for this diagram (e.g. before Submit). */
   async cancelSessionsForOriginal(originalFilePath: string): Promise<void> {
-    const n = path.normalize(originalFilePath);
+    const n = reviewPathKey(originalFilePath);
     for (const s of [...this.sessionsByIncoming.values()]) {
-      if (path.normalize(s.originalFilePath) === n) {
+      if (reviewPathKey(s.originalFilePath) === n) {
         await this.cleanupBotDiffSession(s);
       }
     }
@@ -70,7 +71,7 @@ export class BotDiffViewProvider {
 
   /** `fileUri` must be the real workspace diagram file. */
   async showBotDiff(fileUri: vscode.Uri): Promise<void> {
-    const mapping = this.botReviewIntegration.getReviewMapping(path.normalize(fileUri.fsPath));
+    const mapping = this.botReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
       vscode.window.showErrorMessage(
         "No active bot review for this file. Run MermaidChart: Review Bot Commits from the command palette."
@@ -179,9 +180,9 @@ export class BotDiffViewProvider {
   }
 
   private findSessionByOriginal(originalFilePath: string): BotDiffSession | undefined {
-    const n = path.normalize(originalFilePath);
+    const n = reviewPathKey(originalFilePath);
     for (const s of this.sessionsByIncoming.values()) {
-      if (path.normalize(s.originalFilePath) === n) {
+      if (reviewPathKey(s.originalFilePath) === n) {
         return s;
       }
     }
@@ -255,7 +256,7 @@ export class BotDiffViewProvider {
   }
 
   async acceptBotChanges(fileUri: vscode.Uri): Promise<void> {
-    const mapping = this.botReviewIntegration.getReviewMapping(path.normalize(fileUri.fsPath));
+    const mapping = this.botReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
       return;
     }
@@ -275,7 +276,7 @@ export class BotDiffViewProvider {
   }
 
   async rejectBotChanges(fileUri: vscode.Uri): Promise<void> {
-    const mapping = this.botReviewIntegration.getReviewMapping(path.normalize(fileUri.fsPath));
+    const mapping = this.botReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
       return;
     }

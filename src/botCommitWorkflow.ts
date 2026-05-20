@@ -5,6 +5,7 @@ import { spawn } from "child_process";
 import { BotReviewIntegration } from "./botReviewIntegration";
 import type { BotReviewGitStatusTracker } from "./botReviewGitStatus";
 import type { GitExtensionExports } from "./types";
+import { resolveReviewFilePath, reviewPathKey } from "./botReviewPaths";
 
 function runGit(cwd: string, args: string[]): Promise<{ code: number; stderr: string }> {
   return new Promise((resolve, reject) => {
@@ -35,8 +36,8 @@ async function pushWithBuiltInGitExtension(gitRoot: string): Promise<void> {
     await ext.activate();
   }
   const api = ext.exports.getAPI(1);
-  const norm = path.normalize(gitRoot);
-  let repo = api.repositories.find((r) => path.normalize(r.rootUri.fsPath) === norm);
+  const norm = reviewPathKey(gitRoot);
+  let repo = api.repositories.find((r) => reviewPathKey(r.rootUri.fsPath) === norm);
   if (!repo && api.repositories.length === 1) {
     repo = api.repositories[0];
   }
@@ -61,7 +62,7 @@ export class BotCommitWorkflow {
       return;
     }
 
-    const abs = path.normalize(fileUri.fsPath);
+    const abs = resolveReviewFilePath(fileUri.fsPath);
     if (!this.gitStatusTracker.isDirtySync(abs)) {
       vscode.window.showInformationMessage(
         "No uncommitted changes for this file (git status clean). Nothing to commit."
@@ -73,7 +74,7 @@ export class BotCommitWorkflow {
 
     try {
 
-      const gitRoot = (await this.botReviewIntegration.resolveGitRepositoryRoot(root)) ?? path.normalize(root);
+      const gitRoot = (await this.botReviewIntegration.resolveGitRepositoryRoot(root)) ?? resolveReviewFilePath(root);
       const rel = path.relative(gitRoot, abs).split(path.sep).join("/");
       if (rel.startsWith("..") || path.isAbsolute(rel)) {
         vscode.window.showErrorMessage("File is not under the git repository root.");

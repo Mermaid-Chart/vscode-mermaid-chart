@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { spawn } from "child_process";
 import type { BotReviewIntegration } from "./botReviewIntegration";
+import { resolveReviewFilePath, reviewPathKey } from "./botReviewPaths";
 
 function runGitStdout(cwd: string, args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
@@ -34,7 +35,7 @@ export class BotReviewGitStatusTracker implements vscode.Disposable {
 
   /** Last known value; false if never checked or known clean. */
   isDirtySync(normalizedAbsolutePath: string): boolean {
-    return this.dirtyByNormalizedPath.get(path.normalize(normalizedAbsolutePath)) === true;
+    return this.dirtyByNormalizedPath.get(reviewPathKey(normalizedAbsolutePath)) === true;
   }
 
   async refreshPath(normalizedAbsolutePath: string): Promise<void> {
@@ -46,34 +47,34 @@ export class BotReviewGitStatusTracker implements vscode.Disposable {
     if (!gitRoot) {
       return;
     }
-    const n = path.normalize(normalizedAbsolutePath);
-    const rel = path.relative(gitRoot, n);
+    const resolved = resolveReviewFilePath(normalizedAbsolutePath);
+    const key = reviewPathKey(resolved);
+    const rel = path.relative(gitRoot, resolved);
     if (rel.startsWith("..") || path.isAbsolute(rel)) {
-      this.dirtyByNormalizedPath.set(n, false);
+      this.dirtyByNormalizedPath.set(key, false);
       this._onDidChangeDirty.fire();
       return;
     }
     const relPosix = rel.split(path.sep).join("/");
     const r = await runGitStdout(gitRoot, ["status", "--porcelain", "--", relPosix]);
     const dirty = r.code === 0 && r.stdout.trim().length > 0;
-    this.dirtyByNormalizedPath.set(n, dirty);
+    this.dirtyByNormalizedPath.set(key, dirty);
     this._onDidChangeDirty.fire();
   }
 
   async refreshAllMapped(): Promise<void> {
-    const keys = [...this.botReviewIntegration.getReviewMappings().keys()];
-    for (const k of keys) {
-      await this.refreshPath(k);
+    for (const mapping of this.botReviewIntegration.getReviewMappings().values()) {
+      await this.refreshPath(mapping.originalFilePath);
     }
   }
 
   invalidatePath(normalizedAbsolutePath: string): void {
-    this.dirtyByNormalizedPath.delete(path.normalize(normalizedAbsolutePath));
+    this.dirtyByNormalizedPath.delete(reviewPathKey(normalizedAbsolutePath));
     this._onDidChangeDirty.fire();
   }
 
   scheduleRefreshPath(normalizedAbsolutePath: string, delayMs = 400): void {
-    const n = path.normalize(normalizedAbsolutePath);
+    const n = reviewPathKey(normalizedAbsolutePath);
     const prev = this.debounceTimers.get(n);
     if (prev) {
       clearTimeout(prev);

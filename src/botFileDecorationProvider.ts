@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { BotReviewIntegration, type ReviewFileMapping } from "./botReviewIntegration";
+import { reviewPathKey } from "./botReviewPaths";
 
 /** Purple tint in the explorer for in-review files and their parent folders (no badge/icons on names). */
 const REVIEW_PURPLE = new vscode.ThemeColor("charts.purple");
@@ -17,7 +18,7 @@ export class BotFileDecorationProvider implements vscode.FileDecorationProvider 
     if (!this.parentFolderToMappings) {
       const m = new Map<string, ReviewFileMapping[]>();
       for (const mapping of this.botReviewIntegration.getReviewMappings().values()) {
-        const parent = path.normalize(path.dirname(mapping.originalFilePath));
+        const parent = reviewPathKey(path.dirname(mapping.originalFilePath));
         const list = m.get(parent);
         if (list) {
           list.push(mapping);
@@ -57,7 +58,7 @@ export class BotFileDecorationProvider implements vscode.FileDecorationProvider 
     if (uri.scheme !== "file") {
       return undefined;
     }
-    const normalized = path.normalize(uri.fsPath);
+    const normalized = reviewPathKey(uri.fsPath);
 
     const mapping = this.botReviewIntegration.getReviewMapping(normalized);
     if (mapping) {
@@ -82,13 +83,13 @@ export class BotFileDecorationProvider implements vscode.FileDecorationProvider 
 
   refresh(): void {
     this.parentFolderToMappings = null;
-    const parents = new Set<string>();
-    for (const key of this.botReviewIntegration.getReviewMappings().keys()) {
-      this._onDidChangeFileDecorations.fire(vscode.Uri.file(key));
-      parents.add(path.normalize(path.dirname(key)));
+    const parentDirs = new Set<string>();
+    for (const mapping of this.botReviewIntegration.getReviewMappings().values()) {
+      this._onDidChangeFileDecorations.fire(vscode.Uri.file(mapping.originalFilePath));
+      parentDirs.add(path.dirname(mapping.originalFilePath));
     }
-    for (const p of parents) {
-      this._onDidChangeFileDecorations.fire(vscode.Uri.file(p));
+    for (const parentDir of parentDirs) {
+      this._onDidChangeFileDecorations.fire(vscode.Uri.file(parentDir));
     }
     this._onDidChangeFileDecorations.fire(undefined);
   }
@@ -97,13 +98,15 @@ export class BotFileDecorationProvider implements vscode.FileDecorationProvider 
     originalFilePath: string,
     status: "pending" | "accepted" | "rejected" | "modified"
   ): void {
-    const mapping = this.botReviewIntegration.getReviewMapping(path.normalize(originalFilePath));
+    const mapping = this.botReviewIntegration.getReviewMapping(originalFilePath);
     if (mapping) {
       mapping.status = status;
       this.parentFolderToMappings = null;
-      const uri = vscode.Uri.file(originalFilePath);
+      const uri = vscode.Uri.file(mapping.originalFilePath);
       this._onDidChangeFileDecorations.fire(uri);
-      this._onDidChangeFileDecorations.fire(vscode.Uri.file(path.normalize(path.dirname(originalFilePath))));
+      this._onDidChangeFileDecorations.fire(
+        vscode.Uri.file(path.dirname(mapping.originalFilePath))
+      );
     }
   }
 

@@ -888,7 +888,7 @@
       },
       {
         "command": "mermaidChart.reviewBotCommits",
-        "title": "MermaidChart: Review Mermaid Diagram sync app Commits"
+        "title": "MermaidChart: Review Mermaid Diagram Sync App Commits"
       },
       {
         "command": "mermaidChart.showBotSyncInfo",

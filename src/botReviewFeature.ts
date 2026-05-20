@@ -1,11 +1,13 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { BotReviewIntegration } from "./botReviewIntegration";
+import { resolveReviewFilePath } from "./botReviewPaths";
 import { BotReviewGitStatusTracker } from "./botReviewGitStatus";
 import { BotFileDecorationProvider } from "./botFileDecorationProvider";
 import { BotDiffViewProvider } from "./botDiffViewProvider";
 import { BotReviewCodeLensProvider } from "./botReviewCodeLensProvider";
 import { BotCommitWorkflow } from "./botCommitWorkflow";
+import { BotReviewGitPullWatcher } from "./botReviewGitPullWatcher";
 
 /**
  * Facade that owns all bot review sub-components and wires them together.
@@ -18,6 +20,7 @@ export class BotReviewFeature implements vscode.Disposable {
   private readonly diffViewProvider: BotDiffViewProvider;
   private readonly codeLensProvider: BotReviewCodeLensProvider;
   private readonly commitWorkflow: BotCommitWorkflow;
+  private readonly gitPullWatcher: BotReviewGitPullWatcher;
 
   constructor() {
     this.integration = new BotReviewIntegration();
@@ -26,12 +29,14 @@ export class BotReviewFeature implements vscode.Disposable {
     this.diffViewProvider = new BotDiffViewProvider(this.integration, this.fileDecorationProvider);
     this.codeLensProvider = new BotReviewCodeLensProvider(this.integration, this.gitStatusTracker);
     this.commitWorkflow = new BotCommitWorkflow(this.integration, this.gitStatusTracker);
+    this.gitPullWatcher = new BotReviewGitPullWatcher(this.integration);
   }
 
   register(context: vscode.ExtensionContext): void {
     this.registerProviders(context);
     this.registerCommands(context);
     this.registerEventListeners(context);
+    this.gitPullWatcher.start(context);
     context.subscriptions.push(this);
   }
 
@@ -97,21 +102,21 @@ export class BotReviewFeature implements vscode.Disposable {
         const target = uri ?? vscode.window.activeTextEditor?.document.uri;
         if (target) {
           await this.diffViewProvider.acceptBotChanges(target);
-          void this.gitStatusTracker.refreshPath(path.normalize(target.fsPath));
+          void this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
       vscode.commands.registerCommand("mermaidChart.botReviewReject", async (uri?: vscode.Uri) => {
         const target = uri ?? vscode.window.activeTextEditor?.document.uri;
         if (target) {
           await this.diffViewProvider.rejectBotChanges(target);
-          void this.gitStatusTracker.refreshPath(path.normalize(target.fsPath));
+          void this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
       vscode.commands.registerCommand("mermaidChart.botReviewBackToPending", async (uri?: vscode.Uri) => {
         const target = uri ?? vscode.window.activeTextEditor?.document.uri;
         if (target) {
           await this.diffViewProvider.restoreBotProposalAndPending(target);
-          void this.gitStatusTracker.refreshPath(path.normalize(target.fsPath));
+          void this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
 
@@ -126,7 +131,7 @@ export class BotReviewFeature implements vscode.Disposable {
         if (!target) {
           return;
         }
-        const absolutePath = path.normalize(target.fsPath);
+        const absolutePath = resolveReviewFilePath(target.fsPath);
         await this.diffViewProvider.cancelSessionsForOriginal(absolutePath);
         const removed = this.integration.removeReviewForFile(absolutePath);
         this.gitStatusTracker.invalidatePath(absolutePath);
@@ -148,7 +153,7 @@ export class BotReviewFeature implements vscode.Disposable {
         if (doc.uri.scheme !== "file") {
           return;
         }
-        const filePath = path.normalize(doc.uri.fsPath);
+        const filePath = resolveReviewFilePath(doc.uri.fsPath);
         if (this.integration.getReviewMapping(filePath)) {
           void this.gitStatusTracker.refreshPath(filePath);
         }
@@ -157,7 +162,7 @@ export class BotReviewFeature implements vscode.Disposable {
         if (e.document.uri.scheme !== "file") {
           return;
         }
-        const filePath = path.normalize(e.document.uri.fsPath);
+        const filePath = resolveReviewFilePath(e.document.uri.fsPath);
         if (this.integration.getReviewMapping(filePath)) {
           this.gitStatusTracker.scheduleRefreshPath(filePath);
         }
@@ -182,6 +187,7 @@ export class BotReviewFeature implements vscode.Disposable {
   }
 
   dispose(): void {
+    this.gitPullWatcher.dispose();
     this.integration.dispose();
     this.gitStatusTracker.dispose();
     this.fileDecorationProvider.dispose();

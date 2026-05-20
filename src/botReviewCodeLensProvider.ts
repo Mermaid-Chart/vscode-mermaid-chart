@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { BotReviewIntegration, type ReviewFileMapping } from "./botReviewIntegration";
 import type { BotReviewGitStatusTracker } from "./botReviewGitStatus";
+import { reviewPathKey } from "./botReviewPaths";
 
 export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
   private readonly _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
@@ -13,7 +14,7 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
   ) {}
 
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
-    const mapping = this.botReviewIntegration.getReviewMapping(path.normalize(document.uri.fsPath));
+    const mapping = this.botReviewIntegration.getReviewMapping(document.uri.fsPath);
     if (!mapping) {
       return [];
     }
@@ -101,7 +102,7 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
       );
     }
 
-    const norm = path.normalize(fileUri.fsPath);
+    const norm = reviewPathKey(fileUri.fsPath);
     if (this.gitStatusTracker.isDirtySync(norm)) {
       lenses.push(
         new vscode.CodeLens(top, {
@@ -165,7 +166,7 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
   }
 
   async showBotSyncInfo(fileUri: vscode.Uri): Promise<void> {
-    const mapping = this.botReviewIntegration.getReviewMapping(path.normalize(fileUri.fsPath));
+    const mapping = this.botReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
       return;
     }
@@ -204,13 +205,13 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
   }
 
   async acceptModifiedChanges(fileUri: vscode.Uri): Promise<void> {
-    const mapping = this.botReviewIntegration.getReviewMapping(path.normalize(fileUri.fsPath));
+    const mapping = this.botReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
       return;
     }
     mapping.status = "accepted";
     this.botReviewIntegration.notifyReviewMappingsChanged();
-    void this.gitStatusTracker.refreshPath(path.normalize(fileUri.fsPath));
+    void this.gitStatusTracker.refreshPath(fileUri.fsPath);
     vscode.window.showInformationMessage(`Marked accepted for ${path.basename(fileUri.fsPath)}`);
   }
 

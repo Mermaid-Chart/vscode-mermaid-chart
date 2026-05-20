@@ -3,6 +3,11 @@ import * as path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { Octokit } from "@octokit/rest";
+import {
+  GITHUB_REST_API_VERSION,
+  resolveReviewFilePath,
+  reviewPathKey,
+} from "./botReviewPaths";
 
 const execAsync = promisify(exec);
 
@@ -27,6 +32,15 @@ export interface ReviewFileMapping {
   status: "pending" | "accepted" | "rejected" | "modified";
 }
 
+/** How bot review was started — controls notifications and auth prompts. */
+export type BotReviewTrigger = "manual" | "git-update";
+
+export interface ReviewBotCommitsOptions {
+  trigger?: BotReviewTrigger;
+  /** HEAD before pull — scan only commits between this and current HEAD. */
+  fromSHA?: string;
+}
+
 export class BotReviewIntegration {
   private reviewMappings: Map<string, ReviewFileMapping> = new Map();
   private octokit: Octokit | null = null;
@@ -42,50 +56,83 @@ export class BotReviewIntegration {
     this._onDidChangePendingReviews.fire();
   }
 
-  async reviewBotCommits(): Promise<void> {
+  async reviewBotCommits(options: ReviewBotCommitsOptions = {}): Promise<void> {
+    const trigger = options.trigger ?? "manual";
+    const silent = trigger === "git-update";
+
     try {
       const workspaceRoot = this.getWorkspaceRoot();
       if (!workspaceRoot) {
-        vscode.window.showErrorMessage("Open a folder workspace to review bot commits.");
+        if (!silent) {
+          vscode.window.showErrorMessage("Open a folder workspace to review bot commits.");
+        }
         return;
       }
 
-      await this.ensureGitHubAuthentication();
+      const authed = await this.ensureGitHubAuthentication(silent);
+      if (!authed) {
+        return;
+      }
+
       this.githubContext = null;
       const gh = await this.getCurrentGitHubContext();
       if (!gh?.pr) {
-        vscode.window.showErrorMessage(
-          "No open GitHub pull request found for this branch. Bot review needs PR base content from GitHub."
-        );
+        if (!silent) {
+          vscode.window.showErrorMessage(
+            "No open GitHub pull request found for this branch. Bot review needs PR base content from GitHub."
+          );
+        }
         return;
       }
 
       const gitRoot =
-        (await this.getGitRepositoryRoot(workspaceRoot)) ?? path.normalize(workspaceRoot);
-      const baseSHA = gh.pr.base.sha;
+        (await this.getGitRepositoryRoot(workspaceRoot)) ?? resolveReviewFilePath(workspaceRoot);
       const { stdout: headShaOut } = await execAsync("git rev-parse HEAD", { cwd: workspaceRoot });
       const headSHA = headShaOut.trim();
       if (!headSHA) {
-        vscode.window.showErrorMessage("Could not read HEAD. Is this a git repository?");
+        if (!silent) {
+          vscode.window.showErrorMessage("Could not read HEAD. Is this a git repository?");
+        }
         return;
       }
 
-      const relPaths = await this.collectBotTouchedMermaidRelPaths(gitRoot, baseSHA);
+      // Manual: entire PR (PR base → HEAD). Pull: only this pull (pre-pull HEAD → HEAD).
+      const fromSHA = options.fromSHA ?? gh.pr.base.sha;
+      const clearExisting = !options.fromSHA;
+
+      const relPaths = await this.collectBotTouchedMermaidRelPaths(gitRoot, fromSHA);
       if (relPaths.length === 0) {
-        vscode.window.showInformationMessage(
-          "No .mmd/.mermaid files touched by Mermaid Diagram Sync bot commits between PR base and HEAD."
-        );
+        if (!silent) {
+          vscode.window.showInformationMessage(
+            "No .mmd/.mermaid files touched by Mermaid Diagram Sync bot commits in the selected range."
+          );
+        }
         return;
       }
 
-      await this.registerPendingBotReviews(workspaceRoot, gitRoot, baseSHA, headSHA, relPaths);
-
-      vscode.window.showInformationMessage(
-        `Marked ${relPaths.length} diagram file(s) for bot review. Open each file for Review / Accept / Reject / Submit.`
+      await this.registerPendingBotReviews(
+        workspaceRoot,
+        gitRoot,
+        fromSHA,
+        headSHA,
+        relPaths,
+        silent,
+        clearExisting
       );
+
+      const message = `Mermaid Diagram Sync updated ${relPaths.length} diagram file(s). Open each file to Review / Accept / Reject from CodeLens.`;
+      if (silent) {
+        vscode.window.showInformationMessage(message);
+      } else {
+        vscode.window.showInformationMessage(
+          `Marked ${relPaths.length} diagram file(s) for bot review. Open each file for Review / Accept / Reject / Submit.`
+        );
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      vscode.window.showErrorMessage(`Bot review failed: ${msg}`);
+      if (!silent) {
+        vscode.window.showErrorMessage(`Bot review failed: ${msg}`);
+      }
     }
   }
 
@@ -96,9 +143,11 @@ export class BotReviewIntegration {
   private async registerPendingBotReviews(
     workspaceRoot: string,
     gitRoot: string,
-    baseSHA: string,
+    originalSHA: string,
     headSHA: string,
-    relativeMermaidPaths: string[]
+    relativeMermaidPaths: string[],
+    silent = false,
+    clearExisting = true
   ): Promise<void> {
     const context = this.githubContext;
     if (!context || !this.octokit) {
@@ -112,7 +161,9 @@ export class BotReviewIntegration {
       /* not present */
     }
 
-    this.reviewMappings.clear();
+    if (clearExisting) {
+      this.reviewMappings.clear();
+    }
 
     for (const rel of relativeMermaidPaths) {
       const relPosix = rel.split(path.sep).join("/");
@@ -123,7 +174,7 @@ export class BotReviewIntegration {
           context.owner,
           context.repo,
           relPosix,
-          baseSHA
+          originalSHA
         );
       } catch {
         originalContent = "";
@@ -136,14 +187,16 @@ export class BotReviewIntegration {
           headSHA
         );
       } catch (e) {
-        vscode.window.showWarningMessage(
-          `Skipping ${relPosix}: could not load file at HEAD from GitHub.`
-        );
+        if (!silent) {
+          vscode.window.showWarningMessage(
+            `Skipping ${relPosix}: could not load file at HEAD from GitHub.`
+          );
+        }
         continue;
       }
 
-      const originalFilePath = path.normalize(path.join(gitRoot, relPosix));
-      this.reviewMappings.set(originalFilePath, {
+      const originalFilePath = resolveReviewFilePath(path.join(gitRoot, relPosix));
+      this.reviewMappings.set(reviewPathKey(originalFilePath), {
         originalFilePath,
         originalContent,
         botContent,
@@ -204,8 +257,8 @@ export class BotReviewIntegration {
 
   /** Remove a single file from active bot review (Submit, or after push). */
   removeReviewForFile(absoluteFilePath: string): boolean {
-    const n = path.normalize(absoluteFilePath);
-    if (this.reviewMappings.delete(n)) {
+    const key = reviewPathKey(absoluteFilePath);
+    if (this.reviewMappings.delete(key)) {
       this.notifyReviewMappingsChanged();
       return true;
     }
@@ -226,7 +279,10 @@ export class BotReviewIntegration {
 
   async connectGitHub(): Promise<void> {
     try {
-      await this.ensureGitHubAuthentication();
+      const authed = await this.ensureGitHubAuthentication(false);
+      if (!authed) {
+        throw new Error("GitHub sign-in was cancelled.");
+      }
       vscode.window.showInformationMessage("Connected to GitHub successfully.");
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -250,14 +306,18 @@ export class BotReviewIntegration {
     );
   }
 
-  private async ensureGitHubAuthentication(): Promise<void> {
+  private async ensureGitHubAuthentication(silent = false): Promise<boolean> {
     const session = await vscode.authentication.getSession("github", ["repo"], {
-      createIfNone: true,
+      createIfNone: !silent,
     });
     if (!session) {
-      throw new Error("GitHub sign-in was cancelled.");
+      return false;
     }
-    this.octokit = new Octokit({ auth: session.accessToken });
+    this.octokit = new Octokit({
+      auth: session.accessToken,
+      headers: { "X-GitHub-Api-Version": GITHUB_REST_API_VERSION },
+    });
+    return true;
   }
 
   private async getCurrentGitHubContext(): Promise<GitHubContext | null> {
@@ -350,14 +410,14 @@ export class BotReviewIntegration {
 
   /** Lookup by absolute path to the real diagram file (normalized). */
   getReviewMapping(originalFilePath: string): ReviewFileMapping | undefined {
-    return this.reviewMappings.get(path.normalize(originalFilePath));
+    return this.reviewMappings.get(reviewPathKey(originalFilePath));
   }
 
   private async getGitRepositoryRoot(cwd: string): Promise<string | null> {
     try {
       const { stdout } = await execAsync("git rev-parse --show-toplevel", { cwd });
       const root = stdout.trim();
-      return root ? path.normalize(root) : null;
+      return root ? resolveReviewFilePath(root) : null;
     } catch (e) {
       return null;
     }

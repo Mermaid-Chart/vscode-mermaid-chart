@@ -1,9 +1,29 @@
-out
-dist
-node_modules
-.vscode-test/
+# Dependencies
+node_modules/
+
+# Build output
+out/
+dist/
+dist-preview/
+dist-sidebar/
+target/
+*.tsbuildinfo
+
+# VS Code extension packaging
 *.vsix
+.vscode-test/
+
+# OS / editor cruft
 .DS_Store
+*.log
+
+# Local env / package manager config
 .npmrc
 webview/.npmrc
-dist-preview
+
+# Personal AI tooling state (keep shared rules)
+.claude/
+.cursor/plans/
+
+# Local examples scratchpad
+examples/.vscode/

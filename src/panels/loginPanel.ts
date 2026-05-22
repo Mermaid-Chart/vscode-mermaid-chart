@@ -8,56 +8,66 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
   private context: vscode.ExtensionContext;
   private _view?: vscode.WebviewView;
   private currentState: ViewState = 'login';
+  private refreshTimer?: ReturnType<typeof setTimeout>;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
   }
 
   resolveWebviewView(webviewView: vscode.WebviewView) {
-    this._view = webviewView; 
+    this._view = webviewView;
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(this.context.extensionUri, "images"),
-        vscode.Uri.joinPath(this.context.extensionUri, "media"),
-      ],
+      localResourceRoots: [this.context.extensionUri],
     };
-    this.updateWebviewContent();
+    try {
+      this.updateWebviewContent();
+    } catch (err) {
+      // If the template throws (missing asset, CSP issue, etc.) we MUST still
+      // populate webview.html — otherwise VS Code keeps showing the spinner
+      // forever and the user has no way to log in.
+      console.error("[MermaidWebviewProvider] failed to render login template:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      webviewView.webview.html = `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:16px;color:var(--vscode-foreground)"><h3>Sign in unavailable</h3><p>The sign-in panel failed to render. Open the Output panel (Mermaid Chart) for details.</p><pre style="white-space:pre-wrap;opacity:.7">${message.replace(/[<&]/g, (c) => (c === "<" ? "&lt;" : "&amp;"))}</pre></body></html>`;
+    }
 
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.command) {
         case "signIn":
-          // Show auth options instead of directly logging in
           this.currentState = 'authOptions';
           this.updateWebviewContent();
           break;
-          
+
         case "startOAuthFlow":
-          // Start the existing OAuth flow
           vscode.commands.executeCommand("mermaidChart.login");
           break;
-          
+
         case "validateManualToken":
-          // Handle manual token validation
           this.handleManualToken(message.token);
           break;
-          
+
         case "backToLogin":
-          // Go back to login screen
           this.currentState = 'login';
           this.updateWebviewContent();
           break;
       }
     });
   }
+
   refresh() {
-    if (this._view) {
-      this.currentState = 'login'; // Reset to login state on refresh
-      this.updateWebviewContent();
+    if (!this._view) {
+      return;
     }
+    // Debounce rapid refresh calls to prevent blank-webview flicker
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+    this.refreshTimer = setTimeout(() => {
+      this.currentState = 'login';
+      this.updateWebviewContent();
+    }, 150);
   }
 
-  // Reset state after successful authentication
   resetToLoginState() {
     this.currentState = 'login';
     if (this._view) {
@@ -66,14 +76,23 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
   }
 
   private updateWebviewContent() {
-    if (this._view) {
-      switch (this.currentState) {
-        case 'login':
-          this._view.webview.html = generateWebviewContent(this._view.webview, this.context.extensionUri);
-          break;
-        case 'authOptions':
-          this._view.webview.html = generateAuthOptionsContent(this._view.webview, this.context.extensionUri);
-          break;
+    if (!this._view) {
+      return;
+    }
+    switch (this.currentState) {
+      case 'login': {
+        this._view.webview.html = generateWebviewContent(
+          this._view.webview,
+          this.context.extensionUri
+        );
+        break;
+      }
+      case 'authOptions': {
+        this._view.webview.html = generateAuthOptionsContent(
+          this._view.webview,
+          this.context.extensionUri
+        );
+        break;
       }
     }
   }
@@ -85,7 +104,6 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     try {
-      // Show progress while validating
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -93,7 +111,6 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
           cancellable: false,
         },
         async () => {
-          // Trigger manual token validation command
           await vscode.commands.executeCommand("mermaidChart.validateManualToken", token.trim());
         }
       );

@@ -1,0 +1,100 @@
+%% Diagram overview
+%% TODO: describe what this diagram represents
+
+classDiagram
+    class Issue {
+        <<Abstract>>
+        +int id
+        +String title
+        +String description
+        +Status status
+        +User assignedTo
+        +start()
+        +complete()
+    }
+
+    class Bug {
+        +Severity severity
+        +String report()
+    }
+
+    class Epic {
+        +String featureDetails
+        +requestApproval()
+    }
+
+    class Story {
+        +int EpicID
+    }
+
+    class Task {
+        +Date deadline
+    }
+
+    class User {
+        <<Abstract>>
+        +int userId
+        +String username
+        +String email
+        +login()
+        +logout()
+    }
+    
+    class Admin {
+        +manageUsers()
+        +viewAllTasks()
+    }
+
+    class RegularUser {
+        +viewAssignedTasks()
+        +updateTaskStatus()
+    }
+
+    class TaskManager {
+        <<interface>>
+        +assignTask()
+        +removeTask()
+        +updateTask()
+    }
+    TaskManager <|.. TaskApp
+
+    class TaskApp {
+        +assignTask()
+        +removeTask()
+        +updateTask()
+        +getAllTasks()
+    }
+
+    class Status {
+        <<enumeration>>
+        New
+        Open
+        In Progress
+        Postponed
+        Closed
+    }
+
+    class Severity {
+        <<enumeration>>
+        Criticfvdfval
+        High
+        Medium
+        Low
+    }
+
+    Issue "1" -->  User : assignedTo
+    Issue "1" --> Status : has
+    Bug "1" --> Severity : has
+    Issue <|-- Bug : Inheritance
+    Issue <|-- Epic : Inheritance
+    Issue <|-- Task : Inheritance
+    Issue <|-- Story : Inheritance
+    Epic "0" --> "many" Story
+    User <|-- Admin
+    User <|-- RegularUser
+    
+    style Issue fill:#bfb,stroke:#6f6,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style User fill:#bfb,stroke:#6f6,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style TaskManager fill:#9ff,stroke:#369,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style Status fill:#ffb,stroke:#663,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style Severity fill:#ffb,stroke:#663,stroke-width:2px,color:#000,stroke-dasharray: 5 5

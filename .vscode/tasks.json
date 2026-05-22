@@ -2,8 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "type": "npm",
-      "script": "compile",
+      "label": "npm: compile",
+      "type": "shell",
+      "command": "pnpm compile",
       "group": "build",
       "presentation": {
         "reveal": "silent"
@@ -11,8 +12,9 @@
       "problemMatcher": "$tsc"
     },
     {
-      "type": "npm",
-      "script": "watch",
+      "label": "npm: watch",
+      "type": "shell",
+      "command": "pnpm run watch",
       "problemMatcher": "$tsc-watch",
       "isBackground": true,
       "presentation": {
@@ -24,9 +26,11 @@
       }
     },
     {
-      "type": "npm",
-      "script": "pretest",
-      "group": "test"
+      "label": "npm: pretest",
+      "type": "shell",
+      "command": "pnpm pretest",
+      "group": "test",
+      "problemMatcher": "$tsc"
     }
   ]
-} 
+}

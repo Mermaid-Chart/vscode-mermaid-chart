@@ -1,23 +1,13 @@
 import * as vscode from 'vscode';
 import path from 'path';
 import os from 'os';
+import { sendLanguageModelMessages } from './vscodeLanguageModel';
 
 /**
  * Attempts to generate a filename for a Mermaid diagram using AI
  */
 export async function generateDiagramFilenameWithAI(diagramCode: string): Promise<string | undefined> {
     try {
-        // Check if VS Code LM API is available
-        if (!vscode.lm) {
-            return undefined;
-        }
-        
-        // Try to get any available AI model
-        const [model] = await vscode.lm.selectChatModels({});
-        if (!model) {
-            return undefined;
-        }
-
         const messages = [
             vscode.LanguageModelChatMessage.Assistant('You generate concise, descriptive filenames for Mermaid diagrams.'),
             vscode.LanguageModelChatMessage.User(`Generate a short, descriptive filename (without extension) for this Mermaid diagram.
@@ -39,16 +29,13 @@ export async function generateDiagramFilenameWithAI(diagramCode: string): Promis
             
             Respond with only the filename.`)
           ];
-        
-        const response = await model.sendRequest(
+
+        let suggestedName = await sendLanguageModelMessages(
             messages,
-            {},
-            new vscode.CancellationTokenSource().token
-          );
-        // Process the response
-        let suggestedName = '';
-        for await (const chunk of response.text) {
-            suggestedName += chunk;
+            "Suggest a short filename when exporting a Mermaid diagram (Mermaid Chart extension)."
+        );
+        if (!suggestedName) {
+            return undefined;
         }
         
         // Clean and sanitize the filename

@@ -14,6 +14,7 @@ function renderMermaidElement(
     const diagramId = `mermaid-${crypto.randomUUID()}`;
 
     const source = mermaidContainer.textContent ?? '';
+    mermaidContainer.dataset.source = source;
     mermaidContainer.id = containerId;
     mermaidContainer.innerHTML = '';
 

@@ -25,6 +25,16 @@ const LIGHT_COLOR = "#1E1A2E";
 export const configSection = 'mermaid';
 
 
+/** Whether the Mermaid preview can run for this document (.mmd / .mermaid / mermaid language, or plaintext .mmd). */
+export function canOpenMermaidPreview(document: vscode.TextDocument): boolean {
+  return !(
+    document.languageId !== "plaintext" &&
+    !document.fileName.endsWith(".mmd") &&
+    !document.fileName.endsWith(".mermaid") &&
+    !document.languageId.startsWith("mermaid")
+  );
+}
+
 export const pattern : Record<string, RegExp> = {
   ".md": /```mermaid([\s\S]*?)```/g,
   ".html": /<div class=["']mermaid["']>([\s\S]*?)<\/div>/g,
@@ -125,6 +135,7 @@ export function findMermaidChartTokens(
       mermaidChartTokens.push({
         uuid,
         title: `Chart - ${uuid}`,
+        uri: document.uri,
         range: new vscode.Range(
           lineNumber,
           startCharacter,
@@ -340,6 +351,7 @@ export async function insertMermaidChartToken(
 export function updateViewVisibility(isLoggedIn: boolean,webviewProvider?: MermaidWebviewProvider,mermaidChartProvider?: MermaidChartProvider) {
   vscode.commands.executeCommand("setContext", "mermaid.showChart", isLoggedIn);
   vscode.commands.executeCommand("setContext", "mermaid.showWebview", !isLoggedIn);
+  vscode.commands.executeCommand("setContext", "mermaid.isLoggedIn", isLoggedIn);
   if (isLoggedIn) {
     mermaidChartProvider?.refresh();
   } else {

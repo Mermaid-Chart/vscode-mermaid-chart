@@ -3,6 +3,7 @@ import { PreviewPanel } from "../panels/previewPanel";
 import { TempFileCache } from "../cache/tempFileCache";
 import analytics from "../analytics";
 import { normalizeMermaidText } from "../frontmatter";
+import { canOpenMermaidPreview } from "../util";
 
 export async function createMermaidFile(
   context: vscode.ExtensionContext,
@@ -66,17 +67,14 @@ export async function createMermaidFile(
 
 export function getPreview() {
   const activeEditor = vscode.window.activeTextEditor;
-  
+
   if (!activeEditor) {
     vscode.window.showErrorMessage("No active editor. Open a .mmd file to preview.");
     return;
   }
 
   const document = activeEditor.document;
-  if (document.languageId !== "plaintext" && 
-      !document.fileName.endsWith(".mmd") && 
-      !document.fileName.endsWith(".mermaid") && 
-      !document.languageId.startsWith('mermaid')) {
+  if (!canOpenMermaidPreview(document)) {
     vscode.window.showErrorMessage("Mermaid Preview is only available for mermaid files.");
     return;
   }

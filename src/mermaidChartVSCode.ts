@@ -9,6 +9,8 @@ export class MermaidChartVSCode extends MermaidChart {
   private context?: vscode.ExtensionContext;
   private mermaidWebviewProvider?: MermaidWebviewProvider;
   private mermaidChartProvider?: MermaidChartProvider;
+  private isInitializing = false;
+  private logoutInProgress = false;
 
   constructor() {
     const baseURL = getBaseUrl();
@@ -25,8 +27,18 @@ export class MermaidChartVSCode extends MermaidChart {
     this.context = context;
     this.mermaidWebviewProvider = mermaidWebviewProvider;
     this.mermaidChartProvider = mermaidChartProvider;
-    await this.registerListeners(context, mermaidWebviewProvider);
-    await this.setupAPI();
+    this.isInitializing = true;
+    try {
+      this.registerListeners(context, mermaidWebviewProvider);
+      await this.setupAPI();
+    } finally {
+      this.isInitializing = false;
+    }
+  }
+
+  /** Force-clear the initializing flag (used when a timeout races ahead of the real promise). */
+  public clearInitializing(): void {
+    this.isInitializing = false;
   }
 
   // Wrapper method to handle API errors and auto-logout on 403/unauthorized
@@ -34,9 +46,7 @@ export class MermaidChartVSCode extends MermaidChart {
     try {
       return await apiCall();
     } catch (error: any) {
-      // Check if error is 403 or unauthorized
       if (this.isUnauthorizedError(error)) {
-        console.log('Unauthorized API call detected, logging out user');
         await this.handleUnauthorizedError();
         throw error;
       }
@@ -70,15 +80,56 @@ export class MermaidChartVSCode extends MermaidChart {
       return;
     }
 
+    if (this.isInitializing) {
+      console.debug('Skipping auto-logout during initialization');
+      return;
+    }
+
+    const session = await vscode.authentication.getSession(
+      MermaidChartAuthenticationProvider.id,
+      [],
+      { silent: true }
+    );
+    if (!session) {
+      return;
+    }
+
+    if (this.logoutInProgress) {
+      console.debug('Logout already in progress');
+      return;
+    }
+
+    console.debug('Mermaid Chart API returned unauthorized; clearing stored session');
+    this.logoutInProgress = true;
     try {
-      // Log out the user
-      await this.logout(this.context);
+      // Log out the user - wrap in try-catch to handle cancellation
+      try {
+        await this.logout(this.context);
+      } catch (logoutError: any) {
+        // Only log logout errors, don't let them propagate
+        if (logoutError && typeof logoutError === 'object') {
+          const errorMsg = logoutError.message || String(logoutError);
+          // Ignore cancellation errors as they're expected in some cases
+          if (!errorMsg.includes('Canceled')) {
+            console.error('Error during logout:', logoutError);
+          }
+        }
+      }
       
-      // Update view visibility to show login screen
-      updateViewVisibility(false, this.mermaidWebviewProvider);
-      
-    } catch (logoutError) {
-      console.error('Error during automatic logout:', logoutError);
+      updateViewVisibility(false, this.mermaidWebviewProvider, this.mermaidChartProvider);
+
+      setTimeout(() => vscode.commands.executeCommand("mermaidWebview.focus"), 300);
+
+      vscode.window.showErrorMessage(
+        'Your session has expired. Please log in again to continue using Mermaid Chart.',
+        'Login'
+      ).then(selection => {
+        if (selection === 'Login') {
+          vscode.commands.executeCommand('mermaidChart.login');
+        }
+      });
+    } finally {
+      this.logoutInProgress = false;
     }
   }
 
@@ -152,12 +203,24 @@ export class MermaidChartVSCode extends MermaidChart {
     );
 
     
-    /**
-     * Sessions are changed when a user logs in or logs out.
-     */
     context.subscriptions.push(
       vscode.authentication.onDidChangeSessions(async (e) => {
         if (e.provider.id === MermaidChartAuthenticationProvider.id) {
+          // During initialization the session is stale and API calls will 401.
+          // Only set/reset the token; let the activation flow handle UI visibility.
+          if (this.isInitializing) {
+            try {
+              const session = await Promise.race([
+                vscode.authentication.getSession(MermaidChartAuthenticationProvider.id, [], { silent: true }),
+                new Promise<undefined>((r) => setTimeout(() => r(undefined), 3000)),
+              ]);
+              if (session) {
+                this.setAccessToken(session.accessToken);
+              }
+            } catch { /* ignore during init */ }
+            return;
+          }
+
           const session = await vscode.authentication.getSession(
             MermaidChartAuthenticationProvider.id,
             [],
@@ -168,7 +231,7 @@ export class MermaidChartVSCode extends MermaidChart {
           } else {
             this.resetAccessToken();
           }
-  
+
           if (!session) {
             await context.globalState.update("isUserLoggedIn", false);
             updateViewVisibility(false, mermaidWebviewProvider, this.mermaidChartProvider);
@@ -190,13 +253,16 @@ export class MermaidChartVSCode extends MermaidChart {
   }
 
   private async setupAPI() {
-    const session = await vscode.authentication.getSession(
-      MermaidChartAuthenticationProvider.id,
-      [],
-      {
-        silent: true
-      }
-    );
+    // getSession can hang if the system keychain is slow or VS Code's auth
+    // internals are blocked. Use a 5-second timeout so activation continues.
+    const session = await Promise.race([
+      vscode.authentication.getSession(
+        MermaidChartAuthenticationProvider.id,
+        [],
+        { silent: true }
+      ),
+      new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 5000)),
+    ]);
     if (session) {
       this.setAccessToken(session.accessToken);
     }

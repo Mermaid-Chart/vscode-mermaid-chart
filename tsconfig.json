@@ -14,7 +14,7 @@
 		"sourceMap": true,
 		"skipLibCheck": true,
 		"resolveJsonModule": true,
-		"moduleResolution": "node",             /* Specify module resolution strategy: 'node', 'classic', 'node16', 'nodenext', or 'bundler'. */
+		"moduleResolution": "node",
 		"rootDir": ".",
 		"strict": true   /* enable all strict type-checking options */
 		/* Additional Checks */
@@ -23,6 +23,7 @@
 		// "noUnusedParameters": true,  /* Report errors on unused parameters. */
 	},
 	"exclude": [
-    "webview"
+    "webview",
+    "examples"
   ]
 }

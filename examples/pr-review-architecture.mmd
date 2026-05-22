@@ -1,0 +1,48 @@
+---
+title: PR Review — Slices 0/1/2 architecture
+---
+
+%% Diagram overview
+%% TODO: describe what this diagram represents
+flowchart TB
+    subgraph Source [Source of truth]
+        GitRepo[Git repo<br/>commit history]
+        SyncBot[Mermaid Sync<br/>GitHub App]
+        SyncBot --> GitRepo
+    end
+
+    subgraph Slice0 [Slice 0 · Detection]
+        Detector[BotEditDetector<br/>interface]
+        TrailerImpl[GitTrailerDetector<br/>reads commit trailer]
+        ParserFn[parseBotEditInfo<br/>pure helper]
+        TrailerImpl --> Detector
+        TrailerImpl --> ParserFn
+    end
+
+    subgraph Slice1 [Slice 1 · Passive surface]
+        CodeLens[BotEditCodeLensProvider<br/>banner at line 0]
+        FileDeco[BotEditFileDecorationProvider<br/>tab dot]
+    end
+
+    subgraph Slice2 [Slice 2 · Active review]
+        OpenReview[openReview<br/>orchestrator]
+        ContentProvider[BotEditContentProvider<br/>parent commit blob]
+        NodeDiff[diagramNodeDiff<br/>added vs removed ids]
+        DiffView[openDiagramDiffWebviews<br/>3-pane layout]
+        Actions[reviewActions<br/>Accept Reject Edit]
+    end
+
+    GitRepo --> TrailerImpl
+    Detector --> CodeLens
+    Detector --> FileDeco
+    CodeLens --> OpenReview
+    OpenReview --> ContentProvider
+    OpenReview --> NodeDiff
+    OpenReview --> DiffView
+    OpenReview --> Actions
+    Actions --> GitRepo
+
+    %% Styles
+    classDef primary fill:#4F46E5,stroke:#3730A3,color:#fff
+    classDef secondary fill:#059669,stroke:#047857,color:#fff
+    classDef accent fill:#D97706,stroke:#B45309,color:#fff

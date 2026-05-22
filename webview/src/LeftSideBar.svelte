@@ -18,6 +18,14 @@
   function handleExportClick() {
     dispatch('openExportModal');
   }
+
+  function handleCopyLink() {
+    dispatch('copyLink');
+  }
+
+  function handleSaveDiagram() {
+    dispatch('saveDiagram');
+  }
 </script>
 
 <style>
@@ -62,7 +70,35 @@
     background-color: var(--hover-bg);
   }
 
-  /* Dynamic theme variables set via style attribute */
+  .save-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border: none;
+    border-radius: 4px;
+    background-color: #E0095F;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    white-space: nowrap;
+    height: 32px;
+    box-sizing: border-box;
+    margin-left: 4px;
+  }
+
+  .save-btn:hover {
+    background-color: #c40065;
+  }
+
+  .save-btn svg {
+    flex-shrink: 0;
+  }
+
+  /* Theme variables (dynamically set via style attribute) */
   .left-sidebar {
     --hover-bg: rgba(0, 0, 0, 0.1);
     --divider-color: rgba(0, 0, 0, 0.1);
@@ -95,5 +131,30 @@
     title="Export"
   >
     <DownloadIcon fill={iconFillColor} />
+  </button>
+  
+  <!-- Copy link button -->
+  <button
+    class="icon"
+    on:click={handleCopyLink}
+    aria-label="Copy link"
+    title="Copy shareable link"
+  >
+    <svg width="16" height="16" viewBox="0 0 16 16" fill={iconFillColor}>
+      <path d="M7.775 3.275a.75.75 0 001.06 1.06l1.25-1.25a2 2 0 112.83 2.83l-2.5 2.5a2 2 0 01-2.83 0 .75.75 0 00-1.06 1.06 3.5 3.5 0 004.95 0l2.5-2.5a3.5 3.5 0 00-4.95-4.95l-1.25 1.25zm-4.55 7.45a.75.75 0 001.06 0l1.25-1.25a.75.75 0 10-1.06-1.06l-1.25 1.25a2 2 0 102.83 2.83l2.5-2.5a2 2 0 000-2.83.75.75 0 00-1.06 1.06 .5.5 0 010 .71l-2.5 2.5a.5.5 0 01-.71 0 .5.5 0 010-.71l1.25-1.25a.75.75 0 10-1.06-1.06l-1.25 1.25a2 2 0 000 2.83z"/>
+    </svg>
+  </button>
+
+  <!-- Save Diagram button -->
+  <button
+    class="save-btn"
+    on:click={handleSaveDiagram}
+    aria-label="Save Diagram"
+    title="Save diagram to Mermaid Chart"
+  >
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="#ffffff">
+      <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/>
+    </svg>
+    Save Diagram
   </button>
 </div>

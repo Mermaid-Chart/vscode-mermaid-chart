@@ -58,6 +58,14 @@
     isExportModalOpen = false;
   }
 
+  function handleCopyLink() {
+    vscode.postMessage({ type: "copyDiagramLink" });
+  }
+
+  function handleSaveDiagram() {
+    vscode.postMessage({ type: "saveDiagram" });
+  }
+
   function handleThemeChange(event) {
     const newTheme = event.detail.theme;
     theme = newTheme;
@@ -273,20 +281,10 @@
           message: errorMessage,
         });
         
-        // Always request AI credits when error occurs
         vscode.postMessage({
           type: "requestAICredits"
         });
-        
-        // If aiCredits is null, request it again after a short delay to ensure it gets fetched
-        if (!aiCredits) {
-          setTimeout(() => {
-            vscode.postMessage({
-              type: "requestAICredits"
-            });
-          }, 100);
-        }
-        
+
         hasErrorOccured = true
         element.innerHTML = "";
       }
@@ -787,6 +785,8 @@
       currentTheme={theme}
       on:openExportModal={handleOpenExportModal}
       on:themeChange={handleThemeChange}
+      on:copyLink={handleCopyLink}
+      on:saveDiagram={handleSaveDiagram}
     />
     <Sidebar {panEnabled} {sidebarBackgroundColor} {svgColor} accentColor={vscodeThemeColors.accentColor} {zoomLevel} {togglePan} {zoomOut} {resetView} {zoomIn} />
   {/if}

@@ -1,9 +1,11 @@
 import * as vscode from "vscode";
+import { createWebviewNonce, webviewCspMeta } from "./webviewHtmlHelpers";
 
 export function generateWebviewContent(
   webview: vscode.Webview,
   extensionUri: vscode.Uri
 ): string {
+  const nonce = createWebviewNonce();
   const logoSrc = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, "images", "panel.svg")
   );
@@ -17,7 +19,8 @@ export function generateWebviewContent(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MermaidChart</title>
+    ${webviewCspMeta(webview, nonce)}
+    <title>Mermaid (Test)</title>
 
 
     <style>
@@ -37,25 +40,24 @@ export function generateWebviewContent(
          }
 
     body {
-     
-      height: 100vh;
+      margin: 0;
+      min-height: 100vh;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
       background-color: var(--vscode-bg);
       font-family: "Recursive", serif;
-
+      overflow-y: auto;
     }
 
     .container {
-      
-      max-width: 340px; 
-      
+      margin-top: auto;
+      margin-bottom: auto;
+      max-width: 340px;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 20px;
-
     }
 
     .logo-container {
@@ -110,9 +112,9 @@ export function generateWebviewContent(
       border: none;
       cursor: pointer;
       font-size: 16px;
-      font-weight: semi-bold;
+      font-weight: 600;
       font-family: "Recursive", serif;
-      letter-spacing: -2%;
+      letter-spacing: -0.02em;
     }
 
     button:hover {
@@ -148,10 +150,10 @@ export function generateWebviewContent(
     <div class="container">
         <div class="logo-container">
             <img class="logo" src="${logoSrc}" alt="Mermaid Logo">
-            <h2 class="welcome-msg">Welcome to the 
+            <h2 class="welcome-msg">Test build — Welcome to
             <br>
-            Official Mermaid Plugin
-            </br></h2>
+            Mermaid (local plugin)
+            </h2>
         </div>
         <div class="description-text">
         Work smoothly with automatic diagram sync 
@@ -159,12 +161,12 @@ export function generateWebviewContent(
         and quick, clickable references
         </div>
 
-        <p class="signing-text">Sign in to get the full experience.</p>
+        <p class="signing-text">Sign in for cloud sync (same as production plugin).</p>
         <div class="login-btn"> 
         <button id="signInButton">Sign in</button>
       </div>
     </div>
-     <script>
+     <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
 
         document.getElementById('signInButton').addEventListener('click', () => {

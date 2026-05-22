@@ -1,9 +1,11 @@
 import * as vscode from "vscode";
+import { createWebviewNonce, webviewCspMeta } from "./webviewHtmlHelpers";
 
 export function generateAuthOptionsContent(
   webview: vscode.Webview,
   extensionUri: vscode.Uri
 ): string {
+  const nonce = createWebviewNonce();
   const logoSrc = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, "images", "panel.svg")
   );
@@ -17,7 +19,8 @@ export function generateAuthOptionsContent(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MermaidChart Authentication</title>
+    ${webviewCspMeta(webview, nonce)}
+    <title>Mermaid (Test) — Sign in</title>
     <style>
     @font-face {
       font-family: "Recursive";
@@ -249,8 +252,8 @@ export function generateAuthOptionsContent(
     <div class="container">
         <div class="logo-container">
             <img class="logo" src="${logoSrc}" alt="Mermaid Logo">
-            <h2 class="auth-title" id="authTitle">Choose Authentication Method</h2>
-            <p class="description" id="authDescription">Select how you'd like to sign in to Mermaid Chart</p>
+            <h2 class="auth-title" id="authTitle">Choose authentication (test build)</h2>
+            <p class="description" id="authDescription">Sign in to Mermaid Chart — same flow as production</p>
         </div>
 
         <div class="auth-options">
@@ -295,7 +298,7 @@ export function generateAuthOptionsContent(
         <a class="back-link" id="backBtn">← Back</a>
     </div>
 
-    <script>
+    <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
 
         // OAuth option click
@@ -335,7 +338,7 @@ export function generateAuthOptionsContent(
                 authOptions.style.display = 'flex';
                 document.getElementById('tokenInput').value = '';
                 // Restore original title and description
-                document.getElementById('authTitle').textContent = 'Choose Authentication Method';
+                document.getElementById('authTitle').textContent = 'Choose authentication (test build)';
                 document.getElementById('authDescription').style.display = 'block';
             } else {
                 // If on auth options, go back to login

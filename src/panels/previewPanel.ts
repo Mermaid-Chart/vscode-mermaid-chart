@@ -8,24 +8,45 @@ import { MermaidChartVSCode } from "../mermaidChartVSCode";
 import { RepairDiagram } from "./repairDiagram";
 import { MermaidChartAuthenticationProvider } from "../mermaidChartAuthenticationProvider";
 import { getThemeColors } from "../../webview/src/themes/themeConfig";
+import { canOpenMermaidPreview } from "../util";
 const DARK_THEME_KEY = "mermaid.vscode.dark";
 const LIGHT_THEME_KEY = "mermaid.vscode.light";
 const MAX_ZOOM= "mermaid.vscode.maxZoom";
 const MAX_CHAR_LENGTH = "mermaid.vscode.maxCharLength";
 const MAX_EDGES = "mermaid.vscode.maxEdges";
 
+function isAxiosUnauthorized(error: unknown): boolean {
+  const e = error as { response?: { status?: number }; status?: number };
+  return (
+    e?.response?.status === 401 ||
+    e?.response?.status === 403 ||
+    e?.status === 401 ||
+    e?.status === 403
+  );
+}
+
+async function hasMermaidChartSession(): Promise<boolean> {
+  const session = await vscode.authentication.getSession(
+    MermaidChartAuthenticationProvider.id,
+    [],
+    { silent: true }
+  );
+  return !!session;
+}
 
 export class PreviewPanel {
   private static currentPanel: PreviewPanel | undefined;
   private static mcAPI: MermaidChartVSCode | undefined;
+  /** Set from activate(); avoids getExtension() failing in some dev-host scenarios */
+  private static extensionPathOverride: string | undefined;
   private readonly panel: vscode.WebviewPanel;
   private document: vscode.TextDocument;
   private readonly disposables: vscode.Disposable[] = [];
   private isFileChange = false;
+  private isDisposed = false;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private lastContent: string = "";
   
-  // Simple per-preview-panel caching
   private cachedAICredits: {remaining: number, total: number} | null = null;
   private creditsFetched: boolean = false;
 
@@ -48,27 +69,63 @@ export class PreviewPanel {
     RepairDiagram.setMcAPI(mcAPI);
   }
 
+  public static setExtensionPath(extensionPath: string) {
+    PreviewPanel.extensionPathOverride = extensionPath;
+  }
+
   public static createOrShow(document: vscode.TextDocument) {
+    console.log("[MermaidPreview] createOrShow called for:", document.uri.fsPath);
+
     if (PreviewPanel.currentPanel) {
-      PreviewPanel.currentPanel.panel.reveal();
+      const inst = PreviewPanel.currentPanel;
+      inst.document = document;
+      inst.isFileChange = true;
+      void inst.update();
+      inst.panel.reveal(vscode.ViewColumn.Beside);
       return;
     }
+
+    const resolvedPath =
+      PreviewPanel.extensionPathOverride ??
+      vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
+
+    if (!resolvedPath) {
+      console.error("[MermaidPreview] Cannot resolve extension path. extensionPathOverride:", PreviewPanel.extensionPathOverride);
+      vscode.window.showErrorMessage("Mermaid Preview: extension path not found. Try reloading.");
+      return;
+    }
+
+    console.log("[MermaidPreview] Using extension path:", resolvedPath);
+    const localRoots = [vscode.Uri.file(resolvedPath)];
 
     const panel = vscode.window.createWebviewPanel(
       "mermaidPreview",
       "Mermaid Preview",
       vscode.ViewColumn.Beside,
-      { enableScripts: true }
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: localRoots,
+      }
     );
     PreviewPanel.currentPanel = new PreviewPanel(panel, document);
   }
 
   private async update() {
-    const extensionPath = vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
-    const activeEditor = vscode.window.activeTextEditor;
-    
+    if (this.isDisposed) {
+      return;
+    }
+
+    const extensionPath =
+      PreviewPanel.extensionPathOverride ??
+      vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
+
     if (!extensionPath) {
-      throw new Error("Unable to resolve the extension path");
+      console.error("[Mermaid Preview] Extension path not resolved.");
+      await vscode.window.showErrorMessage(
+        "Mermaid Preview could not load (extension path missing). Try reloading the window."
+      );
+      return;
     }
   
     // Get the current active theme (dark or light)
@@ -116,15 +173,14 @@ export class PreviewPanel {
       maxCharLength: maxCharLength,
       maxEdge: maxEdges,
       aiCredits: this.cachedAICredits,
-      isAuthenticated: await this.checkAuthenticationStatus()
+      isAuthenticated: await hasMermaidChartSession()
     });
     this.isFileChange = false;
   }
 
-  private async fetchAICredits(): Promise<{remaining: number, total: number} | null> {
+  private async fetchAICredits(): Promise<{ remaining: number; total: number } | null> {
     try {
-      // Return cached credits if available
-      if (this.creditsFetched && this.cachedAICredits) {
+      if (this.creditsFetched) {
         return this.cachedAICredits;
       }
 
@@ -135,27 +191,21 @@ export class PreviewPanel {
         return this.cachedAICredits;
       }
     } catch (error) {
-      console.log("Failed to fetch AI credits:", error);
+      if (isAxiosUnauthorized(error)) {
+        this.cachedAICredits = null;
+        this.creditsFetched = true;
+      }
+      console.debug("Failed to fetch AI credits:", error);
     }
     return null;
   }
 
-  private async checkAuthenticationStatus(): Promise<boolean> {
-    try {
-      if (PreviewPanel.mcAPI) {
-        // Try to get AI credits to check if user is authenticated
-        await PreviewPanel.mcAPI.getAICredits();
-        return true;
-      }
-    } catch (error) {
-      console.log("User not authenticated:", error);
-    }
-    return false;
-  }
-
   private async fetchAndSendCredits() {
-    const aiCredits = await this.fetchAICredits();
-    const isAuthenticated = await this.checkAuthenticationStatus();
+    const isAuthenticated = await hasMermaidChartSession();
+    const aiCredits = isAuthenticated ? await this.fetchAICredits() : null;
+    if (this.isDisposed) {
+      return;
+    }
     this.panel.webview.postMessage({
       type: "aiCreditsUpdate",
       aiCredits: aiCredits,
@@ -164,7 +214,6 @@ export class PreviewPanel {
   }
 
   private async refreshAICredits() {
-    // Clear cache to force fresh fetch
     this.cachedAICredits = null;
     this.creditsFetched = false;
     await this.fetchAndSendCredits();
@@ -179,13 +228,13 @@ export class PreviewPanel {
     }, this.disposables);
 
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor?.document?.languageId.startsWith('mermaid')) {
-        if (editor.document.uri.toString() !== this.document?.uri.toString()) {
-          this.document = editor.document; 
-          this.isFileChange = true; 
+      if (editor && canOpenMermaidPreview(editor.document)) {
+        if (editor.document.uri.toString() !== this.document.uri.toString()) {
+          this.document = editor.document;
+          this.isFileChange = true;
           debouncedUpdate();
         }
-      } 
+      }
     }, this.disposables);
 
     vscode.window.onDidChangeActiveColorTheme(() => {
@@ -244,6 +293,10 @@ export class PreviewPanel {
         await vscode.env.openExternal(vscode.Uri.parse(message.url));
       } else if (message.type === "showWarning" && message.message) {
         await vscode.window.showWarningMessage(message.message as string);
+      } else if (message.type === "copyDiagramLink") {
+        await this.handleCopyDiagramLink();
+      } else if (message.type === "saveDiagram") {
+        await vscode.env.openExternal(vscode.Uri.parse("https://mermaid.ai/app/sign-up"));
       }
     });
 
@@ -312,11 +365,20 @@ export class PreviewPanel {
     }
   }
 
+  private async handleCopyDiagramLink(): Promise<void> {
+    const mermaidCode = this.lastContent || this.document.getText();
+    const encoded = encodeURIComponent(mermaidCode);
+    const link = `https://mermaid.live/edit#base64:${Buffer.from(mermaidCode).toString("base64")}`;
+    await vscode.env.clipboard.writeText(link);
+    vscode.window.showInformationMessage("Diagram link copied to clipboard (mermaid.live)");
+  }
+
   public static getCurrentPanel(): PreviewPanel | undefined {
     return PreviewPanel.currentPanel;
   }
 
   public dispose() {
+    this.isDisposed = true;
     PreviewPanel.currentPanel = undefined;
     this.diagnosticsCollection.clear();
     this.diagnosticsCollection.dispose();

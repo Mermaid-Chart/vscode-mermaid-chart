@@ -5,7 +5,9 @@ class Analytics {
 
   public sendEvent(eventName: string, eventID:string, errorMessage?: string, diagramType?:string) {
     const analyticsID = vscode.env.machineId;
-    const pluginID= packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
+    const pluginID = (packageJson.name === "vscode-mermaid-chart" || packageJson.name === "vscode-mermaid-chart-test")
+      ? "MERMAIDCHART_VS_CODE_PLUGIN"
+      : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
     const payload = {
       analyticsID,
       pluginID,

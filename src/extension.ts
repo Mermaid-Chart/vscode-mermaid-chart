@@ -175,6 +175,14 @@ export async function activate(context: vscode.ExtensionContext) {
     });
   let codeLensProvider: MermaidChartCodeLensProvider | undefined;
 
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("mermaidChart.showGenerateDiagramCodeLens")) {
+        codeLensProvider?.refresh();
+      }
+    })
+  );
+
   function updateMermaidChartTokenHighlighting() {
     const activeEditor = vscode.window.activeTextEditor;
     if (activeEditor) {
@@ -873,23 +881,12 @@ context.subscriptions.push(
           return;
         }
         
-        // Focus and prepare chat
-        await vscode.commands.executeCommand("workbench.panel.chat.view.copilot.focus");
-        await vscode.commands.executeCommand("workbench.action.chat.focusInput");
-        
-        // Clear existing input
-        await vscode.commands.executeCommand("deleteAllLeft");
-        
-        // Type the command - commercial extension will handle file detection and diagram type selection
-        const command = `@mermaid-chart /generate_diagram_from_code`;
-        await vscode.commands.executeCommand("default:type", { text: command });
-        
-        // Submit the command
-        await vscode.commands.executeCommand("workbench.action.chat.submit");
+        await vscode.commands.executeCommand("workbench.action.chat.open", {
+          query: "@mermaid-chart /generate_diagram_from_code",
+        });
         
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('Error in DiagramFromCodeService.execute:', error);
         vscode.window.showErrorMessage(`Failed to execute command: ${errorMessage}`);
       }
     }

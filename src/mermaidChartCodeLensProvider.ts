@@ -1,13 +1,21 @@
+import * as path from "path";
 import * as vscode from "vscode";
 import {  applyGutterIconDecoration, isAuxFile, MermaidChartToken } from "./util";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
 import { extractIdFromCode, extractMetadataFromCode, checkReferencedFiles, findDiagramContentStartPosition } from "./frontmatter";
 
 export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
+  private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
+  readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
+
   constructor(private mermaidChartTokens: MermaidChartToken[]) {}
 
   setMermaidChartTokens(mermaidChartTokens: MermaidChartToken[]) {
     this.mermaidChartTokens = mermaidChartTokens;
+  }
+
+  refresh(): void {
+    this._onDidChangeCodeLenses.fire();
   }
 
   async provideCodeLenses(
@@ -26,8 +34,7 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
 
     if (editor?.document?.languageId.startsWith('mermaid')){
       this.provideCodeLensesForMermaid(document, codeLenses, session);
-    } else if (this.isCodingFile(document)) {
-      // Add CodeLens commands for coding files
+    } else if (this.isCodingFile(document) && this.showGenerateDiagramCodeLens()) {
       this.addCodingFileCodeLenses(codeLenses, document);
     } else {
       for (const token of this.mermaidChartTokens) {
@@ -111,10 +118,16 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
       '.sql', '.ps1', '.psm1', '.psd1'
     ];
 
-    const fileExtension = document.fileName.toLowerCase().split('.').pop();
-    if (!fileExtension) return false;
+    const fileExt = path.extname(document.fileName).toLowerCase();
+    if (!fileExt) return false;
 
-    return codingExtensions.includes('.' + fileExtension);
+    return codingExtensions.includes(fileExt);
+  }
+
+  private showGenerateDiagramCodeLens(): boolean {
+    return vscode.workspace
+      .getConfiguration("mermaidChart")
+      .get<boolean>("showGenerateDiagramCodeLens", true);
   }
 
   /**
@@ -122,17 +135,12 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
    */
   private addCodingFileCodeLenses(codeLenses: vscode.CodeLens[], document: vscode.TextDocument): void {
     const lineCount = document.lineCount;
-    let targetLine = lineCount - 1;
-    if (lineCount > 0) {
-      const lastLine = document.lineAt(lineCount - 1);
-      if (lastLine.text.trim() === '') {
-        // Last line is empty, put CodeLens on that line
-        targetLine = lineCount - 1;
-      } else {
-        // Last line has text, put CodeLens at the top of the last line
-        targetLine = lineCount - 1;
-      }
+    if (lineCount === 0) {
+      return;
     }
+
+    // VS Code renders CodeLens above the target line: on a non-empty last line the lens
+    const targetLine = lineCount - 1;
     const codeInRange = new vscode.Range(targetLine, 0, targetLine, 0);
 
     // Add "Generate Mermaid Diagram" command

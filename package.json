@@ -662,6 +662,11 @@
           "type": "boolean",
           "default": "false",
           "description": "Automatic name suggestion for exported diagrams"
+        },
+        "mermaidChart.showGenerateDiagramCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Generate Mermaid Diagram' and 'Open Chat @mermaid-chart' CodeLens at the bottom of supported code files"
         }
       }
     },

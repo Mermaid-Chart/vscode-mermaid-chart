@@ -1,35 +1,33 @@
 import * as vscode from "vscode";
-import * as path from "path";
-import { BotReviewIntegration } from "./botReviewIntegration";
-import { resolveReviewFilePath } from "./botReviewPaths";
-import { BotReviewGitStatusTracker } from "./botReviewGitStatus";
-import { BotFileDecorationProvider } from "./botFileDecorationProvider";
-import { BotDiffViewProvider } from "./botDiffViewProvider";
-import { BotReviewCodeLensProvider } from "./botReviewCodeLensProvider";
-import { BotCommitWorkflow } from "./botCommitWorkflow";
-import { BotReviewGitPullWatcher } from "./botReviewGitPullWatcher";
+import { AppReviewIntegration } from "./appReviewIntegration";
+import { AppReviewGitStatusTracker } from "./appReviewGitStatus";
+import { AppFileDecorationProvider } from "./appFileDecorationProvider";
+import { AppDiffViewProvider } from "./appDiffViewProvider";
+import { AppReviewCodeLensProvider } from "./appReviewCodeLensProvider";
+import { AppCommitWorkflow } from "./appCommitWorkflow";
+import { AppReviewGitPullWatcher } from "./appReviewGitPullWatcher";
 
 /**
- * Facade that owns all bot review sub-components and wires them together.
- * extension.ts calls `BotReviewFeature.register(context)` — nothing else.
+ * Facade that owns all app review sub-components and wires them together.
+ * extension.ts calls `AppReviewFeature.register(context)` — nothing else.
  */
-export class BotReviewFeature implements vscode.Disposable {
-  private readonly integration: BotReviewIntegration;
-  private readonly gitStatusTracker: BotReviewGitStatusTracker;
-  private readonly fileDecorationProvider: BotFileDecorationProvider;
-  private readonly diffViewProvider: BotDiffViewProvider;
-  private readonly codeLensProvider: BotReviewCodeLensProvider;
-  private readonly commitWorkflow: BotCommitWorkflow;
-  private readonly gitPullWatcher: BotReviewGitPullWatcher;
+export class AppReviewFeature implements vscode.Disposable {
+  private readonly integration: AppReviewIntegration;
+  private readonly gitStatusTracker: AppReviewGitStatusTracker;
+  private readonly fileDecorationProvider: AppFileDecorationProvider;
+  private readonly diffViewProvider: AppDiffViewProvider;
+  private readonly codeLensProvider: AppReviewCodeLensProvider;
+  private readonly commitWorkflow: AppCommitWorkflow;
+  private readonly gitPullWatcher: AppReviewGitPullWatcher;
 
   constructor() {
-    this.integration = new BotReviewIntegration();
-    this.gitStatusTracker = new BotReviewGitStatusTracker(this.integration);
-    this.fileDecorationProvider = new BotFileDecorationProvider(this.integration);
-    this.diffViewProvider = new BotDiffViewProvider(this.integration, this.fileDecorationProvider);
-    this.codeLensProvider = new BotReviewCodeLensProvider(this.integration, this.gitStatusTracker);
-    this.commitWorkflow = new BotCommitWorkflow(this.integration, this.gitStatusTracker);
-    this.gitPullWatcher = new BotReviewGitPullWatcher(this.integration);
+    this.integration = new AppReviewIntegration();
+    this.gitStatusTracker = new AppReviewGitStatusTracker(this.integration);
+    this.fileDecorationProvider = new AppFileDecorationProvider(this.integration);
+    this.diffViewProvider = new AppDiffViewProvider(this.integration, this.fileDecorationProvider);
+    this.codeLensProvider = new AppReviewCodeLensProvider(this.integration, this.gitStatusTracker);
+    this.commitWorkflow = new AppCommitWorkflow(this.integration, this.gitStatusTracker);
+    this.gitPullWatcher = new AppReviewGitPullWatcher(this.integration);
   }
 
   register(context: vscode.ExtensionContext): void {
@@ -66,9 +64,8 @@ export class BotReviewFeature implements vscode.Disposable {
 
   private registerCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-      // GitHub connection
-      vscode.commands.registerCommand("mermaidChart.reviewBotCommits", () =>
-        this.integration.reviewBotCommits()
+      vscode.commands.registerCommand("mermaidChart.reviewAppCommits", () =>
+        this.integration.reviewAppCommits()
       ),
       vscode.commands.registerCommand("mermaidChart.connectGitHub", () =>
         this.integration.connectGitHub()
@@ -76,62 +73,54 @@ export class BotReviewFeature implements vscode.Disposable {
       vscode.commands.registerCommand("mermaidChart.disconnectGitHub", () =>
         this.integration.disconnectGitHub()
       ),
-
-      // CodeLens info actions
-      vscode.commands.registerCommand("mermaidChart.showBotSyncInfo", (uri: vscode.Uri) =>
-        this.codeLensProvider.showBotSyncInfo(uri)
+      vscode.commands.registerCommand("mermaidChart.showAppSyncInfo", (uri: vscode.Uri) =>
+        this.codeLensProvider.showAppSyncInfo(uri)
       ),
-      vscode.commands.registerCommand("mermaidChart.showBotReviewStatus", (uri: vscode.Uri, status: string) =>
-        this.codeLensProvider.showBotReviewStatus(uri, status)
+      vscode.commands.registerCommand("mermaidChart.showAppReviewStatus", (uri: vscode.Uri, status: string) =>
+        this.codeLensProvider.showAppReviewStatus(uri, status)
       ),
-      vscode.commands.registerCommand("mermaidChart.openBotReview", (uri: vscode.Uri) =>
-        this.codeLensProvider.openBotReview(uri)
+      vscode.commands.registerCommand("mermaidChart.openAppReview", (uri: vscode.Uri) =>
+        this.codeLensProvider.openAppReview(uri)
       ),
       vscode.commands.registerCommand("mermaidChart.acceptModifiedChanges", (uri: vscode.Uri) =>
         this.codeLensProvider.acceptModifiedChanges(uri)
       ),
-
-      // Diff view actions
       vscode.commands.registerCommand("mermaidChart.openReviewFileDiff", async (uri?: vscode.Uri) => {
         const target = uri ?? vscode.window.activeTextEditor?.document.uri;
         if (target) {
-          await this.diffViewProvider.showBotDiff(target);
+          await this.diffViewProvider.showAppDiff(target);
         }
       }),
-      vscode.commands.registerCommand("mermaidChart.botReviewAccept", async (uri?: vscode.Uri) => {
+      vscode.commands.registerCommand("mermaidChart.appReviewAccept", async (uri?: vscode.Uri) => {
         const target = uri ?? vscode.window.activeTextEditor?.document.uri;
         if (target) {
-          await this.diffViewProvider.acceptBotChanges(target);
-          void this.gitStatusTracker.refreshPath(target.fsPath);
+          await this.diffViewProvider.acceptAppChanges(target);
+          await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
-      vscode.commands.registerCommand("mermaidChart.botReviewReject", async (uri?: vscode.Uri) => {
+      vscode.commands.registerCommand("mermaidChart.appReviewReject", async (uri?: vscode.Uri) => {
         const target = uri ?? vscode.window.activeTextEditor?.document.uri;
         if (target) {
-          await this.diffViewProvider.rejectBotChanges(target);
-          void this.gitStatusTracker.refreshPath(target.fsPath);
+          await this.diffViewProvider.rejectAppChanges(target);
+          await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
-      vscode.commands.registerCommand("mermaidChart.botReviewBackToPending", async (uri?: vscode.Uri) => {
+      vscode.commands.registerCommand("mermaidChart.appReviewBackToPending", async (uri?: vscode.Uri) => {
         const target = uri ?? vscode.window.activeTextEditor?.document.uri;
         if (target) {
-          await this.diffViewProvider.restoreBotProposalAndPending(target);
-          void this.gitStatusTracker.refreshPath(target.fsPath);
+          await this.diffViewProvider.restoreAppProposalAndPending(target);
+          await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
-
-      // Commit workflow
-      vscode.commands.registerCommand("mermaidChart.commitBotReview", (uri: vscode.Uri) =>
-        this.commitWorkflow.commitBotReview(uri)
+      vscode.commands.registerCommand("mermaidChart.commitAppReview", (uri: vscode.Uri) =>
+        this.commitWorkflow.commitAppReview(uri)
       ),
-
-      // Close review
-      vscode.commands.registerCommand("mermaidChart.submitBotReview", async (uri?: vscode.Uri) => {
+      vscode.commands.registerCommand("mermaidChart.submitAppReview", async (uri?: vscode.Uri) => {
         const target = uri ?? vscode.window.activeTextEditor?.document.uri;
         if (!target) {
           return;
         }
-        const absolutePath = resolveReviewFilePath(target.fsPath);
+        const absolutePath = target.fsPath;
         await this.diffViewProvider.cancelSessionsForOriginal(absolutePath);
         const removed = this.integration.removeReviewForFile(absolutePath);
         this.gitStatusTracker.invalidatePath(absolutePath);
@@ -140,20 +129,19 @@ export class BotReviewFeature implements vscode.Disposable {
         if (removed) {
           vscode.window.showInformationMessage("Review closed for this file.");
         } else {
-          vscode.window.showWarningMessage("No active bot review for this file.");
+          vscode.window.showWarningMessage("No active app review for this file.");
         }
       })
     );
   }
 
   private registerEventListeners(context: vscode.ExtensionContext): void {
-    // Refresh CodeLens whenever a reviewed file is saved or edited
     context.subscriptions.push(
       vscode.workspace.onDidSaveTextDocument((doc) => {
         if (doc.uri.scheme !== "file") {
           return;
         }
-        const filePath = resolveReviewFilePath(doc.uri.fsPath);
+        const filePath = doc.uri.fsPath;
         if (this.integration.getReviewMapping(filePath)) {
           void this.gitStatusTracker.refreshPath(filePath);
         }
@@ -162,21 +150,19 @@ export class BotReviewFeature implements vscode.Disposable {
         if (e.document.uri.scheme !== "file") {
           return;
         }
-        const filePath = resolveReviewFilePath(e.document.uri.fsPath);
+        const filePath = e.document.uri.fsPath;
         if (this.integration.getReviewMapping(filePath)) {
           this.gitStatusTracker.scheduleRefreshPath(filePath);
         }
       })
     );
 
-    // When git dirty state changes, refresh CodeLens buttons (shows/hides Commit)
     context.subscriptions.push(
       this.gitStatusTracker.onDidChangeDirty(() => {
         this.codeLensProvider.refresh();
       })
     );
 
-    // When the review map changes (new files added, file removed), refresh all UI
     context.subscriptions.push(
       this.integration.onDidChangePendingReviews(() => {
         this.fileDecorationProvider.refresh();

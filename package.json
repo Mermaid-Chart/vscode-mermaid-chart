@@ -764,9 +764,9 @@
           "group": "navigation"
         },
         {
-          "command": "mermaidChart.reviewBotCommits",
+          "command": "mermaidChart.reviewAppCommits",
           "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/",
-          "group": "botReview"
+          "group": "appReview"
         }
       ]
     },
@@ -887,56 +887,56 @@
         "title": "MermaidChart: Open Diagram Diff (Current vs Updated)"
       },
       {
-        "command": "mermaidChart.reviewBotCommits",
+        "command": "mermaidChart.reviewAppCommits",
         "title": "MermaidChart: Review Mermaid Sync"
-      },  
-      {
-        "command": "mermaidChart.showBotSyncInfo",
-        "title": "MermaidChart: Show app Sync Info"
       },
       {
-        "command": "mermaidChart.showBotReviewStatus",
-        "title": "MermaidChart: Show app Review Status"
+        "command": "mermaidChart.showAppSyncInfo",
+        "title": "MermaidChart: Show App Sync Info"
       },
       {
-        "command": "mermaidChart.commitBotReview",
-        "title": "MermaidChart: Commit app Review"
+        "command": "mermaidChart.showAppReviewStatus",
+        "title": "MermaidChart: Show App Review Status"
+      },
+      {
+        "command": "mermaidChart.commitAppReview",
+        "title": "MermaidChart: Commit App Review"
       },
       {
         "command": "mermaidChart.acceptModifiedChanges",
-        "title": "MermaidChart: Accept Modified app Review"
+        "title": "MermaidChart: Accept Modified App Review"
       },
       {
-        "command": "mermaidChart.botReviewBackToPending",
-        "title": "MermaidChart: app Review — Back to Pending (restore app proposal)"
+        "command": "mermaidChart.appReviewBackToPending",
+        "title": "MermaidChart: App Review — Back to Pending (restore app proposal)"
       },
       {
-        "command": "mermaidChart.submitBotReview",
-        "title": "MermaidChart: Close app Review (this file)"
+        "command": "mermaidChart.submitAppReview",
+        "title": "MermaidChart: Close App Review (this file)"
       },
       {
-        "command": "mermaidChart.openBotReview",
-        "title": "MermaidChart: Open app Review"
+        "command": "mermaidChart.openAppReview",
+        "title": "MermaidChart: Open App Review"
       },
       {
         "command": "mermaidChart.openReviewFileDiff",
         "title": "MermaidChart: Open Review File Diff"
       },
       {
-        "command": "mermaidChart.botReviewAccept",
-        "title": "MermaidChart: Accept app Review"
+        "command": "mermaidChart.appReviewAccept",
+        "title": "MermaidChart: Accept App Review"
       },
       {
-        "command": "mermaidChart.botReviewReject",
-        "title": "MermaidChart: Reject app Review"
+        "command": "mermaidChart.appReviewReject",
+        "title": "MermaidChart: Reject App Review"
       },
       {
         "command": "mermaidChart.connectGitHub",
-        "title": "MermaidChart: Connect GitHub for Mermaid Diagram sync app"
+        "title": "MermaidChart: Connect GitHub for Mermaid Diagram Sync"
       },
       {
         "command": "mermaidChart.disconnectGitHub",
-        "title": "MermaidChart: Disconnect GitHub for Mermaid Diagram sync app"
+        "title": "MermaidChart: Disconnect GitHub for Mermaid Diagram Sync"
       }
     ],
     "chatParticipants": [
@@ -1156,7 +1156,7 @@
     "@mermaidchart/sdk": "0.2.3",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",
     "@vscode/prompt-tsx": "^0.3.0-alpha.12",
-    "@octokit/rest": "^19.0.0",
+    "@octokit/rest": "^22.0.0",
     "axios": "^1.7.9",
     "markdown-it": "^14.1.0",
     "@mermaid-chart/mermaid": "11.14.0-b.2",

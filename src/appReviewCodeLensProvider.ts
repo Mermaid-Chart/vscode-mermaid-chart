@@ -1,30 +1,25 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { BotReviewIntegration, type ReviewFileMapping } from "./botReviewIntegration";
-import type { BotReviewGitStatusTracker } from "./botReviewGitStatus";
-import { reviewPathKey } from "./botReviewPaths";
+import { AppReviewIntegration, type ReviewFileMapping } from "./appReviewIntegration";
+import type { AppReviewGitStatusTracker } from "./appReviewGitStatus";
 
-export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
+export class AppReviewCodeLensProvider implements vscode.CodeLensProvider {
   private readonly _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
   readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
 
   constructor(
-    private readonly botReviewIntegration: BotReviewIntegration,
-    private readonly gitStatusTracker: BotReviewGitStatusTracker
+    private readonly appReviewIntegration: AppReviewIntegration,
+    private readonly gitStatusTracker: AppReviewGitStatusTracker
   ) {}
 
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
-    const mapping = this.botReviewIntegration.getReviewMapping(document.uri.fsPath);
+    const mapping = this.appReviewIntegration.getReviewMapping(document.uri.fsPath);
     if (!mapping) {
       return [];
     }
     return this.buildCodeLenses(document.uri, mapping);
   }
 
-  /**
-   * `includeReviewChanges`: show "Review changes" + pending/modified actions (active reviewer).
-   * Accepted/rejected: only status, Back to review, optional Commit, Close review.
-   */
   private appendReviewCodeLenses(
     top: vscode.Range,
     fileUri: vscode.Uri,
@@ -50,7 +45,7 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
       lenses.push(
         new vscode.CodeLens(top, {
           title: options.statusLabel.title,
-          command: "mermaidChart.showBotReviewStatus",
+          command: "mermaidChart.showAppReviewStatus",
           arguments: [fileUri, options.statusLabel.status],
           tooltip: "Status details",
         })
@@ -61,16 +56,17 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
       lenses.push(
         new vscode.CodeLens(top, {
           title: "Accept",
-          command: "mermaidChart.botReviewAccept",
+          command: "mermaidChart.appReviewAccept",
           arguments: [fileUri],
-          tooltip: "Apply bot version to this file",
+          tooltip: "Apply app sync version to this file",
         }),
         new vscode.CodeLens(top, {
           title: "Reject",
-          command: "mermaidChart.botReviewReject",
+          command: "mermaidChart.appReviewReject",
           arguments: [fileUri],
-          tooltip: "Put this file back to how it was before the bot update",
-        })
+          tooltip:
+            "Put this file back to how it was before the Mermaid Sync app update",
+        }),
       );
     }
 
@@ -84,9 +80,9 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
         }),
         new vscode.CodeLens(top, {
           title: "Reject & restore",
-          command: "mermaidChart.botReviewBackToPending",
+          command: "mermaidChart.appReviewBackToPending",
           arguments: [fileUri],
-          tooltip: "Restore bot proposal (incoming) and return to review",
+          tooltip: "Restore app proposal (incoming) and return to review",
         })
       );
     }
@@ -95,19 +91,18 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
       lenses.push(
         new vscode.CodeLens(top, {
           title: "Back to review",
-          command: "mermaidChart.botReviewBackToPending",
+          command: "mermaidChart.appReviewBackToPending",
           arguments: [fileUri],
-          tooltip: "Restore bot proposal on disk and return to pending review",
+          tooltip: "Restore app proposal on disk and return to pending review",
         })
       );
     }
 
-    const norm = reviewPathKey(fileUri.fsPath);
-    if (this.gitStatusTracker.isDirtySync(norm)) {
+    if (this.gitStatusTracker.isDirtyForFile(fileUri.fsPath)) {
       lenses.push(
         new vscode.CodeLens(top, {
           title: "Commit changes",
-          command: "mermaidChart.commitBotReview",
+          command: "mermaidChart.commitAppReview",
           arguments: [fileUri],
           tooltip: "git add and commit this file only",
         })
@@ -117,9 +112,9 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
     lenses.push(
       new vscode.CodeLens(top, {
         title: "Close review",
-        command: "mermaidChart.submitBotReview",
+        command: "mermaidChart.submitAppReview",
         arguments: [fileUri],
-        tooltip: "Remove bot review CodeLens for this file",
+        tooltip: "Remove app review CodeLens for this file",
       })
     );
   }
@@ -131,9 +126,9 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
     lenses.push(
       new vscode.CodeLens(top, {
         title: "Sync by Mermaid Diagram Sync",
-        command: "mermaidChart.showBotSyncInfo",
+        command: "mermaidChart.showAppSyncInfo",
         arguments: [fileUri],
-        tooltip: "What this bot review means for this file",
+        tooltip: "What this app review means for this file",
       })
     );
 
@@ -165,8 +160,8 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
     return lenses;
   }
 
-  async showBotSyncInfo(fileUri: vscode.Uri): Promise<void> {
-    const mapping = this.botReviewIntegration.getReviewMapping(fileUri.fsPath);
+  async showAppSyncInfo(fileUri: vscode.Uri): Promise<void> {
+    const mapping = this.appReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
       return;
     }
@@ -174,27 +169,27 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
     const fileName = path.basename(fileUri.fsPath);
 
     void vscode.window.showInformationMessage(
-      `"${fileName}" is in Mermaid Diagram Sync bot review.\n\n` +
-        "Review changes to see the bot proposal and diagram preview.\n"
+      `"${fileName}" is in Mermaid Sync app review.\n\n` +
+        "Review changes to see the app proposal and diagram preview.\n"
     );
   }
 
-  async showBotReviewStatus(fileUri: vscode.Uri, status: string): Promise<void> {
+  async showAppReviewStatus(fileUri: vscode.Uri, status: string): Promise<void> {
     const fileName = path.basename(fileUri.fsPath);
     let message = "";
     let actions: string[] = [];
 
     switch (status) {
       case "accepted":
-        message = `Bot changes are in "${fileName}". Commit when git shows local changes, or Close review to clear this file from the list.`;
+        message = `App changes are in "${fileName}". Commit when git shows local changes, or Close review to clear this file from the list.`;
         actions = ["OK"];
         break;
       case "rejected":
-        message = `"${fileName}" was put back to the version from before the bot update. Commit when git shows local changes, or Close review to clear this file from the list.`;
+        message = `"${fileName}" was put back to the version from before the Mermaid Sync app update. Commit when git shows local changes, or Close review to clear this file from the list.`;
         actions = ["OK"];
         break;
       case "modified":
-        message = `You have local edits for "${fileName}" after bot/review.`;
+        message = `You have local edits for "${fileName}" after Mermaid Sync  app/review.`;
         actions = ["OK"];
         break;
     }
@@ -205,19 +200,18 @@ export class BotReviewCodeLensProvider implements vscode.CodeLensProvider {
   }
 
   async acceptModifiedChanges(fileUri: vscode.Uri): Promise<void> {
-    const mapping = this.botReviewIntegration.getReviewMapping(fileUri.fsPath);
+    const mapping = this.appReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
       return;
     }
     mapping.status = "accepted";
-    this.botReviewIntegration.notifyReviewMappingsChanged();
-    void this.gitStatusTracker.refreshPath(fileUri.fsPath);
+    this.appReviewIntegration.notifyReviewMappingsChanged();
+    await this.gitStatusTracker.refreshPath(fileUri.fsPath);
     vscode.window.showInformationMessage(`Marked accepted for ${path.basename(fileUri.fsPath)}`);
   }
 
-  /** Re-scan bot commits (same as command palette). */
-  async openBotReview(_fileUri: vscode.Uri): Promise<void> {
-    await vscode.commands.executeCommand("mermaidChart.reviewBotCommits");
+  async openAppReview(_fileUri: vscode.Uri): Promise<void> {
+    await vscode.commands.executeCommand("mermaidChart.reviewAppCommits");
   }
 
   refresh(): void {

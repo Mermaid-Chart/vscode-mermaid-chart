@@ -2,10 +2,10 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { promises as fs } from "fs";
 import { spawn } from "child_process";
-import { BotReviewIntegration } from "./botReviewIntegration";
-import type { BotReviewGitStatusTracker } from "./botReviewGitStatus";
+import { AppReviewIntegration } from "./appReviewIntegration";
+import type { AppReviewGitStatusTracker } from "./appReviewGitStatus";
 import type { GitExtensionExports } from "./types";
-import { resolveReviewFilePath, reviewPathKey } from "./botReviewPaths";
+import { pathsEqualAbsolute, toPosixRepoPath } from "./appReviewPaths";
 
 function runGit(cwd: string, args: string[]): Promise<{ code: number; stderr: string }> {
   return new Promise((resolve, reject) => {
@@ -36,8 +36,8 @@ async function pushWithBuiltInGitExtension(gitRoot: string): Promise<void> {
     await ext.activate();
   }
   const api = ext.exports.getAPI(1);
-  const norm = reviewPathKey(gitRoot);
-  let repo = api.repositories.find((r) => reviewPathKey(r.rootUri.fsPath) === norm);
+  const norm = path.normalize(gitRoot);
+  let repo = api.repositories.find((r) => pathsEqualAbsolute(r.rootUri.fsPath, norm));
   if (!repo && api.repositories.length === 1) {
     repo = api.repositories[0];
   }
@@ -49,21 +49,21 @@ async function pushWithBuiltInGitExtension(gitRoot: string): Promise<void> {
   await repo.push();
 }
 
-export class BotCommitWorkflow {
+export class AppCommitWorkflow {
   constructor(
-    private readonly botReviewIntegration: BotReviewIntegration,
-    private readonly gitStatusTracker: BotReviewGitStatusTracker
+    private readonly appReviewIntegration: AppReviewIntegration,
+    private readonly gitStatusTracker: AppReviewGitStatusTracker
   ) {}
 
-  async commitBotReview(fileUri: vscode.Uri): Promise<void> {
+  async commitAppReview(fileUri: vscode.Uri): Promise<void> {
     const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     if (!root) {
       vscode.window.showErrorMessage("No workspace folder open.");
       return;
     }
 
-    const abs = resolveReviewFilePath(fileUri.fsPath);
-    if (!this.gitStatusTracker.isDirtySync(abs)) {
+    const abs = fileUri.fsPath;
+    if (!this.gitStatusTracker.isDirtyForFile(abs)) {
       vscode.window.showInformationMessage(
         "No uncommitted changes for this file (git status clean). Nothing to commit."
       );
@@ -74,15 +74,20 @@ export class BotCommitWorkflow {
 
     try {
 
-      const gitRoot = (await this.botReviewIntegration.resolveGitRepositoryRoot(root)) ?? resolveReviewFilePath(root);
-      const rel = path.relative(gitRoot, abs).split(path.sep).join("/");
-      if (rel.startsWith("..") || path.isAbsolute(rel)) {
+      const gitRoot = (await this.appReviewIntegration.resolveGitRepositoryRoot(root)) ?? path.normalize(root);
+      const mapping = this.appReviewIntegration.getReviewMapping(abs);
+      const rel = mapping?.relativePath ?? toPosixRepoPath(path.relative(gitRoot, abs));
+      if (!rel || rel.startsWith("..")) {
         vscode.window.showErrorMessage("File is not under the git repository root.");
         return;
       }
 
       const normalizedRels = [rel];
       const wantMermaidIgnore = await this.promptMermaidIgnoreBeforeCommit(normalizedRels);
+      if (wantMermaidIgnore === null) {
+        vscode.window.showInformationMessage("Commit cancelled");
+        return;
+      }
       let mermaidIgnorePreview: { changed: boolean; nextContent: string; ignorePath: string } | null =
         null;
       if (wantMermaidIgnore) {
@@ -131,7 +136,7 @@ export class BotCommitWorkflow {
   }
 
   private async getCommitMessage(fileName: string): Promise<string | undefined> {
-    const defaultMessage = `Review bot diagram changes (${fileName})`;
+    const defaultMessage = `Review Mermaid Sync app diagram changes (${fileName})`;
     const commitMessage = await vscode.window.showInputBox({
       prompt: "Commit message",
       value: defaultMessage,
@@ -152,9 +157,9 @@ export class BotCommitWorkflow {
 
   /**
    * Shown when the user chooses Commit, before the single commit message.
-   * @returns true if the user wants diagram path(s) added to repo-root `.mermaidignore` (when possible).
+   * @returns true to add `.mermaidignore`, false to commit diagram only, null if cancelled.
    */
-  private async promptMermaidIgnoreBeforeCommit(normalizedRels: string[]): Promise<boolean> {
+  private async promptMermaidIgnoreBeforeCommit(normalizedRels: string[]): Promise<boolean | null> {
     if (normalizedRels.length === 0) {
       return false;
     }
@@ -163,13 +168,22 @@ export class BotCommitWorkflow {
     const message = [
       "Add diagram path(s) to .mermaidignore?",
       "",
-      "The Mermaid Diagram Sync bot may update these files again when source files change, which can overwrite your edits.",
+      "The Mermaid Sync app may update these files again when source files change, which can overwrite your edits.",
       "",
       "• Accept — add the path(s) to `.mermaidignore` at the repo root in the same commit as your diagram edits.",
       "• Reject — commit diagram edits only; no `.mermaidignore` changes.",
+      "• Cancel — abort commit.",
     ].join("\n");
 
-    const choice = await vscode.window.showInformationMessage(message, { modal: true }, "Accept", "Reject");
+    const choice = await vscode.window.showWarningMessage(
+      message,
+      { modal: true },
+      "Accept",
+      "Reject",
+    );
+    if (choice === undefined) {
+      return null;
+    }
     return choice === "Accept";
   }
 
@@ -239,7 +253,7 @@ export class BotCommitWorkflow {
         );
         vscode.window.showInformationMessage("Push finished.");
         for (const p of absolutePathsToClearOnPush) {
-          this.botReviewIntegration.removeReviewForFile(p);
+          this.appReviewIntegration.removeReviewForFile(p);
           this.gitStatusTracker.invalidatePath(p);
         }
       } catch (e) {

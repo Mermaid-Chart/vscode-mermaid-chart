@@ -4,12 +4,19 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import { Octokit } from "@octokit/rest";
 import {
-  GITHUB_REST_API_VERSION,
-  resolveReviewFilePath,
-  reviewPathKey,
-} from "./botReviewPaths";
+  findMapKeyForRelativePath,
+  githubApiHttpStatus,
+  relativePathFromAbsolute,
+  toPosixRepoPath,
+} from "./appReviewPaths";
 
 const execAsync = promisify(exec);
+/** Max ms per git exec (Node kills the child on timeout). */
+const GIT_EXEC_TIMEOUT_MS = 15_000;
+const GIT_LOG_EXEC_TIMEOUT_MS = 60_000;
+
+/** https://docs.github.com/en/rest/about-the-rest-api/api-versions */
+const GITHUB_REST_API_VERSION = "2026-03-10";
 
 interface GitHubPR {
   number: number;
@@ -24,39 +31,45 @@ interface GitHubContext {
   pr: GitHubPR | null;
 }
 
-/** Pending / completed bot review for a workspace diagram file (key = normalized originalFilePath). */
+/** Pending / completed app review for a workspace diagram file (Map key = relativePath). */
 export interface ReviewFileMapping {
+  /** Repo-relative posix path, e.g. document/<id>/flow.mmd */
+  relativePath: string;
   originalFilePath: string;
   originalContent: string;
-  botContent: string;
+  appContent: string;
   status: "pending" | "accepted" | "rejected" | "modified";
 }
 
-/** How bot review was started — controls notifications and auth prompts. */
-export type BotReviewTrigger = "manual" | "git-update";
+/** How app review was started — controls notifications and auth prompts. */
+export type AppReviewTrigger = "manual" | "git-update";
 
-export interface ReviewBotCommitsOptions {
-  trigger?: BotReviewTrigger;
+export interface ReviewAppCommitsOptions {
+  trigger?: AppReviewTrigger;
   /** HEAD before pull — scan only commits between this and current HEAD. */
   fromSHA?: string;
 }
 
-export class BotReviewIntegration {
+export class AppReviewIntegration {
   private reviewMappings: Map<string, ReviewFileMapping> = new Map();
+  /** Set for the current review session (same repo as last registerPendingAppReviews). */
+  private activeGitRoot: string | null = null;
   private octokit: Octokit | null = null;
   private githubContext: GitHubContext | null = null;
   private readonly _onDidChangePendingReviews = new vscode.EventEmitter<void>();
   readonly onDidChangePendingReviews = this._onDidChangePendingReviews.event;
 
-  private readonly botEmailPattern = /(\d+\+)?mermaid-diagram-sync-assistant\[bot\]@users\.noreply\.github\.com/;
-  private readonly botNamePattern = /mermaid-diagram-sync-assistant\[bot\]/;
-  private readonly botMessagePattern = /Automated diagram update \(PR #(\d+)\)/;
+  /** GitHub Actions bot identity — keep [bot] literals; not user-facing "app" naming. */
+  private readonly syncBotEmailPattern =
+    /(\d+\+)?mermaid-diagram-sync-assistant\[bot\]@users\.noreply\.github\.com/;
+  private readonly syncBotNamePattern = /mermaid-diagram-sync-assistant\[bot\]/;
+  private readonly syncBotMessagePattern = /Automated diagram update \(PR #(\d+)\)/;
 
   notifyReviewMappingsChanged(): void {
     this._onDidChangePendingReviews.fire();
   }
 
-  async reviewBotCommits(options: ReviewBotCommitsOptions = {}): Promise<void> {
+  async reviewAppCommits(options: ReviewAppCommitsOptions = {}): Promise<void> {
     const trigger = options.trigger ?? "manual";
     const silent = trigger === "git-update";
 
@@ -64,7 +77,7 @@ export class BotReviewIntegration {
       const workspaceRoot = this.getWorkspaceRoot();
       if (!workspaceRoot) {
         if (!silent) {
-          vscode.window.showErrorMessage("Open a folder workspace to review bot commits.");
+          vscode.window.showErrorMessage("Open a folder workspace to review app sync commits.");
         }
         return;
       }
@@ -79,15 +92,18 @@ export class BotReviewIntegration {
       if (!gh?.pr) {
         if (!silent) {
           vscode.window.showErrorMessage(
-            "No open GitHub pull request found for this branch. Bot review needs PR base content from GitHub."
+            "No open GitHub pull request found for this branch. App review needs PR base content from GitHub."
           );
         }
         return;
       }
 
       const gitRoot =
-        (await this.getGitRepositoryRoot(workspaceRoot)) ?? resolveReviewFilePath(workspaceRoot);
-      const { stdout: headShaOut } = await execAsync("git rev-parse HEAD", { cwd: workspaceRoot });
+        (await this.getGitRepositoryRoot(workspaceRoot)) ?? path.normalize(workspaceRoot);
+      const { stdout: headShaOut } = await execAsync("git rev-parse HEAD", {
+        cwd: workspaceRoot,
+        timeout: GIT_EXEC_TIMEOUT_MS,
+      });
       const headSHA = headShaOut.trim();
       if (!headSHA) {
         if (!silent) {
@@ -100,17 +116,17 @@ export class BotReviewIntegration {
       const fromSHA = options.fromSHA ?? gh.pr.base.sha;
       const clearExisting = !options.fromSHA;
 
-      const relPaths = await this.collectBotTouchedMermaidRelPaths(gitRoot, fromSHA);
+      const relPaths = await this.collectAppSyncTouchedMermaidRelPaths(gitRoot, fromSHA);
       if (relPaths.length === 0) {
         if (!silent) {
           vscode.window.showInformationMessage(
-            "No .mmd/.mermaid files touched by Mermaid Diagram Sync bot commits in the selected range."
+            "No .mmd/.mermaid files touched by Mermaid Sync app commits in the selected range."
           );
         }
         return;
       }
 
-      await this.registerPendingBotReviews(
+      await this.registerPendingAppReviews(
         workspaceRoot,
         gitRoot,
         fromSHA,
@@ -120,27 +136,27 @@ export class BotReviewIntegration {
         clearExisting
       );
 
-      const message = `Mermaid Diagram Sync updated ${relPaths.length} diagram file(s). Open each file to Review / Accept / Reject from CodeLens.`;
+      const message = `Mermaid Sync app updated ${relPaths.length} diagram file(s). Open each file to Review / Accept / Reject from CodeLens.`;
       if (silent) {
         vscode.window.showInformationMessage(message);
       } else {
         vscode.window.showInformationMessage(
-          `Marked ${relPaths.length} diagram file(s) for bot review. Open each file for Review / Accept / Reject / Submit.`
+          `Marked ${relPaths.length} diagram file(s) for Mermaid Sync app review. Open each file for Review / Accept / Reject / Submit.`,
         );
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (!silent) {
-        vscode.window.showErrorMessage(`Bot review failed: ${msg}`);
+        vscode.window.showErrorMessage(`App review failed: ${msg}`);
       }
     }
   }
 
   /**
    * Load Octokit + PR base vs HEAD snapshots into memory; decorate original paths only.
-   * Removes legacy `.mermaid-bot-review-temp` folder if present.
+   * Removes legacy review temp folders if present.
    */
-  private async registerPendingBotReviews(
+  private async registerPendingAppReviews(
     workspaceRoot: string,
     gitRoot: string,
     originalSHA: string,
@@ -154,21 +170,25 @@ export class BotReviewIntegration {
       throw new Error("GitHub context missing");
     }
 
-    const legacyFolder = path.join(workspaceRoot, ".mermaid-bot-review-temp");
-    try {
-      await vscode.workspace.fs.delete(vscode.Uri.file(legacyFolder), { recursive: true });
-    } catch {
-      /* not present */
+    for (const legacyName of [".mermaid-bot-review-temp", ".mermaid-app-review-temp"]) {
+      const legacyFolder = path.join(workspaceRoot, legacyName);
+      try {
+        await vscode.workspace.fs.delete(vscode.Uri.file(legacyFolder), { recursive: true });
+      } catch {
+        /* not present */
+      }
     }
+
+    this.activeGitRoot = path.normalize(gitRoot);
 
     if (clearExisting) {
       this.reviewMappings.clear();
     }
 
     for (const rel of relativeMermaidPaths) {
-      const relPosix = rel.split(path.sep).join("/");
-      let originalContent = "";
-      let botContent = "";
+      const relPosix = toPosixRepoPath(rel);
+      const mapKey = relPosix;
+      let originalContent: string;
       try {
         originalContent = await this.fetchFileContentApi(
           context.owner,
@@ -176,43 +196,88 @@ export class BotReviewIntegration {
           relPosix,
           originalSHA
         );
-      } catch {
-        originalContent = "";
+      } catch (e) {
+        if (githubApiHttpStatus(e) === 404) {
+          // New diagram on this PR — no file at PR base ref.
+          originalContent = "";
+        } else {
+          this.warnSkipFile(relPosix, "PR base", e, silent);
+          continue;
+        }
       }
+
+      let appContent: string;
       try {
-        botContent = await this.fetchFileContentApi(
+        appContent = await this.fetchFileContentApi(
           context.owner,
           context.repo,
           relPosix,
           headSHA
         );
       } catch (e) {
-        if (!silent) {
-          vscode.window.showWarningMessage(
-            `Skipping ${relPosix}: could not load file at HEAD from GitHub.`
-          );
-        }
+        this.warnSkipFile(relPosix, "HEAD", e, silent);
         continue;
       }
 
-      const originalFilePath = resolveReviewFilePath(path.join(gitRoot, relPosix));
-      this.reviewMappings.set(reviewPathKey(originalFilePath), {
+      const originalFilePath = path.normalize(
+        path.join(gitRoot, ...relPosix.split("/"))
+      );
+      this.reviewMappings.set(mapKey, {
+        relativePath: relPosix,
         originalFilePath,
         originalContent,
-        botContent,
+        appContent,
         status: "pending",
       });
+    }
+
+    if (this.reviewMappings.size === 0) {
+      this.activeGitRoot = null;
     }
 
     this.notifyReviewMappingsChanged();
   }
 
-  /** All repo-relative .mmd/.mermaid paths touched in bot commits between `baseSHA` (exclusive) and `HEAD` (inclusive). */
-  private async collectBotTouchedMermaidRelPaths(cwd: string, baseSHA: string): Promise<string[]> {
+  /** Git root for the current review session (null when no files are in review). */
+  getActiveGitRoot(): string | null {
+    return this.activeGitRoot;
+  }
+
+  /** Repo-relative Map key for an absolute path; null if outside active git root or no session. */
+  lookupRepoRelativeKey(absolutePath: string): string | null {
+    if (!this.activeGitRoot) {
+      return null;
+    }
+    const rel = relativePathFromAbsolute(this.activeGitRoot, absolutePath);
+    if (!rel) {
+      return null;
+    }
+    return findMapKeyForRelativePath(this.reviewMappings.keys(), rel);
+  }
+
+  private warnSkipFile(
+    relPosix: string,
+    refLabel: string,
+    error: unknown,
+    silent: boolean
+  ): void {
+    if (silent) {
+      return;
+    }
+    const status = githubApiHttpStatus(error);
+    const detail = status !== undefined ? ` (HTTP ${status})` : "";
+    vscode.window.showWarningMessage(
+      `Skipping ${relPosix}: could not load file at ${refLabel} from GitHub${detail}.`
+    );
+  }
+
+  /** All repo-relative .mmd/.mermaid paths touched in sync-app commits between `baseSHA` (exclusive) and `HEAD` (inclusive). */
+  private async collectAppSyncTouchedMermaidRelPaths(cwd: string, baseSHA: string): Promise<string[]> {
     const relSet = new Set<string>();
     try {
       const { stdout: logOut } = await execAsync(`git log ${baseSHA}..HEAD --pretty=format:%H`, {
         cwd,
+        timeout: GIT_LOG_EXEC_TIMEOUT_MS,
       });
       const hashes = logOut
         .trim()
@@ -222,17 +287,18 @@ export class BotReviewIntegration {
       for (const hash of hashes) {
         const { stdout: metaOut } = await execAsync(`git show -s --format=%ae%n%an%n%s ${hash}`, {
           cwd,
+          timeout: GIT_EXEC_TIMEOUT_MS,
         });
         const lines = metaOut.trim().split("\n");
         const authorEmail = lines[0] ?? "";
         const authorName = lines[1] ?? "";
         const message = lines.slice(2).join("\n");
-        if (!this.isBotCommit({ authorEmail, authorName, message })) {
+        if (!this.isSyncAppBotCommit({ authorEmail, authorName, message })) {
           continue;
         }
         const { stdout: namesOut } = await execAsync(
           `git diff-tree --no-commit-id --name-only -r ${hash}`,
-          { cwd }
+          { cwd, timeout: GIT_EXEC_TIMEOUT_MS }
         );
         for (const p of namesOut
           .trim()
@@ -255,25 +321,31 @@ export class BotReviewIntegration {
     return this.getGitRepositoryRoot(workspaceRoot);
   }
 
-  /** Remove a single file from active bot review (Submit, or after push). */
+  /** Remove a single file from active app review (Submit, or after push). */
   removeReviewForFile(absoluteFilePath: string): boolean {
-    const key = reviewPathKey(absoluteFilePath);
+    const key = this.lookupRepoRelativeKey(absoluteFilePath);
+    if (!key) {
+      return false;
+    }
     if (this.reviewMappings.delete(key)) {
+      if (this.reviewMappings.size === 0) {
+        this.activeGitRoot = null;
+      }
       this.notifyReviewMappingsChanged();
       return true;
     }
     return false;
   }
 
-  private isBotCommit(info: {
+  private isSyncAppBotCommit(info: {
     authorName: string;
     authorEmail: string;
     message: string;
   }): boolean {
     return (
-      this.botEmailPattern.test(info.authorEmail) &&
-      this.botNamePattern.test(info.authorName) &&
-      this.botMessagePattern.test(info.message)
+      this.syncBotEmailPattern.test(info.authorEmail) &&
+      this.syncBotNamePattern.test(info.authorName) &&
+      this.syncBotMessagePattern.test(info.message)
     );
   }
 
@@ -330,10 +402,12 @@ export class BotReviewIntegration {
     }
     const { stdout: remoteUrl } = await execAsync("git config --get remote.origin.url", {
       cwd: workspaceRoot,
+      timeout: GIT_EXEC_TIMEOUT_MS,
     });
     const { owner, repo } = this.parseGitHubUrl(remoteUrl.trim());
     const { stdout: currentBranch } = await execAsync("git branch --show-current", {
       cwd: workspaceRoot,
+      timeout: GIT_EXEC_TIMEOUT_MS,
     });
     const branch = currentBranch.trim();
     const pr = await this.findPRForCurrentBranch(owner, repo, branch);
@@ -408,17 +482,72 @@ export class BotReviewIntegration {
     throw new Error("Not a file or empty");
   }
 
-  /** Lookup by absolute path to the real diagram file (normalized). */
-  getReviewMapping(originalFilePath: string): ReviewFileMapping | undefined {
-    return this.reviewMappings.get(reviewPathKey(originalFilePath));
+  /**
+   * Re-fetch app sync proposal from GitHub at local HEAD and refresh mapping.appContent.
+   * Used when restoring the bot proposal after user edits.
+   */
+  async fetchAppContentAtHead(absoluteFilePath: string): Promise<string | null> {
+    const mapping = this.getReviewMapping(absoluteFilePath);
+    if (!mapping) {
+      return null;
+    }
+
+    const workspaceRoot = this.getWorkspaceRoot();
+    if (!workspaceRoot) {
+      return null;
+    }
+
+    const authed = await this.ensureGitHubAuthentication(false);
+    if (!authed) {
+      return null;
+    }
+
+    const gh = await this.getCurrentGitHubContext();
+    if (!gh) {
+      return null;
+    }
+
+    try {
+      const { stdout: headShaOut } = await execAsync("git rev-parse HEAD", {
+        cwd: workspaceRoot,
+        timeout: GIT_EXEC_TIMEOUT_MS,
+      });
+      const headSHA = headShaOut.trim();
+      if (!headSHA) {
+        return null;
+      }
+
+      const content = await this.fetchFileContentApi(
+        gh.owner,
+        gh.repo,
+        mapping.relativePath,
+        headSHA
+      );
+      mapping.appContent = content;
+      return content;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Lookup by absolute path to the real diagram file. */
+  getReviewMapping(absoluteFilePath: string): ReviewFileMapping | undefined {
+    const key = this.lookupRepoRelativeKey(absoluteFilePath);
+    if (!key) {
+      return undefined;
+    }
+    return this.reviewMappings.get(key);
   }
 
   private async getGitRepositoryRoot(cwd: string): Promise<string | null> {
     try {
-      const { stdout } = await execAsync("git rev-parse --show-toplevel", { cwd });
+      const { stdout } = await execAsync("git rev-parse --show-toplevel", {
+        cwd,
+        timeout: GIT_EXEC_TIMEOUT_MS,
+      });
       const root = stdout.trim();
-      return root ? resolveReviewFilePath(root) : null;
-    } catch (e) {
+      return root ? path.normalize(root) : null;
+    } catch {
       return null;
     }
   }
@@ -429,6 +558,7 @@ export class BotReviewIntegration {
 
   dispose(): void {
     this.reviewMappings.clear();
+    this.activeGitRoot = null;
     this._onDidChangePendingReviews.dispose();
   }
 

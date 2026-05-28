@@ -4,6 +4,12 @@ import { addMetadataToFrontmatter, splitFrontMatter, extractMetadataFromCode } f
 import { MermaidChartAuthenticationProvider } from '../../mermaidChartAuthenticationProvider';
 import type { MermaidChartVSCode } from '../../mermaidChartVSCode';
 
+/** Extracts clean Mermaid code from a markdown response that may contain a ```mermaid block. */
+function extractMermaidCode(markdownText: string): string {
+  const mermaidBlockRegex = /```mermaid\s*\n?([\s\S]*?)```/gi;
+  const match = mermaidBlockRegex.exec(markdownText);
+  return match?.[1]?.trim() ?? markdownText.trim();
+}
 
 export function registerRegenerateWithMermaidAICommand(
   context: vscode.ExtensionContext,
@@ -49,16 +55,21 @@ export function registerRegenerateWithMermaidAICommand(
                 sourceFiles,
               });
 
-              if (!result.solved || !result.code) {
+              // SDK returns result: 'ok' | 'fail' — 'solved' is optional and may be absent.
+              if (result.result !== 'ok' || !result.code) {
                 vscode.window.showWarningMessage(
                   `Mermaid AI could not regenerate ${path.basename(mmdUri.fsPath)}. No changes made.`,
                 );
                 return;
               }
 
+              // SDK documents result.code as "Markdown message that may contain a
+              // valid mermaid code block." Extract the diagram before writing to disk.
+              const cleanedCode = extractMermaidCode(result.code);
+
               // Preserve existing frontmatter metadata, update generationTime
               const existingMetadata = extractMetadataFromCode(fullContent);
-              const updatedContent = addMetadataToFrontmatter(result.code, {
+              const updatedContent = addMetadataToFrontmatter(cleanedCode, {
                 query: existingMetadata.query,
                 references: existingMetadata.references,
                 generationTime: new Date(),
@@ -73,6 +84,8 @@ export function registerRegenerateWithMermaidAICommand(
                 `✅ ${path.basename(mmdUri.fsPath)} updated. Remember to \`git add\` it before committing.`,
               );
             } catch (error: unknown) {
+              // AICreditsLimitExceededError is not exported from @mermaidchart/sdk's
+              // public API surface, so we check error.name which the class sets explicitly.
               const isCreditsError =
                 error instanceof Error && error.name === 'AICreditsLimitExceededError';
               if (isCreditsError) {

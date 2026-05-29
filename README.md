@@ -368,7 +368,7 @@ When a  user modifies an existing diagram, before saving it to MermaidChart serv
 
 **MermaidChart: Review Mermaid Sync** helps you review diagram changes on your pull request that were committed by the Mermaid Diagram Sync GitHub App. To learn how the app works, what it updates, and how `.mermaidignore` fits in, see the [Mermaid Diagram Sync marketplace page](https://github.com/marketplace/mermaid-diagram-sync).
 
-**Before you start:** Install the GitHub App on your repo, open a branch that has an **open pull request**, and run **MermaidChart: Connect GitHub for Mermaid Diagram Sync** once so the extension can load PR base and head content from GitHub.
+> **Before you start:** Install the GitHub App on your repo, open a branch that has an **open pull request**, and run **MermaidChart: Connect GitHub for Mermaid Diagram Sync** once so the extension can load PR base and head content from GitHub.
 
 #### Automatically review after `git pull`
 

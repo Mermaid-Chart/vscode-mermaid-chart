@@ -36,6 +36,8 @@ import { MermaidWebviewProvider } from "./panels/loginPanel";
 import analytics from "./analytics";
 import { RemoteSyncHandler } from "./remoteSyncHandler";
 import { registerRegenerateCommand } from './commercial/sync/regenerateCommand';
+import { registerRegenerateWithMermaidAICommand } from './commercial/sync/regenerateWithMermaidAICommand';
+import { PreCommitSyncService } from './commercial/sync/preCommitSyncService';
 import { initializeAIChatParticipant } from "./commercial/ai/chatParticipant";
 import {
   setPreviewBridge,
@@ -964,6 +966,8 @@ context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
 
 // Register the regenerate command from commercial directory
 registerRegenerateCommand(context, mcAPI);
+registerRegenerateWithMermaidAICommand(context, mcAPI);
+PreCommitSyncService.register(context, mcAPI);
 
 context.subscriptions.push(
   vscode.commands.registerCommand(

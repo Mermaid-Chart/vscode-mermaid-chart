@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid",
   "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.6.6",
+  "version": "2.6.7",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -664,6 +664,11 @@
           "default": "false",
           "description": "Automatic name suggestion for exported diagrams"
         },
+        "mermaidChart.preCommitSync.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable pre-commit Mermaid diagram sync. When enabled, you will be notified to regenerate diagrams when staged source files match diagram references."
+        },
         "mermaidChart.showGenerateDiagramCodeLens": {
           "type": "boolean",
           "default": true,
@@ -896,6 +901,10 @@
         "title": "MermaidChart: Open Diagram Diff (Current vs Updated)"
       },
       {
+        "command": "mermaidChart.regenerateDiagramWithMermaidAI",
+        "title": "MermaidChart: Regenerate with Mermaid AI"
+      },
+      {        
         "command": "mermaidChart.reviewAppCommits",
         "title": "MermaidChart: Review Mermaid Sync"
       },
@@ -1166,7 +1175,7 @@
     "@mermaid-chart/icons-gcp": "^1.0.0",
     "@mermaid-chart/vscode-utils": "1.4.5",
     "@mermaid-chart/layout-elk": "0.1.7-b.2",
-    "@mermaidchart/sdk": "0.2.3",
+    "@mermaidchart/sdk": "0.2.6",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",
     "@vscode/prompt-tsx": "^0.3.0-alpha.12",
     "@octokit/rest": "^22.0.0",

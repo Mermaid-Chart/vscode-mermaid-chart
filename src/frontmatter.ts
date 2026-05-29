@@ -264,9 +264,15 @@ export function checkReferencedFiles(metadata: any, workspacePath: string = ''):
       return [];
     }
 
-    // If the path starts with '/', treat it as relative to workspace root
-    if (filePath.startsWith('/') && workspacePath) {
-      filePath = path.join(workspacePath, filePath);
+    // Windows absolute path (e.g. C:\proj\src\auth.ts) — use as-is.
+    // On POSIX, path.isAbsolute('/src/auth.ts') is true but that path is
+    // workspace-relative by convention, so we check for a drive letter explicitly.
+    if (/^[a-zA-Z]:[\\/]/.test(filePath)) {
+      filePath = path.normalize(filePath);
+    } else if (workspacePath) {
+      // Strip any leading slashes/backslashes (workspace-relative convention).
+      const relative = filePath.replace(/^[/\\]+/, '');
+      filePath = path.normalize(path.join(workspacePath, relative));
     }
 
     if (!fs.existsSync(filePath)) {

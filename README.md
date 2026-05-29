@@ -14,6 +14,7 @@ Transform ideas into diagrams instantly with our AI integration! Our extension n
 - **AI-Powered Repair Diagram** : In just one click repair your broken mermaid digram  
 - **AI Chat Participant**: Simply describe your diagram needs in natural language with `@mermaid-chart` and watch as beautiful diagrams materialize
 - **Smart Diagram Regeneration**: Auto-detect changes in your source files and instantly update referenced diagrams with one click
+- **Pre-commit Diagram Regeneration**: Automatically detects when staged source files are referenced by Mermaid diagrams and prompts you to regenerate them before committing
 - **AI-Powered ER Diagrams**: Generate entity relationship diagrams from your codebase with simple commands
 - **AI-Powered Cloud Architecture**: Visualize your cloud infrastructure automatically from configuration files
 - **AI-Powered Docker Diagrams**: Create Docker architecture diagrams from your containerized applications
@@ -368,6 +369,22 @@ When a  user modifies an existing diagram, before saving it to MermaidChart serv
 - **Interactive Diff View**: Navigate between changes with clear visual indicators showing additions, modifications, and deletions.<br>
 ![vscode-plugin-remote-sync-preview](https://mermaid.ai/docs/img/plugins/vscode-plugin-remote-sync-preview.gif)
 
+### Pre-commit Diagram Regeneration
+Keep your Mermaid diagrams in sync with your code — automatically, before every commit.
+
+- **Automatic Staging Detection**: Whenever you run `git add`, the extension watches for staged source files that are referenced by any `.mmd` or `.mermaid` diagram in your workspace. No manual trigger needed.<br>
+- **Smart Notification Popup**: As soon as relevant staged files are detected, a VS Code notification appears listing the affected diagrams and asking whether you want to regenerate them using Mermaid AI — right before you commit, so your diagrams never lag behind your code.<br>
+- **Powered by Mermaid AI**: Clicking **Regenerate** calls the Mermaid AI regeneration API. The updated diagram is written back to file automatically. AI credits are deducted the same way as in the [Mermaid Diagram Sync GitHub App](https://github.com/marketplace/mermaid-diagram-sync).<br>
+- **Intelligent Skip Logic**: If a diagram file is already staged (already regenerated and added) or has unstaged modifications, it is skipped automatically no duplicate work, no unwanted overwrites.<br>
+- **Login Prompt**: If you are not signed in to Mermaid Chart, the popup offers a quick login link instead of regenerating.<br>
+- **Opt-out Anytime**: Can be turned off via Settings → **Mermaid Chart: Pre Commit Sync Enabled**.<br>
+
+> **This is a focused, local version of Mermaid diagram sync.** It regenerates diagrams based on your current staged changes only.
+> For full pull-request-level diagram synchronization across your entire repository use the [**Mermaid Diagram Sync GitHub App**](https://github.com/marketplace/mermaid-diagram-sync).
+
+![vscode-plugin-precommit-regenerate](https://mermaid.ai/docs/img/plugins/vscode-plugin-precommit-regenerate.gif)
+
+
 ### Regenerate Diagram with Diff Preview
 - **Source File Integration**: When you create a .mmd file using any source file with our Mermaid handler, references get added to the front matter.<br>
 - **Smart Change Detection**: When you change your source file code, we provide a regenerate diagram option that reflects the same changes to the Mermaid diagram.<br>
@@ -474,6 +491,11 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.6.7 - 2026-05-29
+- Added **Generate Mermaid Diagram from Code** — This command appears at the bottom of supported code files, or you can directly use `@mermaid-chart /generate_diagram_from_code` to select files, choose a diagram type, and generate Mermaid diagrams using AI.
+- Added **Review Mermaid Sync** — Provides highlight, diff preview, accept, reject, and commit actions for .mmd/.mermaid files updated by the [Mermaid Diagram Sync GitHub App](https://github.com/marketplace/mermaid-diagram-sync); Also includes automatic detection after `git pull` and support for MermaidChart: Connect GitHub for Mermaid Diagram Sync for PR-aware reviews.
+- Added **Pre-commit Diagram Regeneration** —When source files linked to Mermaid diagrams are staged using git add, Mermaid Chart prompts you to regenerate affected diagrams with AI before committing. This can be disabled via Settings → **Mermaid Chart: Pre Commit Sync Enabled**
 
 ### 2.6.6 - 2026-05-5
 - remove the login pop-up 

@@ -39,8 +39,8 @@ importers:
         specifier: 11.14.0-b.2
         version: 11.14.0-b.2
       '@mermaid-chart/vscode-utils':
-        specifier: 1.4.4
-        version: 1.4.4(vscode@1.1.37)
+        specifier: 1.4.5
+        version: 1.4.5(vscode@1.1.37)
       '@mermaid-js/examples':
         specifier: 0.0.1-beta.1
         version: 0.0.1-beta.1
@@ -691,8 +691,8 @@ packages:
   '@mermaid-chart/mermaid@11.14.0-b.2':
     resolution: {integrity: sha512-SZsndcifXtdDPy9tEOzvp0oBdj4jNoSHlM821bPh8SwKTyAmTaGJFid76lLVTd6ZvcSDPLD4M5jkZ6ia3QxjCg==, tarball: https://npm.pkg.github.com/download/@mermaid-chart/mermaid/11.14.0-b.2/f5676ac2b40ce81c3a734ff1b36cbfdfe33e8428}
 
-  '@mermaid-chart/vscode-utils@1.4.4':
-    resolution: {integrity: sha512-AUrZt71KVMltYn+V93pwc0ap/WwDQa3Jtrqc/EuEW769F+cfbgLxa30dyGT6GZAMtUo3hQxVopa7ysX16xXaKg==, tarball: https://npm.pkg.github.com/download/@mermaid-chart/vscode-utils/1.4.4/0b29b1fe14001f1a0e891a018e8352f6af3291b1}
+  '@mermaid-chart/vscode-utils@1.4.5':
+    resolution: {integrity: sha512-/bsDoCETAru8cNrRw84PnaGwMP3QhEXybOIhmTqDWwFOtDmYGz0i2oD7PQ0qdyph2k+5H7Mo/HeH3Da2OqMdaQ==, tarball: https://npm.pkg.github.com/download/@mermaid-chart/vscode-utils/1.4.5/0be5678889ec83e3583ba579486d15f0aecefab4}
     engines: {node: '>=14.0.0', vscode: ^1.77.0}
     peerDependencies:
       vscode: '*'
@@ -4085,7 +4085,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mermaid-chart/vscode-utils@1.4.4(vscode@1.1.37)':
+  '@mermaid-chart/vscode-utils@1.4.5(vscode@1.1.37)':
     dependencies:
       '@vscode/chat-extension-utils': 0.0.0-alpha.5
       '@vscode/prompt-tsx': 0.3.0-alpha.24

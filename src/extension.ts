@@ -175,6 +175,14 @@ export async function activate(context: vscode.ExtensionContext) {
     });
   let codeLensProvider: MermaidChartCodeLensProvider | undefined;
 
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("mermaidChart.showGenerateDiagramCodeLens")) {
+        codeLensProvider?.refresh();
+      }
+    })
+  );
+
   function updateMermaidChartTokenHighlighting() {
     const activeEditor = vscode.window.activeTextEditor;
     if (activeEditor) {
@@ -848,6 +856,39 @@ context.subscriptions.push(
       await vscode.commands.executeCommand("default:type", { text: "@mermaid-chart /generate_docker_diagram"});
       
       vscode.commands.executeCommand("workbench.action.chat.submit");
+    }
+  )
+);
+
+// Register the generate diagram from code command
+context.subscriptions.push(
+  vscode.commands.registerCommand(
+    "mermaidChart.generateDiagramFromCode",
+    async () => {
+      try {
+        // Check if Copilot Chat is available
+        const copilotExtension = vscode.extensions.getExtension("GitHub.copilot-chat");
+        if (!copilotExtension) {
+          const installOption = "Install GitHub Copilot Chat";
+          const selection = await vscode.window.showErrorMessage(
+            "GitHub Copilot Chat extension is not installed. Please install it from the VS Code Marketplace.",
+            installOption
+          );
+  
+          if (selection === installOption) {
+            await vscode.commands.executeCommand("extension.open", "GitHub.copilot-chat");
+          }
+          return;
+        }
+        
+        await vscode.commands.executeCommand("workbench.action.chat.open", {
+          query: "@mermaid-chart /generate_diagram_from_code",
+        });
+        
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Failed to execute command: ${errorMessage}`);
+      }
     }
   )
 );

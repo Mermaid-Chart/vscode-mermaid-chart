@@ -1,13 +1,21 @@
+import * as path from "path";
 import * as vscode from "vscode";
 import {  applyGutterIconDecoration, isAuxFile, MermaidChartToken } from "./util";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
 import { extractIdFromCode, extractMetadataFromCode, checkReferencedFiles, findDiagramContentStartPosition } from "./frontmatter";
 
 export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
+  private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
+  readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
+
   constructor(private mermaidChartTokens: MermaidChartToken[]) {}
 
   setMermaidChartTokens(mermaidChartTokens: MermaidChartToken[]) {
     this.mermaidChartTokens = mermaidChartTokens;
+  }
+
+  refresh(): void {
+    this._onDidChangeCodeLenses.fire();
   }
 
   async provideCodeLenses(
@@ -26,6 +34,8 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
 
     if (editor?.document?.languageId.startsWith('mermaid')){
       this.provideCodeLensesForMermaid(document, codeLenses, session);
+    } else if (this.isCodingFile(document) && this.showGenerateDiagramCodeLens()) {
+      this.addCodingFileCodeLenses(codeLenses, document);
     } else {
       for (const token of this.mermaidChartTokens) {
         const documentText = editor.document.getText(token.range);
@@ -72,6 +82,84 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
     args: any[]
   ): vscode.CodeLens {
     return new vscode.CodeLens(token.range, { title, command, arguments: args });
+  }
+
+  /**
+   * Check if the document is a coding file that should show our CodeLens commands
+   */
+  private isCodingFile(document: vscode.TextDocument): boolean {
+    // Comprehensive list of coding file extensions
+    const codingExtensions = [
+      // JavaScript/TypeScript
+      '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs',
+      // Python
+      '.py', '.pyw', '.pyi',
+      // Java/JVM languages
+      '.java', '.kt', '.scala', '.groovy',
+      // C/C++
+      '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hxx',
+      // C#/.NET
+      '.cs', '.vb', '.fs', '.fsx',
+      // Go
+      '.go',
+      // Rust
+      '.rs',
+      // PHP
+      '.php', '.phtml',
+      // Ruby
+      '.rb', '.rbx',
+      // Swift
+      '.swift',
+      // Other popular languages
+      '.dart', '.lua', '.perl', '.pl', '.r', '.m', '.mm',
+      '.clj', '.cljs', '.elm', '.ex', '.exs', '.hs', '.jl',
+      '.nim', '.pas', '.pp', '.sh', '.bash', '.zsh', '.fish',
+      // Configuration/Scripting
+      '.sql', '.ps1', '.psm1', '.psd1'
+    ];
+
+    const fileExt = path.extname(document.fileName).toLowerCase();
+    if (!fileExt) return false;
+
+    return codingExtensions.includes(fileExt);
+  }
+
+  private showGenerateDiagramCodeLens(): boolean {
+    return vscode.workspace
+      .getConfiguration("mermaidChart")
+      .get<boolean>("showGenerateDiagramCodeLens", true);
+  }
+
+  /**
+   * Add CodeLens commands for coding files at the end of the file
+   */
+  private addCodingFileCodeLenses(codeLenses: vscode.CodeLens[], document: vscode.TextDocument): void {
+    const lineCount = document.lineCount;
+    if (lineCount === 0) {
+      return;
+    }
+
+    // VS Code renders CodeLens above the target line: on a non-empty last line the lens
+    const targetLine = lineCount - 1;
+    const codeInRange = new vscode.Range(targetLine, 0, targetLine, 0);
+
+    // Add "Generate Mermaid Diagram" command
+    codeLenses.push(
+      new vscode.CodeLens(codeInRange, {
+        title: "▷ Generate Mermaid Diagram",
+        command: "mermaidChart.generateDiagramFromCode",
+        arguments: []
+      })
+    );
+
+    // Add "Open Chat @mermaid-chart" command  
+    codeLenses.push(
+      new vscode.CodeLens(codeInRange, {
+        title: "💬 Open Chat @mermaid-chart", 
+        command: "mermaidChart.openCopilotChat",
+        arguments: []
+      })
+    );
   }
 
   private provideCodeLensesForMermaid(document: vscode.TextDocument, codeLenses: vscode.CodeLens[], session: vscode.AuthenticationSession | undefined) {

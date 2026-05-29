@@ -663,6 +663,11 @@
           "type": "boolean",
           "default": "false",
           "description": "Automatic name suggestion for exported diagrams"
+        },
+        "mermaidChart.showGenerateDiagramCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Generate Mermaid Diagram' and 'Open Chat @mermaid-chart' CodeLens at the bottom of supported code files"
         }
       }
     },
@@ -883,6 +888,10 @@
         "title": "MermaidChart: Generate Docker Diagram"
       },
       {
+        "command": "mermaidChart.generateDiagramFromCode",
+        "title": "MermaidChart: Generate Diagram from Code"
+      },
+      {
         "command": "mermaidChart.openDiagramDiffWebviews",
         "title": "MermaidChart: Open Diagram Diff (Current vs Updated)"
       },
@@ -970,6 +979,10 @@
           {
             "name": "generate_dependency_diagram",
             "description": "Generate dependency security visualization diagram"
+          },
+          {
+            "name": "generate_diagram_from_code",
+            "description": "Generate Mermaid diagram from code file analysis"
           },
           {
             "name": "generate_c4_topdown_architecture",
@@ -1151,7 +1164,7 @@
     "@iconify-json/logos": "^1.2.4",
     "@iconify-json/mdi": "^1.2.3",
     "@mermaid-chart/icons-gcp": "^1.0.0",
-    "@mermaid-chart/vscode-utils": "1.4.4",
+    "@mermaid-chart/vscode-utils": "1.4.5",
     "@mermaid-chart/layout-elk": "0.1.7-b.2",
     "@mermaidchart/sdk": "0.2.3",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",

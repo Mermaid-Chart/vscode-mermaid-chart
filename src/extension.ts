@@ -51,6 +51,7 @@ import { injectMermaidTheme } from "./previewmarkdown/themeing";
 import { extendMarkdownItWithMermaid } from "./previewmarkdown/shared-md-mermaid";
 import * as packageJson from '../package.json'; 
 import { clearTmLanguageCache } from "./syntaxHighlighter";
+import { AppReviewFeature } from "./appReviewFeature";
 
 
 const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
@@ -73,6 +74,8 @@ export async function activate(context: vscode.ExtensionContext) {
   
   // Initialize AI chat participant after tools are registered
   initializeAIChatParticipant(context);
+
+  new AppReviewFeature().register(context);
 
   const mermaidWebviewProvider = new MermaidWebviewProvider(context);
 

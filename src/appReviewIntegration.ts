@@ -3,6 +3,7 @@ import * as path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { Octokit } from "@octokit/rest";
+import analytics from "./analytics";
 import {
   findMapKeyForRelativePath,
   githubApiHttpStatus,
@@ -135,6 +136,7 @@ export class AppReviewIntegration {
         silent,
         clearExisting
       );
+      analytics.trackAppReviewTriggered();
 
       const message = `Mermaid Sync app updated ${relPaths.length} diagram file(s). Open each file to Review / Accept / Reject from CodeLens.`;
       if (silent) {

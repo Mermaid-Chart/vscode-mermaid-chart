@@ -6,6 +6,7 @@ import { promisify } from 'util';
 import { extractMetadataFromCode } from '../../frontmatter';
 import { MermaidChartAuthenticationProvider } from '../../mermaidChartAuthenticationProvider';
 import type { MermaidChartVSCode } from '../../mermaidChartVSCode';
+import analytics from '../../analytics';
 
 const execFileAsync = promisify(execFile);
 const GIT_TIMEOUT_MS = 5000;
@@ -451,6 +452,7 @@ export class PreCommitSyncService {
     );
 
     if (pick !== 'Regenerate') return;
+    analytics.trackPreCommitDiagramRegenerate();
 
     for (const diagram of affected) {
       const sourceFiles = diagram.stagedSourceFiles

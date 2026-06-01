@@ -112,7 +112,7 @@ export class AppReviewCodeLensProvider implements vscode.CodeLensProvider {
     lenses.push(
       new vscode.CodeLens(top, {
         title: "Close review",
-        command: "mermaidChart.submitAppReview",
+        command: "mermaidChart.closeAppReview",
         arguments: [fileUri],
         tooltip: "Remove app review CodeLens for this file",
       })

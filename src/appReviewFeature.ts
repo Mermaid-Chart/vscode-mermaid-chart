@@ -115,7 +115,7 @@ export class AppReviewFeature implements vscode.Disposable {
       vscode.commands.registerCommand("mermaidChart.commitAppReview", (uri: vscode.Uri) =>
         this.commitWorkflow.commitAppReview(uri)
       ),
-      vscode.commands.registerCommand("mermaidChart.submitAppReview", async (uri?: vscode.Uri) => {
+      vscode.commands.registerCommand("mermaidChart.closeAppReview", async (uri?: vscode.Uri) => {
         const target = uri ?? vscode.window.activeTextEditor?.document.uri;
         if (!target) {
           return;

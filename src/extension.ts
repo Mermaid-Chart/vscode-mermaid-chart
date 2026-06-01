@@ -766,6 +766,7 @@ context.subscriptions.push(
       await vscode.commands.executeCommand("workbench.action.chat.focusInput");
       await vscode.commands.executeCommand("deleteAllLeft");
       await vscode.commands.executeCommand("default:type", { text: "@mermaid-chart" });
+      analytics.trackOpenCopilotChat();
     })
   );
 
@@ -889,6 +890,7 @@ context.subscriptions.push(
         await vscode.commands.executeCommand("workbench.action.chat.open", {
           query: "@mermaid-chart /generate_diagram_from_code",
         });
+        analytics.trackGenerateDiagramFromCode();
         
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);

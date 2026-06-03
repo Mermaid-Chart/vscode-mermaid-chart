@@ -98,7 +98,7 @@ export function offerPrReviewDemoInDevHost(context: vscode.ExtensionContext): vo
             return;
         }
         const choice = await vscode.window.showInformationMessage(
-            "Mermaid (Test) is running in this window. Open the PR Review demo?",
+            "Mermaid (Test) is running in this window. Open the PR Review demo? (Command: Open PR Review Demo)",
             "Open demo",
         );
         if (choice === "Open demo") {

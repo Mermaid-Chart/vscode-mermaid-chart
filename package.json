@@ -1,8 +1,8 @@
 {
-  "name": "vscode-mermaid-chart",
-  "publisher": "MermaidChart",
-  "displayName": "Mermaid",
-  "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
+  "name": "vscode-mermaid-chart-test",
+  "publisher": "MermaidChartTest",
+  "displayName": "Mermaid (Test)",
+  "description": "Local test build of the Mermaid VS Code extension — same features as the published plugin, with a distinct extension id for F5 development (avoids clashing with the marketplace Mermaid extension).",
   "version": "2.6.8",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
@@ -1017,12 +1017,12 @@
       },
       {
         "command": "mermaidChart.prReview.openReview",
-        "title": "MermaidChart: Review Synced Diagram",
+        "title": "Mermaid (Test): Review Synced Diagram",
         "icon": "$(diff)"
       },
       {
         "command": "mermaidChart.prReview.openDemo",
-        "title": "MermaidChart: Open PR Review Demo (Now/Before)"
+        "title": "Mermaid (Test): Open PR Review Demo (Now/Before)"
       },
       {
         "command": "mermaidChart.prReview.accept",

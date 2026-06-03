@@ -6,7 +6,8 @@
       "type": "extensionHost",
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}/.."],
-      "outFiles": ["${workspaceFolder}/../out/**/*.js"]
+      "outFiles": ["${workspaceFolder}/../out/**/*.js"],
+      "preLaunchTask": "compile extension (repo root)"
     },
     {
       "name": "Run Extension (compile first)",

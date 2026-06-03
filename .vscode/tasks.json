@@ -2,6 +2,15 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "pnpm: compile",
+      "type": "shell",
+      "command": "pnpm compile",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": { "reveal": "silent" },
+      "problemMatcher": "$tsc"
+    },
+    {
       "type": "npm",
       "script": "compile",
       "group": "build",

@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as vscode from 'vscode';
-import analytics from './analytics';
 
 // Function to map the first word to a diagram type
 export function getDiagramTypeFromWord(firstWord: string, diagramMappings: Record<string, string[]>): string | null {

@@ -1,9 +1,9 @@
 {
-  "name": "vscode-mermaid-chart-test",
-  "publisher": "MermaidChartTest",
-  "displayName": "Mermaid (Test)",
-  "description": "Local test build of the Mermaid VS Code extension — same features as the published plugin, with distinct name and icons for mocks and development. Not the marketplace release.",
-  "version": "2.6.2",
+  "name": "vscode-mermaid-chart",
+  "publisher": "MermaidChart",
+  "displayName": "Mermaid",
+  "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
+  "version": "2.6.8",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -39,7 +39,8 @@
   ],
   "capabilities": {
     "authentication": [
-      "mermaidchart"
+      "mermaidChartAuthProvider",
+      "github"
     ]
   },
   "activationEvents": [
@@ -688,6 +689,16 @@
           "type": "string",
           "default": "Mermaid-Sync: regenerated",
           "description": "Commit-message trailer (Key: value) emitted by the Mermaid Sync GitHub App. Used to identify bot-authored edits on .mmd files."
+        },
+        "mermaidChart.preCommitSync.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable pre-commit Mermaid diagram sync. When enabled, you will be notified to regenerate diagrams when staged source files match diagram references."
+        },
+        "mermaidChart.showGenerateDiagramCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Generate Mermaid Diagram' and 'Open Chat @mermaid-chart' CodeLens at the bottom of supported code files"
         }
       }
     },
@@ -764,12 +775,27 @@
         {
           "command": "mermaidChart.insertUuidIntoEditor",
           "when": "viewItem == document",
-          "group": "inline@01"
+          "group": "link@01"
         },
         {
-          "command": "mermaidChart.useDiagram",
+          "command": "mermaidChart.viewDiagram",
           "when": "viewItem == document",
-          "group": "inline@02"
+          "group": "link@02"
+        },
+        {
+          "command": "mermaidChart.editDiagramInMermaidChart",
+          "when": "viewItem == document",
+          "group": "link@03"
+        },
+        {
+          "command": "mermaidChart.editDiagramLocally",
+          "when": "viewItem == document",
+          "group": "link@04"
+        },
+        {
+          "command": "mermaidChart.addDiagram",
+          "when": "viewItem == project",
+          "group": "inline@01"
         },
         {
           "command": "mermaidChart.renameDiagram",
@@ -780,6 +806,11 @@
           "command": "mermaidChart.deleteDiagram",
           "when": "viewItem == document",
           "group": "manage@02"
+        },
+        {
+          "command": "mermaidChart.duplicateDiagram",
+          "when": "viewItem == document",
+          "group": "manage@03"
         }
       ],
       "editor/context": [
@@ -790,7 +821,7 @@
         },
         {
           "command": "mermaidChart.connectDiagramToMermaidChart",
-          "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/",
+          "when": "(resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/) && !mermaid.hasId",
           "group": "navigation"
         },
         {
@@ -819,6 +850,11 @@
           "command": "mermaidChart.prReview.accept",
           "when": "mermaidChart.prReview.hasBotEdit && resourceExtname =~ /^\\.(mmd|mermaid)$/",
           "group": "navigation@10"
+        },
+        {
+          "command": "mermaidChart.reviewAppCommits",
+          "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/",
+          "group": "appReview"
         }
       ]
     },
@@ -867,8 +903,16 @@
         "title": "Link diagram"
       },
       {
-        "command": "mermaidChart.useDiagram",
-        "title": "Use diagram"
+        "command": "mermaidChart.viewDiagram",
+        "title": "View diagram"
+      },
+      {
+        "command": "mermaidChart.editDiagramInMermaidChart",
+        "title": "Edit in Mermaid Chart"
+      },
+      {
+        "command": "mermaidChart.editDiagramLocally",
+        "title": "Edit locally"
       },
       {
         "command": "mermaidChart.syncDiagramWithMermaid",
@@ -905,9 +949,19 @@
         "title": "MermaidChart: Connect Diagram"
       },
       {
+        "command": "mermaidChart.addDiagram",
+        "title": "Add Diagram",
+        "icon": "$(add)"
+      },
+      {
         "command": "mermaidChart.renameDiagram",
         "title": "Rename",
         "icon": "$(edit)"
+      },
+      {
+        "command": "mermaidChart.duplicateDiagram",
+        "title": "Duplicate",
+        "icon": "$(copy)"
       },
       {
         "command": "mermaidChart.deleteDiagram",
@@ -935,17 +989,21 @@
         "title": "MermaidChart: Generate Docker Diagram"
       },
       {
+        "command": "mermaidChart.generateDiagramFromCode",
+        "title": "MermaidChart: Generate Diagram from Code"
+      },
+      {
         "command": "mermaidChart.openDiagramDiffWebviews",
         "title": "MermaidChart: Open Diagram Diff (Current vs Updated)"
       },
       {
         "command": "mermaidChart.generateDiagram",
-        "title": "Mermaid (Test): Generate Diagram from Code",
+        "title": "MermaidChart: Generate Diagram from Code",
         "icon": "$(sparkle)"
       },
       {
         "command": "mermaidChart.copyDiagramLink",
-        "title": "Mermaid (Test): Copy Diagram Link"
+        "title": "MermaidChart: Copy Diagram Link"
       },
       {
         "command": "mermaidChart.improveDiagram",
@@ -954,41 +1012,97 @@
       },
       {
         "command": "mermaidChart.repairAndSaveToCloud",
-        "title": "Mermaid (Test): Repair & Save to Cloud",
+        "title": "MermaidChart: Repair & Save to Cloud",
         "icon": "$(cloud-upload)"
       },
       {
         "command": "mermaidChart.prReview.openReview",
-        "title": "Mermaid (Test): Review Synced Diagram",
+        "title": "MermaidChart: Review Synced Diagram",
         "icon": "$(diff)"
       },
       {
         "command": "mermaidChart.prReview.openDemo",
-        "title": "Mermaid (Test): Open PR Review Demo (Now/Before)"
+        "title": "MermaidChart: Open PR Review Demo (Now/Before)"
       },
       {
         "command": "mermaidChart.prReview.accept",
-        "title": "Mermaid (Test): Accept Synced Diagram",
+        "title": "MermaidChart: Accept Synced Diagram",
         "icon": "$(check)"
       },
       {
         "command": "mermaidChart.prReview.reject",
-        "title": "Mermaid (Test): Reject Synced Diagram",
+        "title": "MermaidChart: Reject Synced Diagram",
         "icon": "$(discard)"
       },
       {
         "command": "mermaidChart.prReview.edit",
-        "title": "Mermaid (Test): Edit Synced Diagram",
+        "title": "MermaidChart: Edit Synced Diagram",
         "icon": "$(edit)"
       },
       {
         "command": "mermaidChart.prReview.commitEdits",
-        "title": "Mermaid (Test): Commit Edits to Synced Diagram",
+        "title": "MermaidChart: Commit Edits to Synced Diagram",
         "icon": "$(git-commit)"
       },
       {
         "command": "mermaidChart.prReview.showUpsell",
-        "title": "Mermaid (Test): Show Pro Feature Upsell"
+        "title": "MermaidChart: Show Pro Feature Upsell"
+      },
+      {
+        "command": "mermaidChart.regenerateDiagramWithMermaidAI",
+        "title": "MermaidChart: Regenerate with Mermaid AI"
+      },
+      {
+        "command": "mermaidChart.reviewAppCommits",
+        "title": "MermaidChart: Review Mermaid Sync"
+      },
+      {
+        "command": "mermaidChart.showAppSyncInfo",
+        "title": "MermaidChart: Show App Sync Info"
+      },
+      {
+        "command": "mermaidChart.showAppReviewStatus",
+        "title": "MermaidChart: Show App Review Status"
+      },
+      {
+        "command": "mermaidChart.commitAppReview",
+        "title": "MermaidChart: Commit App Review"
+      },
+      {
+        "command": "mermaidChart.acceptModifiedChanges",
+        "title": "MermaidChart: Accept Modified App Review"
+      },
+      {
+        "command": "mermaidChart.appReviewBackToPending",
+        "title": "MermaidChart: App Review — Back to Pending (restore app proposal)"
+      },
+      {
+        "command": "mermaidChart.closeAppReview",
+        "title": "MermaidChart: Close App Review (this file)"
+      },
+      {
+        "command": "mermaidChart.openAppReview",
+        "title": "MermaidChart: Open App Review"
+      },
+      {
+        "command": "mermaidChart.openReviewFileDiff",
+        "title": "MermaidChart: Open Review File Diff"
+      },
+      {
+        "command": "mermaidChart.appReviewAccept",
+        "title": "MermaidChart: Accept App Review"
+      },
+      {
+        "command": "mermaidChart.appReviewReject",
+        "title": "MermaidChart: Reject App Review"
+      },
+      {
+        "command": "mermaidChart.connectGitHub",
+        "title": "MermaidChart: Connect GitHub for Mermaid Diagram Sync"
+      },
+      {
+        "command": "mermaidChart.disconnectGitHub",
+        "title": "MermaidChart: Disconnect GitHub for Mermaid Diagram Sync"
       }
     ],
     "chatParticipants": [
@@ -1022,6 +1136,10 @@
           {
             "name": "generate_dependency_diagram",
             "description": "Generate dependency security visualization diagram"
+          },
+          {
+            "name": "generate_diagram_from_code",
+            "description": "Generate Mermaid diagram from code file analysis"
           },
           {
             "name": "generate_c4_topdown_architecture",
@@ -1203,14 +1321,15 @@
     "@iconify-json/logos": "^1.2.4",
     "@iconify-json/mdi": "^1.2.3",
     "@mermaid-chart/icons-gcp": "^1.0.0",
-    "@mermaid-chart/vscode-utils": "1.4.4",
+    "@mermaid-chart/vscode-utils": "1.4.5",
     "@mermaid-chart/layout-elk": "0.1.7-b.2",
-    "@mermaidchart/sdk": "0.2.3",
+    "@mermaidchart/sdk": "0.2.6",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",
     "@vscode/prompt-tsx": "^0.3.0-alpha.12",
+    "@octokit/rest": "^22.0.0",
     "axios": "^1.7.9",
     "markdown-it": "^14.1.0",
-    "@mermaid-chart/mermaid": "11.12.2-b.5",
+    "@mermaid-chart/mermaid": "11.14.0-b.2",
     "@mermaid-js/examples": "0.0.1-beta.1",
     "uuid": "^9.0.0",
     "yaml": "^2.7.0",

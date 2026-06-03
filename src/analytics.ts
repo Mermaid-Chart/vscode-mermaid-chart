@@ -20,9 +20,6 @@ class Analytics {
     });
   }
 
-  public trackActivation() {
-    this.sendEvent('VS Code Extension Activated','VS_CODE_PLUGIN_ACTIVATION');
-  }
 
   public trackException(error: any) {
     if (error instanceof Error) {
@@ -51,8 +48,36 @@ class Analytics {
   public trackRegenerateCommandInvoked() {
     this.sendEvent('VS Code Regenerate Command Invoked','VS_CODE_PLUGIN_REGENERATE_DIAGRAM');
   }
-  public trackModelNotFound() {
-    this.sendEvent('VS Code AI  Model Not Found','VS_CODE_PLUGIN_MODEL_NOT_FOUND');
+
+  // Pre-commit sync
+  public trackPreCommitDiagramRegenerate() {
+    this.sendEvent(
+      "VS Code Pre-Commit Diagram Regenerate",
+      "VS_CODE_PLUGIN_PRE_COMMIT_DIAGRAM_REGENERATE",
+    );
+  }
+
+  // App review sync
+  public trackAppReviewTriggered() {
+    this.sendEvent(
+      "VS Code Mermaid Sync App Review Triggered",
+      "VS_CODE_PLUGIN_MERMAID_SYNC_APP_REVIEW_TRIGGERED",
+    );
+  }
+
+  // Generate diagram from code
+  public trackOpenCopilotChat() {
+    this.sendEvent(
+      "VS Code Open Chat @mermaid-chart CodeLens",
+      "VS_CODE_PLUGIN_OPEN_COPILOT_CHAT_CODELENS",
+    );
+  }
+
+  public trackGenerateDiagramFromCode() {
+    this.sendEvent(
+      "VS Code Generate Diagram From Code",
+      "VS_CODE_PLUGIN_GENERATE_DIAGRAM_FROM_CODE",
+    );
   }
 }
 

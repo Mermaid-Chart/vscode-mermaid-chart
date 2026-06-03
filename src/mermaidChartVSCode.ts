@@ -77,15 +77,6 @@ export class MermaidChartVSCode extends MermaidChart {
       // Update view visibility to show login screen
       updateViewVisibility(false, this.mermaidWebviewProvider);
       
-      // Show error message to user
-      vscode.window.showErrorMessage(
-        'Your session has expired. Please log in again to continue using Mermaid Chart.',
-        'Login'
-      ).then(selection => {
-        if (selection === 'Login') {
-          vscode.commands.executeCommand('mermaidChart.login');
-        }
-      });
     } catch (logoutError) {
       console.error('Error during automatic logout:', logoutError);
     }
@@ -116,6 +107,10 @@ export class MermaidChartVSCode extends MermaidChart {
     return this.handleApiCall(() => super.repairDiagram(request));
   }
 
+  public async regenerateDiagram(request: any): Promise<any> {
+    return this.handleApiCall(() => super.regenerateDiagram(request));
+  }
+
   public async getAICredits(): Promise<any> {
     return this.handleApiCall(() => super.getAICredits());
   }
@@ -143,8 +138,6 @@ export class MermaidChartVSCode extends MermaidChart {
       const authProvider = MermaidChartAuthenticationProvider.getInstance(this, context);
       await authProvider.removeSession(session.id);
       vscode.window.showInformationMessage(`You have successfully signed out from ${session.account.id}.`);
-    } else {
-      vscode.window.showInformationMessage('No active session found. You are already signed out.');
     }
   }
   

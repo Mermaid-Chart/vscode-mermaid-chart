@@ -3,14 +3,17 @@
   import ThemeSelector from "./ThemeSelector.svelte";
   import { createEventDispatcher } from 'svelte';
 
-  export let iconBackgroundColor, shadowColor, sidebarBackgroundColor, svgColor;
+  export let sidebarBackgroundColor, svgColor;
   export let currentTheme;
+  export let vscodeThemeColors;
 
   const dispatch = createEventDispatcher();
 
-  // Theme-aware icon colors
-  $: isDarkTheme = sidebarBackgroundColor === "#4d4d4d";
-  $: iconFillColor = isDarkTheme ? "#ffffff" : "#333333";
+  // Use the smart icon colors passed from App.svelte
+  $: iconFillColor = svgColor;
+  
+  // Determine if sidebar background is dark
+  $: isDarkSidebar = sidebarBackgroundColor?.includes('#1E1E1E') || sidebarBackgroundColor?.includes('#1F1F1F') || sidebarBackgroundColor?.includes('#000000');
 
   function handleExportClick() {
     dispatch('openExportModal');
@@ -59,32 +62,27 @@
     background-color: var(--hover-bg);
   }
 
-  /* Theme variables */
+  /* Dynamic theme variables set via style attribute */
   .left-sidebar {
-    --text-color: var(--vscode-foreground, #333333);
-    --hover-bg: var(--vscode-toolbar-hoverBackground, rgba(0, 0, 0, 0.1));
-    --divider-color: var(--vscode-panel-border, #e1e5e9);
-    --sidebar-bg: #ffffff;
+    --hover-bg: rgba(0, 0, 0, 0.1);
+    --divider-color: rgba(0, 0, 0, 0.1);
+    background: var(--sidebar-bg);
   }
   
-  /* Dark theme adjustments */
+  /* Dark sidebar adjustments */
   .left-sidebar.dark {
-    --text-color: var(--vscode-foreground, #cccccc);
-    --hover-bg: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
-    --divider-color: var(--vscode-panel-border, #464647);
-    --sidebar-bg: #1E1E1E;
+    --hover-bg: rgba(255, 255, 255, 0.1);
+    --divider-color: rgba(255, 255, 255, 0.2);
   }
 </style>
 
-<div class="left-sidebar {isDarkTheme ? 'dark' : 'light'}">
+<div class="left-sidebar {isDarkSidebar ? 'dark' : 'light'}" style="--sidebar-bg: {sidebarBackgroundColor};">
   <!-- Theme selector -->
   <div class="theme-container">
     <ThemeSelector 
-      {iconBackgroundColor} 
-      {shadowColor} 
-      {sidebarBackgroundColor} 
       {svgColor} 
       {currentTheme}
+      {vscodeThemeColors}
       on:themeChange
     />
   </div>

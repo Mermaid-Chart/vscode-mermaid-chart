@@ -1,5 +1,27 @@
 # Change Log
 
+### 2.6.7 - 2026-05-29
+- Added **Generate Mermaid Diagram from Code** — This command appears at the bottom of supported code files, or you can directly use `@mermaid-chart /generate_diagram_from_code` to select files, choose a diagram type, and generate Mermaid diagrams using AI.
+- Added **Review Mermaid Sync** — Provides highlight, diff preview, accept, reject, and commit actions for .mmd/.mermaid files updated by the [Mermaid Diagram Sync GitHub App](https://github.com/marketplace/mermaid-diagram-sync); Also includes automatic detection after `git pull` and support for MermaidChart: Connect GitHub for Mermaid Diagram Sync for PR-aware reviews.
+- Added **Pre-commit Diagram Regeneration** —When source files linked to Mermaid diagrams are staged using git add, Mermaid Chart prompts you to regenerate affected diagrams with AI before committing. This can be disabled via Settings → **Mermaid Chart: Pre Commit Sync Enabled**
+
+### 2.6.6 - 2026-05-5
+- remove the login pop-up 
+
+### 2.6.5 - 2026-04-29
+- Enhanced VS Code theme integration with automatic preview panel UI synchronization
+
+### 2.6.4 - 2026-04-16
+- Added **Diagram Diff Highlighting** for Remote Sync and Regenerate Diagram features. it's Enhanced dual preview mode with precise highlighting for both flowchart and sequence diagrams
+
+### 2.6.3 - 2026-04-09
+- Enhanced diagram management with comprehensive right-click context menu
+- Moved Link Diagram functionality from hover to right-click menu for better accessibility
+- Removed "Use Diagram" option for simplified workflow
+- Consolidated all diagram operations (Link, View, Edit in Mermaid Chart, Edit Locally) into right-click context menu
+- Added Duplicate diagram, Delete diagram, Rename diagram option to context menu 
+- Added project-level add diagram button (+) for quick diagram creation
+
 ### 2.6.2 - 2026-03-27
 - Added privacy policy and data collection documentation detailing user data usage and analytics practices 
 

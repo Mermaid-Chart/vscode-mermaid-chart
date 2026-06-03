@@ -8,15 +8,19 @@
   
   export let isOpen = false;
   export let currentTheme: string;
+  export let vscodeThemeColors;
 
   
   const dispatch = createEventDispatcher();
   
-  // Simple theme detection based on diagram theme (like other components)
   $: isDiagramDark = currentTheme?.includes('dark') || currentTheme === 'dark';
-  
-  // Modal theme follows diagram theme
-  $: modalTheme = isDiagramDark ? 'dark' : 'light';
+
+  // Always use the actual vscodeThemeColors for surfaces. Text / selected text adapt to isDark.
+  $: modalBg = vscodeThemeColors.modalBackground;
+  $: modalSecondaryBg = vscodeThemeColors.secondaryBackground;
+  $: modalAccentColor = vscodeThemeColors.accentColor;
+  $: textColor = vscodeThemeColors.isDark ? '#cccccc' : '#333333';
+  $: selectedText = vscodeThemeColors.isDark ? '#ffffff' : '#333333';
   
   let selectedFormat: 'png' | 'svg' = 'png';
   let selectedTheme: 'light' | 'dark' | 'custom' | 'transparent' = currentTheme?.includes('dark') ? 'dark' : 'light';
@@ -431,18 +435,14 @@
     flex-direction: column;
   }
   
-  .modal-content.dark {
-    --modal-bg: #1f1f1f;
-    --modal-border: #454545;
+  /* Dark theme styles based on VS Code theme */
+  .modal-content.dark-theme {
     --text-primary: #cccccc;
     --text-secondary: #9d9d9d;
     --section-border: #3e3e42;
-    --selected-bg: #04395e;
     --input-bg: #2b2b2b;
     --hover-bg: #2b2b2b;
     --input-border: #464647;
-    --button-primary-bg: #0e639c;
-    --button-primary-hover: #1177bb;
     --button-secondary-bg: #313131;
     --button-secondary-border: #404040;
     --button-secondary-hover: #313131;
@@ -562,13 +562,9 @@
     margin-bottom: 4px;
   }
   
-  .radio-option:hover {
-    background-color: var(--hover-bg);
-  }
-  
   .radio-option.selected {
     background-color: var(--selected-bg);
-    color: #ffffff;
+    color: var(--selected-text, #ffffff);
   }
   
   .radio-input {
@@ -621,11 +617,11 @@
   }
   
   .radio-option.selected .radio-description {
-    color: #ffffff;
+    color: var(--selected-text, #ffffff);
   }
 
   .radio-option.selected .radio-label {
-    color: #ffffff;
+    color: var(--selected-text, #ffffff);
   }
   
   .preview-title {
@@ -716,7 +712,7 @@
   .button-primary {
     background: var(--button-primary-bg);
     border: 1px solid var(--button-primary-bg);
-    color: #ffffff;
+    color: var(--selected-text, #ffffff);
   }
   
   .button-primary:hover {
@@ -905,17 +901,18 @@
   .copy-button:active {
     transform: scale(0.95);
   }
-
-  .modal-content.dark .copy-button {
-    border-color: rgba(255, 255, 255, 0.1);
-  }
 </style>
 
 {#if isOpen}
   <!-- svelte-ignore a11y-click-events-have-key-events -->
   <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div class="modal-backdrop" on:click={handleBackdropClick} on:keydown={handleKeydown}>
-    <div class="modal-content {modalTheme}">
+    <div
+      class="modal-content {isDiagramDark ? 'dark-theme' : 'light'}"
+      style={isDiagramDark
+        ? `--modal-bg: ${modalBg}; --modal-border: ${modalSecondaryBg}; --selected-bg: ${modalAccentColor}; --button-primary-bg: ${modalAccentColor}; --button-primary-hover: ${modalAccentColor}; --input-bg: ${modalSecondaryBg}; --hover-bg: ${modalBg}; --text-primary: ${textColor}; --text-secondary: ${textColor}; --selected-text: ${selectedText}; --button-secondary-bg: ${modalSecondaryBg}; --button-secondary-border: ${modalSecondaryBg}; --button-secondary-hover: ${modalBg};`
+        : ''}
+    >
       <div class="modal-header">
         <h2 class="modal-title">Export diagram</h2>
         <button class="close-button" on:click={closeModal} aria-label="Close">
@@ -999,7 +996,7 @@
                   title="Pick custom color"
                 />
                 <!-- Icon always visible, never changes -->
-                <ColorPickerIcon fill={modalTheme === 'dark' ? '#cccccc' : '#333333'} />
+                <ColorPickerIcon fill={isDiagramDark ? '#cccccc' : '#333333'} />
               </div>
             </div>
           </div>
@@ -1026,9 +1023,9 @@
               aria-label="Copy {selectedFormat === 'png' ? 'image' : 'SVG code'} to clipboard"
             >
               {#if copySuccess}
-                <TickIcon fill={modalTheme === 'dark' ? '#cccccc' : '#666666'} />
+                <TickIcon fill={isDiagramDark ? '#cccccc' : '#666666'} />
               {:else}
-                <CopyIcon fill={modalTheme === 'dark' ? '#cccccc' : '#666666'} />
+                <CopyIcon fill={isDiagramDark ? '#cccccc' : '#666666'} />
               {/if}
             </button>
           </div>

@@ -8,6 +8,7 @@ import {
     DiagramDiffCounts,
 } from "../prReview/diagramNodeDiff";
 import { disposePrReviewCodePanel, openPrReviewCodeBeside } from "../prReview/prReviewCodePanel";
+import { calculateDiagramDiff, createHighlightInstructions, type HighlightInstruction } from "./diagramDiffHighlighter";
 
 export interface DiagramDiffHighlightOptions {
   /** Node identifiers present only in `newContent` — outlined green on the after panel. */
@@ -72,15 +73,17 @@ export function openDiagramDiffWebviews(
     panelUpdated = undefined;
   };
 
-  try {
-    const { diagramText: oldDiagramText } = splitFrontMatter(oldContent);
-    const { diagramText: newDiagramText } = splitFrontMatter(newContent);
-
+  const openPanels = async (
+    oldDiagramText: string,
+    newDiagramText: string,
+    newDiagramInstructions: HighlightInstruction[],
+    oldDiagramInstructions: HighlightInstruction[]
+  ): Promise<void> => {
     const extensionPath = vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
     if (!extensionPath) {
       console.error("[Mermaid Diagram Diff] Unable to resolve extension path");
       vscode.window.showErrorMessage("Unable to resolve extension path for diagram diff.");
-      return disposePanels;
+      return;
     }
 
     const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
@@ -135,7 +138,26 @@ export function openDiagramDiffWebviews(
         : undefined,
     );
 
-    wireHighlightRepost(panelUpdated, highlightOptions);
+    if (highlightOptions) {
+      wireHighlightRepost(panelUpdated, highlightOptions);
+    }
+
+    if (newDiagramInstructions.length > 0 || oldDiagramInstructions.length > 0) {
+      setTimeout(() => {
+        if (newDiagramInstructions.length > 0) {
+          panelUpdated?.webview.postMessage({
+            type: "applyHighlights",
+            highlights: newDiagramInstructions,
+          });
+        }
+        if (oldDiagramInstructions.length > 0) {
+          panelCurrent?.webview.postMessage({
+            type: "applyHighlights",
+            highlights: oldDiagramInstructions,
+          });
+        }
+      }, 1000);
+    }
 
     setTimeout(() => {
       void vscode.commands.executeCommand("vscode.setEditorLayout", {
@@ -150,6 +172,24 @@ export function openDiagramDiffWebviews(
         ],
       });
     }, 150);
+  };
+
+  try {
+    const { diagramText: oldDiagramText } = splitFrontMatter(oldContent);
+    const { diagramText: newDiagramText } = splitFrontMatter(newContent);
+
+    void calculateDiagramDiff(oldDiagramText, newDiagramText)
+      .then(async (diagramDiff) => {
+        const { newDiagramInstructions, oldDiagramInstructions } =
+          await createHighlightInstructions(diagramDiff);
+        await openPanels(oldDiagramText, newDiagramText, newDiagramInstructions, oldDiagramInstructions);
+      })
+      .catch(async (error: unknown) => {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error({ err: msg }, "[Mermaid Diagram Diff] AST diff failed; opening previews without highlights");
+        vscode.window.showWarningMessage(`Diagram diff highlights unavailable: ${msg}`);
+        await openPanels(oldDiagramText, newDiagramText, [], []);
+      });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[Mermaid Diagram Diff] Error opening diagram diff view:", err);

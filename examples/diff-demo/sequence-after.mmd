@@ -1,0 +1,6 @@
+sequenceDiagram
+    participant User
+    participant API
+    User->>API: Login request
+    API-->>User: Session token
+    API-->>User: MFA challenge

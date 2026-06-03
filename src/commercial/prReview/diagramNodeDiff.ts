@@ -91,15 +91,60 @@ export function extractNodeIds(source: string): Set<string> {
     return ids;
 }
 
+export type DiagramChangeKind = "added" | "modified" | "removed";
+
+export interface DiagramChangeItem {
+    kind: DiagramChangeKind;
+    nodeId: string;
+    label: string;
+}
+
 export interface DiagramNodeDiff {
     addedNodeIds: string[];
+    modifiedNodeIds: string[];
     removedNodeIds: string[];
 }
 
+export interface DiagramDiffCounts {
+    added: number;
+    modified: number;
+    removed: number;
+    total: number;
+}
+
+/** Counts for panel titles and summary chips — omits zero buckets. */
+export function summarizeNodeDiff(diff: DiagramNodeDiff): DiagramDiffCounts {
+    return {
+        added: diff.addedNodeIds.length,
+        modified: diff.modifiedNodeIds.length,
+        removed: diff.removedNodeIds.length,
+        total:
+            diff.addedNodeIds.length +
+            diff.modifiedNodeIds.length +
+            diff.removedNodeIds.length,
+    };
+}
+
+/** Title suffix: `18 added, 2 changed, 6 removed`. */
+export function formatDiffCountSummary(counts: DiagramDiffCounts): string {
+    const parts: string[] = [];
+    if (counts.added > 0) {
+        parts.push(`${counts.added} added`);
+    }
+    if (counts.modified > 0) {
+        parts.push(`${counts.modified} changed`);
+    }
+    if (counts.removed > 0) {
+        parts.push(`${counts.removed} removed`);
+    }
+    return parts.join(", ");
+}
+
 /**
- * Symmetric set difference of node identifiers between two diagram sources.
- * Slice 2 only consumes `addedNodeIds`; `removedNodeIds` is exposed so Slice 4
- * (next quarter) can layer the ghost / removed treatment on top.
+ * Symmetric set difference of node identifiers between two diagram sources,
+ * plus `modifiedNodeIds` for ids present in both whose declarations changed.
+ * Removed nodes are surfaced in counts / changes list only — not on the
+ * after diagram (Slice 4 ghost overlay can hook `removedNodeIds` later).
  */
 export function diffNodes(
     oldSource: string,
@@ -107,6 +152,8 @@ export function diffNodes(
 ): DiagramNodeDiff {
     const oldIds = extractNodeIds(oldSource);
     const newIds = extractNodeIds(newSource);
+    const oldDecls = extractNodeDeclarations(oldSource);
+    const newDecls = extractNodeDeclarations(newSource);
 
     const added: string[] = [];
     for (const id of newIds) {
@@ -122,7 +169,150 @@ export function diffNodes(
         }
     }
 
-    return { addedNodeIds: added, removedNodeIds: removed };
+    const modified: string[] = [];
+    for (const id of oldIds) {
+        if (!newIds.has(id)) {
+            continue;
+        }
+        const oldSig = oldDecls.get(id);
+        const newSig = newDecls.get(id);
+        if (oldSig !== undefined && newSig !== undefined && oldSig !== newSig) {
+            modified.push(id);
+        }
+    }
+
+    return {
+        addedNodeIds: added,
+        modifiedNodeIds: modified,
+        removedNodeIds: removed,
+    };
+}
+
+/**
+ * Flat change list for the collapsed diff overlay. Labels come from bracket
+ * text when available, otherwise the node id.
+ */
+export function buildChangeList(
+    oldSource: string,
+    newSource: string,
+    diff: DiagramNodeDiff,
+): DiagramChangeItem[] {
+    const oldLabels = extractNodeLabels(oldSource);
+    const newLabels = extractNodeLabels(newSource);
+    const items: DiagramChangeItem[] = [];
+
+    for (const nodeId of diff.addedNodeIds) {
+        items.push({
+            kind: "added",
+            nodeId,
+            label: newLabels.get(nodeId) ?? nodeId,
+        });
+    }
+    for (const nodeId of diff.modifiedNodeIds) {
+        const oldLabel = oldLabels.get(nodeId) ?? nodeId;
+        const newLabel = newLabels.get(nodeId) ?? nodeId;
+        items.push({
+            kind: "modified",
+            nodeId,
+            label: oldLabel !== newLabel ? `${oldLabel} → ${newLabel}` : newLabel,
+        });
+    }
+    for (const nodeId of diff.removedNodeIds) {
+        items.push({
+            kind: "removed",
+            nodeId,
+            label: oldLabels.get(nodeId) ?? nodeId,
+        });
+    }
+    return items;
+}
+
+/**
+ * Map node id → normalized declaration signature (lines mentioning the id).
+ * Used to detect label / shape edits without treating them as add+remove.
+ */
+function extractNodeDeclarations(source: string): Map<string, string> {
+    const decls = new Map<string, string>();
+    const withoutFrontmatter = stripFrontMatter(source);
+
+    for (const rawLine of withoutFrontmatter.split(/\r?\n/)) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith("%%") || line.startsWith("#")) {
+            continue;
+        }
+        const idsOnLine = new Set<string>();
+        const stripped = stripLabelContent(line);
+        const tokenRegex = /\b[A-Za-z_][A-Za-z0-9_-]*\b/g;
+        let match: RegExpExecArray | null;
+        while ((match = tokenRegex.exec(stripped)) !== null) {
+            const token = match[0];
+            if (RESERVED_KEYWORDS.has(token) || /^\d+$/.test(token)) {
+                continue;
+            }
+            idsOnLine.add(token);
+        }
+        const normalized = line.replace(/\s+/g, " ");
+        for (const id of idsOnLine) {
+            const prev = decls.get(id);
+            decls.set(id, prev ? `${prev}\n${normalized}` : normalized);
+        }
+    }
+    return decls;
+}
+
+/** Best-effort human label from `id[Label]` / `id(Label)` / `id{Label}`. */
+function extractNodeLabels(source: string): Map<string, string> {
+    const labels = new Map<string, string>();
+    const withoutFrontmatter = stripFrontMatter(source);
+
+    for (const rawLine of withoutFrontmatter.split(/\r?\n/)) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith("%%") || line.startsWith("#")) {
+            continue;
+        }
+        const labelPatterns = [
+            /\b([A-Za-z_][A-Za-z0-9_-]*)\s*\[([^\]"]+)\]/g,
+            /\b([A-Za-z_][A-Za-z0-9_-]*)\s*\["([^"]+)"\]/g,
+            /\b([A-Za-z_][A-Za-z0-9_-]*)\s*\('([^']+)'\)/g,
+            /\b([A-Za-z_][A-Za-z0-9_-]*)\s*\(([^)"]+)\)/g,
+            /\b([A-Za-z_][A-Za-z0-9_-]*)\s*\{([^}"]+)\}/g,
+        ];
+        for (const pattern of labelPatterns) {
+            let match: RegExpExecArray | null;
+            while ((match = pattern.exec(line)) !== null) {
+                const id = match[1];
+                const label = match[2].trim();
+                if (label && !RESERVED_KEYWORDS.has(id)) {
+                    labels.set(id, label);
+                }
+            }
+        }
+    }
+    return labels;
+}
+
+/** 0-based line indices where `nodeId` appears in diagram source (declaration lines). */
+export function findNodeLineRanges(source: string, nodeId: string): number[] {
+    if (!nodeId.trim()) {
+        return [];
+    }
+    const escaped = nodeId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const idRegex = new RegExp(`\\b${escaped}\\b`);
+    const lines: number[] = [];
+    const withoutFrontmatter = stripFrontMatter(source);
+
+    const lineArr = withoutFrontmatter.split(/\r?\n/);
+    for (let i = 0; i < lineArr.length; i++) {
+        const raw = lineArr[i];
+        const line = raw.trim();
+        if (!line || line.startsWith("%%") || line.startsWith("#")) {
+            continue;
+        }
+        if (idRegex.test(stripLabelContent(line)) || idRegex.test(line)) {
+            lines.push(i);
+        }
+    }
+    return lines;
 }
 
 function stripFrontMatter(source: string): string {

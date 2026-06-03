@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "▶ F5 — Start Mermaid (Test) + PR Review demo",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/.."],
+      "outFiles": ["${workspaceFolder}/../out/**/*.js"]
+    },
+    {
+      "name": "Run Extension (compile first)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/.."],
+      "outFiles": ["${workspaceFolder}/../out/**/*.js"],
+      "preLaunchTask": "compile extension (repo root)"
+    }
+  ]
+}

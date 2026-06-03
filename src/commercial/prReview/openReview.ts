@@ -1,13 +1,18 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import analytics from "../../analytics";
-import { openSingleDiagramPreview } from "../sync/diagramDiffView";
+import {
+    openDiagramDiffWebviews,
+    openPrReviewPreview,
+} from "../sync/diagramDiffView";
 import { BotEditDetector, BotEditInfo } from "./botEditDetector";
 import { BotEditContentProvider } from "./botEditContentProvider";
-import { diffNodes } from "./diagramNodeDiff";
+import {
+    buildChangeList,
+    diffNodes,
+    summarizeNodeDiff,
+} from "./diagramNodeDiff";
 import { acceptReview, commitEdits, editReview, rejectReview } from "./reviewActions";
-import { openReviewSurfaceWebview } from "./reviewSurfaceWebview";
-import { showUpsellModal } from "./proFeatureUpsell";
 
 export const ACCEPT_COMMAND = "mermaidChart.prReview.accept";
 export const REJECT_COMMAND = "mermaidChart.prReview.reject";
@@ -23,13 +28,14 @@ interface ReviewSession {
 let activeSession: ReviewSession | undefined;
 
 /**
- * Open the Slice 2 PR-review surface for `uri`:
+ * Open the PR-review surface for `uri`:
  *
- * 1. Read the parent-commit blob via `BotEditContentProvider`.
- * 2. Render the source diff in VS Code's built-in diff editor (left pane).
- * 3. Render the two preview webviews stacked on the right (current top,
- *    updated bottom) — node-level highlight on added IDs.
- * 4. Wire Accept / Reject / Edit commands to the active session.
+ * Default: full-size **Now** diagram with added (green) and changed (amber)
+ * outlines, summary chips, collapsed changes list, and a Now/Before toggle.
+ * Removed nodes appear in counts / list only — not on the diagram.
+ *
+ * Opt-in: "Compare side by side" opens the stacked before/after preview path.
+ * Accept / Reject / Edit remain on the editor title bar.
  */
 export async function openReview(
     context: vscode.ExtensionContext,
@@ -37,9 +43,6 @@ export async function openReview(
     contentProvider: BotEditContentProvider,
     uri: vscode.Uri,
 ): Promise<void> {
-  // Wrapping the whole body so any unhandled throw becomes a visible
-  // error message instead of being swallowed by the command runner.
-  // Costs nothing and makes future regressions self-diagnosing.
   try {
     const info = await detector.detect(uri);
     if (!info) {
@@ -75,92 +78,52 @@ export async function openReview(
         return;
     }
 
-    const { addedNodeIds, removedNodeIds } = diffNodes(oldContent, newContent);
+    const nodeDiff = diffNodes(oldContent, newContent);
+    const counts = summarizeNodeDiff(nodeDiff);
+    const changes = buildChangeList(oldContent, newContent, nodeDiff);
     const fileName = path.basename(uri.fsPath);
 
-    // Close any previous review session first so we don't accumulate panels.
     activeSession?.closePanels();
 
-    // Detect Mermaid Chart sign-in (silent, no popup) so the surface can
-    // render the logged-in extras block in the right state. We don't gate
-    // the review itself behind sign-in — the carrot is visible either way.
-    let isSignedIn = false;
-    try {
-        const session = await vscode.authentication.getSession(
-            "mermaidchart",
-            [],
-            { silent: true },
-        );
-        isSignedIn = !!session;
-    } catch { /* assume signed out */ }
+    let splitDispose: (() => void) | undefined;
+    const openSideBySide = (): void => {
+        splitDispose?.();
+        splitDispose = openDiagramDiffWebviews(oldContent, newContent, {
+            addedNodeIds: nodeDiff.addedNodeIds,
+            modifiedNodeIds: nodeDiff.modifiedNodeIds,
+            removedNodeIds: nodeDiff.removedNodeIds,
+        });
+    };
 
-    // Pre-split the workspace into two columns *before* we create either
-    // panel — that way each panel lands in its assigned column with no
-    // race against the layout reflow, and the foreground tab in each
-    // column is the one we just created (not whatever was there before).
-    await vscode.commands.executeCommand("vscode.setEditorLayout", {
-        orientation: 0,
-        groups: [{ size: 0.55 }, { size: 0.45 }],
-    });
-
-    // Left (column 1): custom surface webview (banner + diff + footer
-    // with flat equal-weight buttons).
-    const surfacePanel = openReviewSurfaceWebview(
-        info,
-        fileName,
-        oldContent,
-        newContent,
-        async (action) => {
-            if (action === "accept") {
-                await vscode.commands.executeCommand(ACCEPT_COMMAND, uri);
-            } else if (action === "reject") {
-                await vscode.commands.executeCommand(REJECT_COMMAND, uri);
-            } else if (action === "edit") {
-                await vscode.commands.executeCommand(EDIT_COMMAND, uri);
-            }
-        },
+    const preview = openPrReviewPreview(
         {
-            isSignedIn,
-            onSignInRequest: () => {
-                void vscode.commands.executeCommand("mermaidChart.login");
-            },
-            onLockedFeatureClicked: (featureId) => {
-                void showUpsellModal(featureId);
-            },
+            addedNodeIds: nodeDiff.addedNodeIds,
+            modifiedNodeIds: nodeDiff.modifiedNodeIds,
+            removedNodeIds: nodeDiff.removedNodeIds,
+            counts,
+            changes,
+            oldContent,
+            fileName,
+            prRef: info.prRef,
+            onCompareSideBySide: openSideBySide,
         },
-    );
-
-    // Right (column 2): single Mermaid preview with the bot-added nodes
-    // outlined in the theme's git-added color.
-    const previewTitle = `Visual preview · ${fileName}`;
-    const preview = openSingleDiagramPreview(
         newContent,
-        previewTitle,
-        { addedNodeIds, removedNodeIds },
-        vscode.ViewColumn.Two,
+        vscode.ViewColumn.Active,
     );
-
-    // Force the surface to be the foreground tab in column 1 so the
-    // user sees it immediately — `createWebviewPanel` doesn't always
-    // beat the existing .mmd tab to the front.
-    surfacePanel.reveal(vscode.ViewColumn.One, false);
 
     const closePanels = (): void => {
-        try { surfacePanel.dispose(); } catch { /* best-effort */ }
         try { preview.dispose(); } catch { /* best-effort */ }
+        try { splitDispose?.(); } catch { /* best-effort */ }
+        splitDispose = undefined;
     };
-    surfacePanel.onDidDispose(() => {
+
+    preview.panel?.onDidDispose(() => {
         if (activeSession?.closePanels === closePanels) {
             activeSession = undefined;
         }
     });
 
     activeSession = { uri, info, closePanels };
-
-    // Suppress unused-variable warning for removedNodeIds — Slice 4 will
-    // surface removals; for now they're computed and forwarded but the
-    // single-pane preview only outlines additions.
-    void removedNodeIds;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[PR Review] openReview failed:", err);
@@ -170,11 +133,6 @@ export async function openReview(
 
 /**
  * Resolve the {uri, info} pair an action should operate on.
- *
- * Priority: explicit `uriArg` from the CodeLens button → active review
- * session → the active text editor. Detection is re-run for the resolved
- * URI so action commands work even when the user hasn't first clicked the
- * Review banner (i.e. they invoke Accept directly from the CodeLens).
  */
 async function resolveTargetForAction(
     detector: BotEditDetector,

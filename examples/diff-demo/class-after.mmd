@@ -1,0 +1,10 @@
+classDiagram
+    class User {
+        +String name
+        +login()
+        +verifyMfa()
+    }
+    class Session {
+        +String token
+    }
+    User --> Session

@@ -1,7 +1,9 @@
 import * as assert from "assert";
 import {
+    buildChangeList,
     diffNodes,
     extractNodeIds,
+    formatDiffCountSummary,
 } from "../../commercial/prReview/diagramNodeDiff";
 
 suite("diagramNodeDiff / extractNodeIds", () => {
@@ -75,6 +77,7 @@ suite("diagramNodeDiff / diffNodes", () => {
 `;
         const result = diffNodes(before, after);
         assert.deepStrictEqual(result.addedNodeIds, ["C"]);
+        assert.deepStrictEqual(result.modifiedNodeIds, []);
         assert.deepStrictEqual(result.removedNodeIds, []);
     });
 
@@ -87,6 +90,7 @@ suite("diagramNodeDiff / diffNodes", () => {
 `;
         const result = diffNodes(before, after);
         assert.deepStrictEqual(result.addedNodeIds, []);
+        assert.deepStrictEqual(result.modifiedNodeIds, []);
         assert.deepStrictEqual(result.removedNodeIds, ["C"]);
     });
 
@@ -94,10 +98,11 @@ suite("diagramNodeDiff / diffNodes", () => {
         const src = `flowchart LR\n    A --> B\n`;
         const result = diffNodes(src, src);
         assert.deepStrictEqual(result.addedNodeIds, []);
+        assert.deepStrictEqual(result.modifiedNodeIds, []);
         assert.deepStrictEqual(result.removedNodeIds, []);
     });
 
-    test("doesn't false-positive on label-only edits", () => {
+    test("detects label-only edits as modified", () => {
         const before = `flowchart LR
     A[Old label] --> B
 `;
@@ -106,6 +111,29 @@ suite("diagramNodeDiff / diffNodes", () => {
 `;
         const result = diffNodes(before, after);
         assert.deepStrictEqual(result.addedNodeIds, []);
+        assert.deepStrictEqual(result.modifiedNodeIds, ["A"]);
         assert.deepStrictEqual(result.removedNodeIds, []);
+    });
+
+    test("buildChangeList includes removed nodes for the overlay", () => {
+        const before = `flowchart LR
+    A --> B --> C
+`;
+        const after = `flowchart LR
+    A --> B
+`;
+        const diff = diffNodes(before, after);
+        const changes = buildChangeList(before, after, diff);
+        assert.ok(changes.some((c) => c.kind === "removed" && c.nodeId === "C"));
+    });
+
+    test("formatDiffCountSummary omits zero buckets", () => {
+        const summary = formatDiffCountSummary({
+            added: 2,
+            modified: 0,
+            removed: 1,
+            total: 3,
+        });
+        assert.strictEqual(summary, "2 added, 1 removed");
     });
 });

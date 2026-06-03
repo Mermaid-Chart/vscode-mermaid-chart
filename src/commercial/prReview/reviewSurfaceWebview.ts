@@ -2,6 +2,16 @@ import * as vscode from "vscode";
 import { BotEditInfo } from "./botEditDetector";
 import { computeLineDiff, LineDiffEntry } from "./lineDiff";
 import {
+    DiagramChangeItem,
+    DiagramDiffCounts,
+} from "./diagramNodeDiff";
+import {
+    renderChangesList,
+    renderNowBeforeToggle,
+    renderSummaryChips,
+    reviewChromeStyles,
+} from "./reviewChrome";
+import {
     ACCEPT_COMMAND,
     EDIT_COMMAND,
     REJECT_COMMAND,
@@ -34,6 +44,15 @@ export interface ReviewSurfaceOptions {
      * locked feature.
      */
     isSignedIn: boolean;
+    /** Node-level diff summary for header chips and changes list. */
+    diffCounts?: DiagramDiffCounts;
+    changes?: DiagramChangeItem[];
+    /** Fired when user clicks Compare side by side in this opt-in surface. */
+    onCompareSideBySide?: () => void;
+    /** Fired when user toggles Now/Before — host swaps the diagram preview. */
+    onSwitchPhase?: (phase: "now" | "before") => void;
+    /** Fired when user clicks a change row — host focuses that node. */
+    onFocusChange?: (nodeId: string) => void;
     /**
      * Optional callback for the "Sign in" affordance in the extras block.
      * The host extension wires this to its existing auth flow.
@@ -81,7 +100,7 @@ export function openReviewSurfaceWebview(
         options,
     );
 
-    panel.webview.onDidReceiveMessage((message: { type?: string; featureId?: string }) => {
+    panel.webview.onDidReceiveMessage((message: { type?: string; featureId?: string; phase?: string; nodeId?: string }) => {
         if (!message?.type) { return; }
         if (message.type === "accept") { onAction("accept"); }
         else if (message.type === "reject") { onAction("reject"); }
@@ -89,6 +108,12 @@ export function openReviewSurfaceWebview(
         else if (message.type === "signIn") { options.onSignInRequest?.(); }
         else if (message.type === "lockedFeatureClicked" && message.featureId) {
             options.onLockedFeatureClicked?.(message.featureId);
+        } else if (message.type === "compareSideBySide") {
+            options.onCompareSideBySide?.();
+        } else if (message.type === "switchPhase" && (message.phase === "now" || message.phase === "before")) {
+            options.onSwitchPhase?.(message.phase);
+        } else if (message.type === "focusChange" && message.nodeId) {
+            options.onFocusChange?.(message.nodeId);
         }
     });
 
@@ -122,6 +147,7 @@ function renderHtml(
         : "";
     const prLine = renderPrLine(info);
     const extrasBlock = renderExtrasBlock(options);
+    const diffChrome = renderDiffChromeBlock(options);
 
     return /* html */ `<!doctype html>
 <html lang="en">
@@ -132,6 +158,7 @@ function renderHtml(
   :root {
     color-scheme: light dark;
   }
+  ${reviewChromeStyles()}
   html, body {
     margin: 0;
     padding: 0;
@@ -437,6 +464,27 @@ function renderHtml(
     background: color-mix(in srgb, var(--vscode-errorForeground, #f85149) 18%, transparent);
     color: var(--vscode-errorForeground, #f85149);
   }
+
+  .review-diff-chrome {
+    border-bottom: 1px solid var(--vscode-panel-border);
+    padding: 10px 18px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--vscode-editor-background);
+  }
+  .review-diff-chrome .mc-changes-list {
+    position: static;
+    max-width: none;
+    flex: 1 1 220px;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  .review-diff-chrome .mc-review-toolbar {
+    position: static;
+  }
 </style>
 </head>
 <body>
@@ -451,6 +499,7 @@ function renderHtml(
     ${prLine}
   </header>
   ${extrasBlock}
+  ${diffChrome}
   <main>
     <section class="diff-card" aria-label="Source diff">
       <header>
@@ -480,6 +529,7 @@ function renderHtml(
   </footer>
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
+    ${options.diffCounts ? reviewChromeHandlersScript() : ""}
     document.querySelectorAll("footer.actions button").forEach((btn) => {
       btn.addEventListener("click", () => {
         const action = btn.getAttribute("data-action");
@@ -521,6 +571,65 @@ function renderHtml(
   </script>
 </body>
 </html>`;
+}
+
+function renderDiffChromeBlock(options: ReviewSurfaceOptions): string {
+    if (!options.diffCounts || !options.changes?.length) {
+        return "";
+    }
+    const summary = renderSummaryChips(options.diffCounts);
+    const changes = renderChangesList(options.changes);
+    const toggle = renderNowBeforeToggle("now");
+    return `<section class="review-diff-chrome mc-review-chrome" aria-label="Diagram changes">
+      ${summary}
+      ${changes}
+      <div class="mc-review-toolbar">
+        <button type="button" class="mc-link-btn" data-action="compare-side-by-side">Compare side by side</button>
+        ${toggle}
+      </div>
+    </section>`;
+}
+
+/** Inline handlers sharing the single acquireVsCodeApi() call in the surface script. */
+function reviewChromeHandlersScript(): string {
+    return `
+    (function () {
+      const list = document.querySelector(".mc-changes-list");
+      if (list) {
+        list.querySelectorAll("li[data-node-id]").forEach(function (li) {
+          li.addEventListener("click", function () {
+            const nodeId = li.getAttribute("data-node-id");
+            if (nodeId) { vscode.postMessage({ type: "focusChange", nodeId: nodeId }); }
+          });
+        });
+        const expander = list.querySelector("[data-action=expand-changes]");
+        if (expander) {
+          expander.addEventListener("click", function () {
+            list.querySelectorAll("li.hidden").forEach(function (li) { li.classList.remove("hidden"); });
+            expander.remove();
+          });
+        }
+      }
+      document.querySelectorAll(".mc-segmented-pill button[data-phase]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const phase = btn.getAttribute("data-phase");
+          if (!phase) return;
+          const pill = btn.closest(".mc-segmented-pill");
+          if (pill) {
+            pill.querySelectorAll("button[data-phase]").forEach(function (b) {
+              b.classList.toggle("active", b.getAttribute("data-phase") === phase);
+            });
+          }
+          vscode.postMessage({ type: "switchPhase", phase: phase });
+        });
+      });
+      const sideBySide = document.querySelector("[data-action=compare-side-by-side]");
+      if (sideBySide) {
+        sideBySide.addEventListener("click", function () {
+          vscode.postMessage({ type: "compareSideBySide" });
+        });
+      }
+    })();`;
 }
 
 function renderRow(e: LineDiffEntry): string {

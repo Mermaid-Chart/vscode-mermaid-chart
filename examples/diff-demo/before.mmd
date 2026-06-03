@@ -1,0 +1,62 @@
+flowchart TD
+    subgraph Client["Client layer"]
+        Web[Web app]
+        Mobile[Mobile app]
+        Admin[Admin console]
+    end
+
+    subgraph Edge["Edge & gateway"]
+        CDN[CDN]
+        WAF[Web application firewall]
+        Gateway[API gateway]
+        LB[Load balancer]
+    end
+
+    subgraph Core["Core services"]
+        Auth[Authenticate user]
+        Users[User directory]
+        Orders[Order service]
+        Catalog[Product catalog]
+        Inventory[Inventory service]
+        Payments[Payment processor]
+        Cache[(Session cache)]
+        LegacyAPI[Legacy REST adapter]
+    end
+
+    subgraph Data["Data platform"]
+        PrimaryDB[(Primary database)]
+        ReadReplica[(Read replica)]
+        Search[Search index]
+        Events[Event bus]
+    end
+
+    subgraph Ops["Operations"]
+        Metrics[Metrics collector]
+        Logs[Log aggregator]
+        Alerts[Alerting]
+    end
+
+    Web --> CDN
+    Mobile --> CDN
+    Admin --> Gateway
+    CDN --> WAF
+    WAF --> Gateway
+    Gateway --> LB
+    LB --> Auth
+    LB --> Orders
+    LB --> Catalog
+    Auth --> Users
+    Auth --> Cache
+    Orders --> Inventory
+    Orders --> Payments
+    Catalog --> Search
+    Orders --> PrimaryDB
+    Inventory --> PrimaryDB
+    PrimaryDB --> ReadReplica
+    Orders --> Events
+    Inventory --> Events
+    Events --> Metrics
+    Metrics --> Logs
+    Logs --> Alerts
+    Gateway --> LegacyAPI
+    LegacyAPI --> Orders

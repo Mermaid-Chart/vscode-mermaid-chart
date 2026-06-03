@@ -10,7 +10,8 @@
   import LeftSideBar from './LeftSideBar.svelte';
   import ExportModal from './ExportModal.svelte';
 
-  $: diagramContent = diagramData;
+  /** Default for dev; PR review / preview overwrites via data-initial-content or postMessage. */
+  let diagramContent = diagramData;
  
   let errorMessage = "";
   let panzoomInstance: ReturnType<typeof Panzoom> | null = null;
@@ -22,6 +23,7 @@
   let maxTextSize = 90000;
   let maxEdges = 1000;
   let isExportModalOpen = false;
+  let isPrReview = false;
   let isRepairing = false;
   let aiCredits = null; // AI credits data: {remaining: number, total: number}
   let isAuthenticated = false; // Authentication status
@@ -356,8 +358,71 @@
     }
   }
 
+  function centerOnNode(nodeId: string, autofocus = false, attempt = 0) {
+    const element = document.getElementById("mermaid-diagram");
+    if (!element || !nodeId) return;
+    const svg = element.querySelector("svg");
+    if (!svg && attempt < 24) {
+      setTimeout(() => centerOnNode(nodeId, autofocus, attempt + 1), 120);
+      return;
+    }
+    const groups = element.querySelectorAll("g.node, g.classGroup, g.stateGroup");
+    for (const g of groups) {
+      const id = g.getAttribute("id") || "";
+      if (!id.split("-").includes(nodeId)) continue;
+      if (!panzoomInstance) {
+        g.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+        return;
+      }
+      const targetScale = Math.min(
+        maxZoomLevel,
+        autofocus ? Math.max(1.85, panzoomInstance.getScale()) : Math.max(1.25, panzoomInstance.getScale()),
+      );
+      try {
+        const bbox = (g as SVGGElement).getBBox();
+        const cx = bbox.x + bbox.width / 2;
+        const cy = bbox.y + bbox.height / 2;
+        const svgEl = svg as SVGSVGElement;
+        const ctm = (g as SVGGElement).getScreenCTM();
+        if (ctm && typeof panzoomInstance.zoomToPoint === "function") {
+          const pt = svgEl.createSVGPoint();
+          pt.x = cx;
+          pt.y = cy;
+          const screen = pt.matrixTransform(ctm);
+          panzoomInstance.zoomToPoint(targetScale, { clientX: screen.x, clientY: screen.y }, { animate: true });
+        } else {
+          panzoomInstance.zoom(targetScale, { animate: true });
+          const cw = element.clientWidth;
+          const ch = element.clientHeight;
+          panzoomInstance.pan(cw / (2 * targetScale) - cx, ch / (2 * targetScale) - cy, { animate: true });
+        }
+      } catch {
+        const nodeRect = (g as SVGGElement).getBoundingClientRect();
+        const containerRect = element.getBoundingClientRect();
+        const scale = panzoomInstance.getScale();
+        const pan = panzoomInstance.getPan();
+        const dx = (containerRect.left + containerRect.width / 2 - (nodeRect.left + nodeRect.width / 2)) / scale;
+        const dy = (containerRect.top + containerRect.height / 2 - (nodeRect.top + nodeRect.height / 2)) / scale;
+        panzoomInstance.zoom(targetScale, { animate: true });
+        panzoomInstance.pan(pan.x + dx, pan.y + dy, { animate: true });
+      }
+      return;
+    }
+    if (attempt < 24) {
+      setTimeout(() => centerOnNode(nodeId, autofocus, attempt + 1), 120);
+    }
+  }
+
   window.addEventListener("message", async (event) => {
-    const { type, content, currentTheme, isFileChange, validateOnly, maxZoom, maxCharLength, maxEdge, aiCredits: receivedAICredits, isAuthenticated: receivedAuth } = event.data;
+    const { type, content, currentTheme, isFileChange, validateOnly, maxZoom, maxCharLength, maxEdge, aiCredits: receivedAICredits, isAuthenticated: receivedAuth, fade, nodeId, autofocus } = event.data;
+    if (type === "centerOnNode" && nodeId) {
+      centerOnNode(nodeId, Boolean(autofocus));
+      return;
+    }
+    if (type === "openExportModal") {
+      handleOpenExportModal();
+      return;
+    }
     if (type === "update") {
       // Update authentication status if provided
       if (receivedAuth !== undefined) {
@@ -377,14 +442,34 @@
       } else if (content) {
         // Regular rendering flow - do not overwrite theme so user's theme choice persists
         diagramContent = content;
-        maxZoomLevel = maxZoom;
-        maxEdges = maxEdge;
-        maxTextSize = maxCharLength;
+        if (maxZoom != null && !Number.isNaN(Number(maxZoom))) {
+          maxZoomLevel = maxZoom;
+        }
+        if (maxEdge != null && !Number.isNaN(Number(maxEdge))) {
+          maxEdges = maxEdge;
+        }
+        if (maxCharLength != null && !Number.isNaN(Number(maxCharLength))) {
+          maxTextSize = maxCharLength;
+        }
+        if (currentTheme) {
+          const nextTheme = String(currentTheme).includes("%")
+            ? decodeURIComponent(String(currentTheme))
+            : String(currentTheme);
+          theme = nextTheme as typeof theme;
+        }
         // Apply options immediately so any reset/render uses the latest limits
         panzoomInstance?.setOptions({ maxScale: maxZoomLevel, disablePan: !panEnabled });
         if (isFileChange) {
           panzoomInstance?.reset();
           updateZoomLevel();
+        }
+        if (fade && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          const diagramEl = document.getElementById("mermaid-diagram");
+          if (diagramEl) {
+            diagramEl.classList.remove("mc-review-fade");
+            void diagramEl.offsetWidth;
+            diagramEl.classList.add("mc-review-fade");
+          }
         }
         await renderDiagram();
         panzoomInstance?.setOptions({ maxScale: maxZoomLevel, disablePan: !panEnabled });
@@ -412,6 +497,7 @@
 
   onMount(async () => {
     const appElement = document.getElementById("app");
+    isPrReview = appElement?.dataset.prReview === "true";
     const initialContent = appElement?.dataset.initialContent;
     const currentTheme = appElement?.dataset.currentTheme;
     const initialMaxZoom = appElement?.dataset.maxZoom;
@@ -453,6 +539,15 @@
     padding: 16px;
     box-sizing: border-box;
   }
+
+  :global(#mermaid-diagram.mc-review-fade) {
+    animation: mc-review-pane-fade 240ms ease-out;
+  }
+
+  @keyframes mc-review-pane-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
   
   :global(#mermaid-diagram.pan-enabled) {
     cursor: grab;
@@ -470,6 +565,9 @@
     gap: 10px;
     overflow: hidden;
   }
+  :global(#app[data-pr-review="true"]) #app-container {
+    height: 100%;
+  }
   .sidebar-container {
     display: flex;
     justify-content: space-between;
@@ -483,6 +581,7 @@
   <div id="mermaid-diagram"></div>
   <div class="sidebar-container">
     {#if !errorMessage}
+    {#if !isPrReview}
     <LeftSideBar 
       {iconBackgroundColor} 
       {sidebarBackgroundColor} 
@@ -492,6 +591,7 @@
       on:openExportModal={handleOpenExportModal}
       on:themeChange={handleThemeChange}
     />
+    {/if}
     <Sidebar {panEnabled} {iconBackgroundColor} {sidebarBackgroundColor} {shadowColor} {svgColor} {zoomLevel} {togglePan} {zoomOut} {resetView} {zoomIn} />
   {/if}
   </div>

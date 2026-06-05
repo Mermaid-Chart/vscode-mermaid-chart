@@ -1,7 +1,7 @@
 import {
     DiagramChangeItem,
     DiagramDiffCounts,
-} from "./diagramNodeDiff";
+} from "./diagramDiffHighlighter";
 import { MERMAID_PREVIEW_THEMES } from "../../../webview/src/themes/previewThemes";
 import { getThemeColors } from "../../../webview/src/themes/themeConfig";
 
@@ -561,9 +561,20 @@ export function renderChangesList(changes: DiagramChangeItem[]): string {
             ? `<button type="button" class="mc-changes-more" data-action="expand-changes" style="margin-top:4px">Show all ${changes.length}</button>`
             : "";
 
-    return `<nav class="mc-changes-panel mc-review-chrome collapsed" aria-label="Diagram changes">
+    return `<nav id="mc-review-changes-panel" class="mc-changes-panel mc-review-chrome collapsed" aria-label="Diagram changes">
       <div class="mc-changes-scroll">${sections.join("")}${expandAll}</div>
     </nav>`;
+}
+
+/** Live-update payload for the review header chips + changes list (postMessage from extension). */
+export function buildReviewChromeLiveUpdate(
+    counts: DiagramDiffCounts,
+    changes: DiagramChangeItem[],
+): { summaryHtml: string; changesHtml: string } {
+    return {
+        summaryHtml: renderSummaryChips(counts),
+        changesHtml: renderChangesList(changes),
+    };
 }
 
 export function reviewChromeScript(_nonce: string): string {
@@ -608,11 +619,51 @@ export function reviewChromeScript(_nonce: string): string {
         w.dispatchEvent(new CustomEvent("mc-review-filter", { detail: { filter: activeFilter } }));
       }
 
-      document.querySelectorAll("button.mc-pill[data-filter]").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          setFilter(btn.getAttribute("data-filter"));
+      function bindFilterPills() {
+        document.querySelectorAll("button.mc-pill[data-filter]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            setFilter(btn.getAttribute("data-filter"));
+          });
         });
-      });
+      }
+
+      function bindChangeRows() {
+        list = document.getElementById("mc-review-changes-panel") || document.querySelector(".mc-changes-panel");
+        if (!list) return;
+        list.querySelectorAll("button.mc-change-row[data-node-id]").forEach(function (row) {
+          row.addEventListener("click", function () {
+            var nodeId = row.getAttribute("data-node-id");
+            var kind = row.getAttribute("data-kind") || "";
+            focusDiagramNode(nodeId, kind);
+          });
+        });
+        list.querySelectorAll("[data-action=expand-group]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var kind = btn.getAttribute("data-kind");
+            var grp = list.querySelector('.mc-changes-group[data-group="' + kind + '"]');
+            if (grp) {
+              grp.querySelectorAll(".mc-change-row-wrap.hidden").forEach(function (w) {
+                w.classList.remove("hidden");
+              });
+              btn.remove();
+            }
+          });
+        });
+        var expandAll = list.querySelector("[data-action=expand-changes]");
+        if (expandAll) {
+          expandAll.addEventListener("click", function () {
+            list.querySelectorAll(".mc-change-row-wrap.hidden").forEach(function (w) {
+              w.classList.remove("hidden");
+            });
+            list.querySelectorAll("[data-action=expand-group]").forEach(function (b) {
+              b.remove();
+            });
+            expandAll.remove();
+          });
+        }
+      }
+
+      bindFilterPills();
 
       var themePicker = document.querySelector(".mc-theme-picker");
       if (themePicker) {
@@ -694,39 +745,37 @@ export function reviewChromeScript(_nonce: string): string {
         vscode.postMessage({ type: "focusChange", nodeId: nodeId });
       }
 
-      if (list) {
-        list.querySelectorAll("button.mc-change-row[data-node-id]").forEach(function (row) {
-          row.addEventListener("click", function () {
-            var nodeId = row.getAttribute("data-node-id");
-            var kind = row.getAttribute("data-kind") || "";
-            focusDiagramNode(nodeId, kind);
-          });
-        });
-        list.querySelectorAll("[data-action=expand-group]").forEach(function (btn) {
-          btn.addEventListener("click", function () {
-            var kind = btn.getAttribute("data-kind");
-            var grp = list.querySelector('.mc-changes-group[data-group="' + kind + '"]');
-            if (grp) {
-              grp.querySelectorAll(".mc-change-row-wrap.hidden").forEach(function (w) {
-                w.classList.remove("hidden");
-              });
-              btn.remove();
-            }
-          });
-        });
-        var expandAll = list.querySelector("[data-action=expand-changes]");
-        if (expandAll) {
-          expandAll.addEventListener("click", function () {
-            list.querySelectorAll(".mc-change-row-wrap.hidden").forEach(function (w) {
-              w.classList.remove("hidden");
-            });
-            list.querySelectorAll("[data-action=expand-group]").forEach(function (b) {
-              b.remove();
-            });
-            expandAll.remove();
-          });
+      bindChangeRows();
+
+      window.addEventListener("message", function (event) {
+        var msg = event && event.data;
+        if (!msg || msg.type !== "updateReviewChrome") return;
+        var summaryHost = document.getElementById("mc-review-summary-chips");
+        if (summaryHost && msg.summaryHtml) {
+          summaryHost.innerHTML = msg.summaryHtml;
+          bindFilterPills();
+          activeFilter = null;
+          list = document.getElementById("mc-review-changes-panel") || document.querySelector(".mc-changes-panel");
+          if (list) {
+            list.classList.add("collapsed");
+            list.setAttribute("aria-hidden", "true");
+          }
+          w.dispatchEvent(new CustomEvent("mc-review-filter", { detail: { filter: null } }));
         }
-      }
+        if (msg.changesHtml) {
+          var changesHost = document.getElementById("mc-review-changes-panel");
+          if (changesHost) {
+            changesHost.outerHTML = msg.changesHtml;
+          }
+          list = document.getElementById("mc-review-changes-panel") || document.querySelector(".mc-changes-panel");
+          bindChangeRows();
+          if (list) {
+            list.classList.add("collapsed");
+            list.setAttribute("aria-hidden", "true");
+          }
+          activeFilter = null;
+        }
+      });
 
       document.querySelectorAll(".mc-segmented-pill button[data-phase]").forEach(function (btn) {
         btn.addEventListener("click", function () {

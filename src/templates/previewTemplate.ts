@@ -3,7 +3,7 @@ import * as path from "path";
 import {
     DiagramChangeItem,
     DiagramDiffCounts,
-} from "../commercial/sync/diagramNodeDiff";
+} from "../commercial/sync/diagramDiffHighlighter";
 import {
     renderChangesList,
     renderHeaderActionButtons,
@@ -30,7 +30,7 @@ export interface ReviewDiagramPreviewContext {
   removedNodeIds?: string[];
     /** Encoded diagram text for the before state — swapped in via postMessage. */
     beforeDiagramText?: string;
-    /** Host hint from AST probe: `ast` when mappings exist, else `none`. Webview re-checks SVG. */
+    /** Host hint: `ast` when AST mappings exist — relaxes SVG id match threshold for review chrome. */
     highlightCapability?: "ast" | "none";
 }
 
@@ -616,7 +616,7 @@ function buildReviewDiagramHeader(ctx: ReviewDiagramPreviewContext): string {
     const meta = renderMetaChips({ reviewRef: ctx.reviewRef });
     const theme = renderThemeSelect(ctx.currentTheme ?? "redux-dark", ctx.vscodeThemeName);
     const actions = renderHeaderActionButtons();
-    return `<header class="mc-review-header-bar mc-review-chrome">${summary}<div class="mc-header-actions mc-review-chrome">${meta}${theme}${actions}</div></header>`;
+    return `<header class="mc-review-header-bar mc-review-chrome"><div id="mc-review-summary-chips">${summary}</div><div class="mc-header-actions mc-review-chrome">${meta}${theme}${actions}</div></header>`;
 }
 
 function buildReviewDiagramStage(ctx: ReviewDiagramPreviewContext): string {

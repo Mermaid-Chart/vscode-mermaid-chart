@@ -267,6 +267,8 @@
           });
           hasErrorOccured = false
         }
+        applyDiffHighlights();
+        vscode.postMessage({ type: "diagramRendered" });
       } catch (error) {
         errorMessage = `Syntax error in text: ${error.message || error}`;
         vscode.postMessage({
@@ -292,9 +294,6 @@
         element.innerHTML = "";
       }
     }
-
-    // Apply diff highlights after rendering
-    applyDiffHighlights();
   }
 
   function togglePan() {

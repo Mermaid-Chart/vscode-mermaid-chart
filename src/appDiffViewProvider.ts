@@ -6,7 +6,6 @@ import { AppReviewIntegration, type ReviewFileMapping } from "./appReviewIntegra
 import { pathsEqualAbsolute } from "./appReviewPaths";
 import { AppFileDecorationProvider } from "./appFileDecorationProvider";
 import { openAppReviewDiagramSurface } from "./commercial/sync/diagramDiffView";
-import { findNodeLineRanges, type DiagramCodeDiffFocus } from "./commercial/sync/diagramNodeDiff";
 
 function fileUrisMatch(a: vscode.Uri, b: vscode.Uri, integration: AppReviewIntegration): boolean {
   if (a.scheme !== b.scheme) {
@@ -21,15 +20,6 @@ function fileUrisMatch(a: vscode.Uri, b: vscode.Uri, integration: AppReviewInteg
     return relA === relB;
   }
   return pathsEqualAbsolute(a.fsPath, b.fsPath);
-}
-
-function sameReviewedFile(
-  absolutePath: string,
-  mapping: ReviewFileMapping,
-  integration: AppReviewIntegration
-): boolean {
-  const rel = integration.lookupRepoRelativeKey(absolutePath);
-  return rel !== null && rel === mapping.relativePath;
 }
 
 /**
@@ -49,6 +39,9 @@ type AppReviewPanelSession = {
   originalFilePath: string;
   mapping: ReviewFileMapping;
   closePanels: () => void;
+  refreshFromContent?: (updatedContent: string) => Promise<void>;
+  refreshDebounceTimer?: ReturnType<typeof setTimeout>;
+  workspaceDisposables: vscode.Disposable[];
   panelDisposable?: vscode.Disposable;
   codeDiff?: AppCodeDiffSession;
   cleaned: boolean;
@@ -113,13 +106,13 @@ export class AppDiffViewProvider {
     const currentContent = await this.readCurrentWorkspaceContent(mapping.originalFilePath);
     const diagramUri = vscode.Uri.file(mapping.originalFilePath);
 
-    const { closePanels, panel } = await openAppReviewDiagramSurface(
+    const { closePanels, panel, refreshFromContent } = await openAppReviewDiagramSurface(
       diagramUri,
       mapping.originalContent,
       currentContent,
       {
-        onViewDiffCode: (focus) => {
-          void this.openCodeDiff(fileUri, focus);
+        onViewDiffCode: () => {
+          void this.openCodeDiff(fileUri);
         },
       },
     );
@@ -128,20 +121,63 @@ export class AppDiffViewProvider {
       return;
     }
 
+    const normalizedPath = path.normalize(mapping.originalFilePath);
     const session: AppReviewPanelSession = {
       originalFilePath: mapping.originalFilePath,
       mapping,
       closePanels,
+      refreshFromContent,
+      workspaceDisposables: [],
       cleaned: false,
     };
 
-    if (panel) {
-      session.panelDisposable = panel.onDidDispose(() => {
-        void this.cleanupAppReviewSession(session);
-      });
-    }
+    const scheduleReviewRefresh = (): void => {
+      if (session.cleaned) {
+        return;
+      }
+      const prev = session.refreshDebounceTimer;
+      if (prev) {
+        clearTimeout(prev);
+      }
+      session.refreshDebounceTimer = setTimeout(() => {
+        session.refreshDebounceTimer = undefined;
+        void this.refreshReviewPanel(session);
+      }, 350);
+    };
 
-    this.sessionsByOriginal.set(path.normalize(mapping.originalFilePath), session);
+    session.workspaceDisposables.push(
+      vscode.workspace.onDidChangeTextDocument((event) => {
+        if (
+          event.document.uri.scheme === "file" &&
+          pathsEqualAbsolute(event.document.uri.fsPath, normalizedPath)
+        ) {
+          scheduleReviewRefresh();
+        }
+      }),
+      vscode.workspace.onDidSaveTextDocument((saved) => {
+        if (
+          saved.uri.scheme === "file" &&
+          pathsEqualAbsolute(saved.uri.fsPath, normalizedPath)
+        ) {
+          scheduleReviewRefresh();
+        }
+      }),
+    );
+
+    session.panelDisposable = panel.onDidDispose(() => {
+      void this.cleanupAppReviewSession(session);
+    });
+
+    this.sessionsByOriginal.set(normalizedPath, session);
+  }
+
+  private async refreshReviewPanel(session: AppReviewPanelSession): Promise<void> {
+    if (session.cleaned || !session.refreshFromContent) {
+      return;
+    }
+    const content = await this.readCurrentWorkspaceContent(session.originalFilePath);
+    session.mapping.appContent = content;
+    await session.refreshFromContent(content);
   }
 
   private async readCurrentWorkspaceContent(originalFilePath: string): Promise<string> {
@@ -164,7 +200,7 @@ export class AppDiffViewProvider {
   /**
    * Opens (or focuses) native vscode.diff for app review — PLUG-72 flow, on demand from Diff code.
    */
-  async openCodeDiff(fileUri: vscode.Uri, focus?: DiagramCodeDiffFocus): Promise<void> {
+  async openCodeDiff(fileUri: vscode.Uri): Promise<void> {
     const mapping = this.appReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
       vscode.window.showErrorMessage("No active Mermaid Sync app review for this file.");
@@ -194,15 +230,6 @@ export class AppDiffViewProvider {
         diffTitle,
         { preview: false, viewColumn: vscode.ViewColumn.Beside },
       );
-
-      if (focus?.nodeId) {
-        await this.revealNodeInCodeDiff(
-          codeDiff,
-          mapping.originalContent,
-          currentContent,
-          focus,
-        );
-      }
       return;
     }
 
@@ -251,6 +278,9 @@ export class AppDiffViewProvider {
         mapping.status = "modified";
         this.fileDecorationProvider.updateFileStatus(mapping.originalFilePath, "modified");
         this.appReviewIntegration.notifyReviewMappingsChanged();
+        if (panelSession) {
+          void this.refreshReviewPanel(panelSession);
+        }
       } catch (err) {
         vscode.window.showErrorMessage(`Could not save to diagram file: ${err}`);
       }
@@ -280,46 +310,6 @@ export class AppDiffViewProvider {
 
     if (panelSession) {
       panelSession.codeDiff = codeDiffSession;
-    }
-
-    if (focus?.nodeId) {
-      await new Promise<void>((r) => setTimeout(r, 280));
-      await this.revealNodeInCodeDiff(
-        codeDiffSession,
-        mapping.originalContent,
-        currentContent,
-        focus,
-      );
-    }
-  }
-
-  private async revealNodeInCodeDiff(
-    codeDiff: AppCodeDiffSession,
-    originalContent: string,
-    currentContent: string,
-    focus: DiagramCodeDiffFocus,
-  ): Promise<void> {
-    const kind = focus.kind ?? "modified";
-    const targetUri =
-      kind === "removed" ? codeDiff.originalTempUri : codeDiff.incomingTempUri;
-    const sourceText = kind === "removed" ? originalContent : currentContent;
-    const lines = findNodeLineRanges(sourceText, focus.nodeId);
-    if (!lines.length) {
-      return;
-    }
-
-    try {
-      const doc = await vscode.workspace.openTextDocument(targetUri);
-      const editor = await vscode.window.showTextDocument(doc, {
-        preserveFocus: false,
-        viewColumn: vscode.ViewColumn.Beside,
-      });
-      const line = lines[0];
-      const pos = new vscode.Position(line, 0);
-      editor.selection = new vscode.Selection(pos, pos);
-      editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
-    } catch {
-      /* best-effort */
     }
   }
 
@@ -371,6 +361,7 @@ export class AppDiffViewProvider {
         panelSession.mapping.status = "modified";
         this.fileDecorationProvider.updateFileStatus(panelSession.mapping.originalFilePath, "modified");
         this.appReviewIntegration.notifyReviewMappingsChanged();
+        void this.refreshReviewPanel(panelSession);
       } catch (err) {
         vscode.window.showErrorMessage(`Failed to apply changes on diff close: ${err}`);
       }
@@ -383,6 +374,14 @@ export class AppDiffViewProvider {
     }
     session.cleaned = true;
     this.sessionsByOriginal.delete(path.normalize(session.originalFilePath));
+    if (session.refreshDebounceTimer) {
+      clearTimeout(session.refreshDebounceTimer);
+      session.refreshDebounceTimer = undefined;
+    }
+    for (const disposable of session.workspaceDisposables) {
+      disposable.dispose();
+    }
+    session.workspaceDisposables.length = 0;
     if (session.codeDiff && !session.codeDiff.cleaned) {
       await this.cleanupCodeDiffSession(session, session.codeDiff);
     }

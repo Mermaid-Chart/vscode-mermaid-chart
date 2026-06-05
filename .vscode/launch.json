@@ -2,18 +2,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "▶ F5 — PR Review demo",
-      "type": "extensionHost",
-      "request": "launch",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}"
-      ],
-      "outFiles": [
-        "${workspaceFolder}/out/**/*.js"
-      ],
-      "preLaunchTask": "pnpm: compile"
-    },
-    {
       "name": "Run Extension",
       "type": "extensionHost",
       "request": "launch",
@@ -23,7 +11,7 @@
       "outFiles": [
         "${workspaceFolder}/out/**/*.js"
       ],
-      "preLaunchTask": "pnpm: compile"
+      "preLaunchTask": "npm: compile"
     },
     {
       "name": "Extension Tests",

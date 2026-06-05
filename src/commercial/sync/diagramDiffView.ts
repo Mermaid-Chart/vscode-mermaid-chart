@@ -1,14 +1,43 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import { splitFrontMatter } from "../../frontmatter";
-import { getWebviewHTML, PrReviewPreviewContext } from "../../templates/previewTemplate";
+import { getWebviewHTML, ReviewDiagramPreviewContext } from "../../templates/previewTemplate";
 import * as packageJson from "../../../package.json";
 import {
+    buildChangeList,
+    diffNodes,
     DiagramChangeItem,
+    DiagramCodeDiffFocus,
     DiagramDiffCounts,
-} from "../prReview/diagramNodeDiff";
-import { disposePrReviewCodePanel, openPrReviewCodeBeside } from "../prReview/prReviewCodePanel";
-import { calculateDiagramDiff, createHighlightInstructions, type HighlightInstruction } from "./diagramDiffHighlighter";
+    summarizeNodeDiff,
+} from "./diagramNodeDiff";
+import {
+  calculateDiagramDiff,
+  createHighlightInstructions,
+  resolveDiagramHighlightCapability,
+  type HighlightInstruction,
+} from "./diagramDiffHighlighter";
+import { getThemeColors } from "../../../webview/src/themes/themeConfig";
+
+const EXTENSION_ID = `${packageJson.publisher}.${packageJson.name}`;
+
+let cachedExtensionPath: string | undefined;
+
+/** Set from `extension.ts` activate so webviews resolve assets in F5 and production. */
+export function setReviewDiagramExtensionPath(extensionPath: string): void {
+  cachedExtensionPath = extensionPath;
+}
+
+function resolveExtensionPath(): string | undefined {
+  if (cachedExtensionPath) {
+    return cachedExtensionPath;
+  }
+  const extPath = vscode.extensions.getExtension(EXTENSION_ID)?.extensionPath;
+  if (extPath) {
+    cachedExtensionPath = extPath;
+  }
+  return extPath;
+}
 
 export interface DiagramDiffHighlightOptions {
   /** Node identifiers present only in `newContent` — outlined green on the after panel. */
@@ -39,22 +68,24 @@ function readPreviewLimits(): { maxZoom: number; maxCharLength: number; maxEdges
   };
 }
 
-export interface PrReviewPreviewOptions extends DiagramDiffHighlightOptions {
+export interface ReviewDiagramPreviewOptions extends DiagramDiffHighlightOptions {
   counts: DiagramDiffCounts;
   changes: DiagramChangeItem[];
   oldContent: string;
   fileName: string;
-  prRef?: string;
+  reviewRef?: string;
   themeLabel?: string;
   onCompareSideBySide?: () => void;
+  /** Opens native vscode.diff (PLUG-72) — wired from Diff code / View code in review chrome. */
+  onViewDiffCode?: (focus?: DiagramCodeDiffFocus) => void;
 }
 
 /**
  * Open the diagram diff view: two separate webviews (Current and Updated), each with
  * full preview UI (zoom, pan, theme, export).
  *
- * Opt-in power-user path — the default PR-review flow uses
- * {@link openPrReviewPreview} with a Now/Before toggle instead.
+ * Opt-in path — app review default uses {@link openReviewDiagramPreview}
+ * (single surface with Now/Before toggle) instead.
  *
  * Returns a dispose function — call it to close both preview panels programmatically.
  */
@@ -79,7 +110,7 @@ export function openDiagramDiffWebviews(
     newDiagramInstructions: HighlightInstruction[],
     oldDiagramInstructions: HighlightInstruction[]
   ): Promise<void> => {
-    const extensionPath = vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
+    const extensionPath = resolveExtensionPath();
     if (!extensionPath) {
       console.error("[Mermaid Diagram Diff] Unable to resolve extension path");
       vscode.window.showErrorMessage("Unable to resolve extension path for diagram diff.");
@@ -119,23 +150,9 @@ export function openDiagramDiffWebviews(
       theme,
       false,
       undefined,
-      highlightOptions?.addedNodeIds,
-      highlightOptions
-        ? {
-            counts: {
-              added: highlightOptions.addedNodeIds.length,
-              modified: highlightOptions.modifiedNodeIds.length,
-              removed: highlightOptions.removedNodeIds.length,
-              total:
-                highlightOptions.addedNodeIds.length +
-                highlightOptions.modifiedNodeIds.length +
-                highlightOptions.removedNodeIds.length,
-            },
-            changes: [],
-            addedNodeIds: highlightOptions.addedNodeIds,
-            modifiedNodeIds: highlightOptions.modifiedNodeIds,
-          }
-        : undefined,
+      undefined,
+      highlightOptions,
+      undefined,
     );
 
     if (highlightOptions) {
@@ -200,20 +217,18 @@ export function openDiagramDiffWebviews(
 }
 
 /**
- * Default PR-review surface: a single full-size diagram with Now/Before toggle,
- * summary chips, and a collapsed changes list. Removed nodes appear in the list
- * only — not drawn on the after diagram.
+ * App-review diagram surface: full-size Now diagram, summary chips, changes list,
+ * Now/Before toggle. Removed nodes appear in the list only — not on the diagram.
  */
-export function openPrReviewPreview(
-  options: PrReviewPreviewOptions,
+export async function openReviewDiagramPreview(
+  options: ReviewDiagramPreviewOptions,
   newContent: string,
   viewColumn: vscode.ViewColumn = vscode.ViewColumn.Active,
-): { panel: vscode.WebviewPanel | undefined; dispose: () => void } {
+): Promise<{ panel: vscode.WebviewPanel | undefined; dispose: () => void }> {
   let panel: vscode.WebviewPanel | undefined;
   let currentPhase: "now" | "before" = "now";
 
   const dispose = (): void => {
-    disposePrReviewCodePanel();
     panel?.dispose();
     panel = undefined;
   };
@@ -222,9 +237,12 @@ export function openPrReviewPreview(
     const { diagramText: newDiagramText } = splitFrontMatter(newContent);
     const { diagramText: oldDiagramText } = splitFrontMatter(options.oldContent);
 
-    const extensionPath = vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
+    const extensionPath = resolveExtensionPath();
     if (!extensionPath) {
-      console.error("[Mermaid PR Review] Unable to resolve extension path");
+      console.error("[Mermaid Review Diagram] Unable to resolve extension path");
+      vscode.window.showErrorMessage(
+        "Review diagram could not load extension assets. Run npm run compile, then restart the Extension Development Host (F5).",
+      );
       return { panel, dispose };
     }
 
@@ -234,6 +252,8 @@ export function openPrReviewPreview(
     const lightTheme = config.get<string>("mermaid.vscode.light", "redux");
     const theme = isDarkTheme ? darkTheme : lightTheme;
     const themeLabel = formatThemeLabel(theme);
+    const vscodeThemeName = config.get<string>("workbench.colorTheme", "Default Light+");
+    const vscodeThemeColors = getThemeColors(vscodeThemeName);
 
     const titleParts = ["After"];
     const countParts: string[] = [];
@@ -244,21 +264,31 @@ export function openPrReviewPreview(
       ? `${titleParts[0]} · ${countParts.join(", ")}`
       : `${titleParts[0]} · ${options.fileName}`;
 
-    const prReviewCtx: PrReviewPreviewContext = {
+    let highlightCapability: "ast" | "none" = "none";
+    try {
+      const cap = await resolveDiagramHighlightCapability(newDiagramText);
+      highlightCapability = cap.mode;
+    } catch {
+      highlightCapability = "none";
+    }
+
+    const reviewCtx: ReviewDiagramPreviewContext = {
       counts: options.counts,
       changes: options.changes,
       addedNodeIds: options.addedNodeIds,
       modifiedNodeIds: options.modifiedNodeIds,
       removedNodeIds: options.removedNodeIds,
-      prRef: options.prRef,
+      reviewRef: options.reviewRef,
       themeLabel,
       currentTheme: theme,
+      vscodeThemeName,
       fileName: options.fileName,
       beforeDiagramText: oldDiagramText,
+      highlightCapability,
     };
 
     panel = vscode.window.createWebviewPanel(
-      "mermaidPrReviewPreview",
+      "mermaidReviewDiagramPreview",
       title,
       viewColumn,
       previewWebviewOptions(extensionPath),
@@ -270,12 +300,13 @@ export function openPrReviewPreview(
       theme,
       false,
       undefined,
-      options.addedNodeIds,
-      prReviewCtx,
+      undefined,
+      undefined,
+      reviewCtx,
     );
 
     wireHighlightRepost(panel, options);
-    wirePrReviewMessages(
+    wireReviewDiagramMessages(
       panel,
       options,
       newDiagramText,
@@ -285,6 +316,7 @@ export function openPrReviewPreview(
       () => currentPhase,
       (p) => { currentPhase = p; },
       options.onCompareSideBySide,
+      options.onViewDiffCode,
     );
 
     const limits = readPreviewLimits();
@@ -293,6 +325,8 @@ export function openPrReviewPreview(
         type: "update",
         content: newDiagramText,
         currentTheme: theme,
+        vscodeThemeName,
+        vscodeThemeColors,
         isFileChange: true,
         maxZoom: limits.maxZoom,
         maxCharLength: limits.maxCharLength,
@@ -313,63 +347,7 @@ export function openPrReviewPreview(
     setTimeout(sendInitialHighlights, 950);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[Mermaid PR Review] Failed to open preview:", err);
-    vscode.window.showErrorMessage(`Mermaid preview failed: ${msg}`);
-  }
-
-  return { panel, dispose };
-}
-
-/**
- * @deprecated Use {@link openPrReviewPreview} for PR review. Kept for callers
- * that only need a single highlighted preview without review chrome.
- */
-export function openSingleDiagramPreview(
-  newContent: string,
-  title: string,
-  highlightOptions?: DiagramDiffHighlightOptions,
-  viewColumn: vscode.ViewColumn = vscode.ViewColumn.Beside,
-): { panel: vscode.WebviewPanel | undefined; dispose: () => void } {
-  let panel: vscode.WebviewPanel | undefined;
-  const dispose = (): void => {
-    panel?.dispose();
-    panel = undefined;
-  };
-
-  try {
-    const { diagramText: newDiagramText } = splitFrontMatter(newContent);
-    const extensionPath = vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
-    if (!extensionPath) {
-      console.error("[Mermaid PR Review] Unable to resolve extension path");
-      return { panel, dispose };
-    }
-
-    const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
-    const config = vscode.workspace.getConfiguration();
-    const darkTheme = config.get<string>("mermaid.vscode.dark", "redux-dark");
-    const lightTheme = config.get<string>("mermaid.vscode.light", "redux");
-    const theme = isDarkTheme ? darkTheme : lightTheme;
-
-    panel = vscode.window.createWebviewPanel(
-      "mermaidPrReviewPreview",
-      title,
-      viewColumn,
-      { enableScripts: true, retainContextWhenHidden: true },
-    );
-    panel.webview.html = getWebviewHTML(
-      panel,
-      extensionPath,
-      newDiagramText,
-      theme,
-      false,
-      undefined,
-      highlightOptions?.addedNodeIds,
-    );
-
-    wireHighlightRepost(panel, highlightOptions);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[Mermaid PR Review] Failed to open preview:", err);
+    console.error("[Mermaid Review Diagram] Failed to open preview:", err);
     vscode.window.showErrorMessage(`Mermaid preview failed: ${msg}`);
   }
 
@@ -405,7 +383,7 @@ function wireHighlightRepost(
   setTimeout(repost, 800);
 }
 
-function wirePrReviewMessages(
+function wireReviewDiagramMessages(
   panel: vscode.WebviewPanel,
   highlightOptions: DiagramDiffHighlightOptions,
   newDiagramText: string,
@@ -415,6 +393,7 @@ function wirePrReviewMessages(
   getPhase: () => "now" | "before",
   setPhase: (p: "now" | "before") => void,
   onCompareSideBySide?: () => void,
+  onViewDiffCode?: (focus?: DiagramCodeDiffFocus) => void,
 ): void {
   let currentTheme = initialTheme;
   const limits = readPreviewLimits();
@@ -438,7 +417,6 @@ function wirePrReviewMessages(
       panel.webview.postMessage({
         type: "update",
         content,
-        currentTheme,
         isFileChange: true,
         fade: true,
         maxZoom: limits.maxZoom,
@@ -479,26 +457,12 @@ function wirePrReviewMessages(
     }
 
     if (message.type === "viewDiffCode") {
-      openPrReviewCodeBeside(panel, oldDiagramText, newDiagramText, fileName);
-      return;
-    }
-
-    if (message.type === "viewChangeCode" && message.nodeId) {
-      const kind =
-        message.kind === "added" || message.kind === "modified" || message.kind === "removed"
-          ? message.kind
-          : "modified";
-      openPrReviewCodeBeside(panel, oldDiagramText, newDiagramText, fileName, {
-        nodeId: message.nodeId,
-        kind,
-        changeLabel: message.changeLabel,
-      });
+      onViewDiffCode?.();
       return;
     }
 
     if (message.type === "focusChange" && message.nodeId) {
       panel.webview.postMessage({ type: "focusNode", nodeId: message.nodeId });
-      panel.webview.postMessage({ type: "centerOnNode", nodeId: message.nodeId, autofocus: true });
       return;
     }
 
@@ -512,4 +476,76 @@ function formatThemeLabel(theme: string): string {
   return theme
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export interface OpenAppReviewDiagramOptions {
+  reviewRef?: string;
+  onViewDiffCode?: (focus?: DiagramCodeDiffFocus) => void;
+}
+
+/**
+ * Entry point for Mermaid Sync app review ("Review changes"): opens the review
+ * diagram webview with chrome, node highlights, and optional side-by-side diff.
+ */
+export async function openAppReviewDiagramSurface(
+  fileUri: vscode.Uri,
+  oldContent: string,
+  newContent: string,
+  surfaceOptions: OpenAppReviewDiagramOptions = {},
+): Promise<{ closePanels: () => void; panel: vscode.WebviewPanel | undefined }> {
+  const nodeDiff = diffNodes(oldContent, newContent);
+  const counts = summarizeNodeDiff(nodeDiff);
+  const changes = buildChangeList(oldContent, newContent, nodeDiff);
+  const fileName = path.basename(fileUri.fsPath);
+
+  let splitDispose: (() => void) | undefined;
+  const openSideBySide = (): void => {
+    splitDispose?.();
+    splitDispose = openDiagramDiffWebviews(oldContent, newContent, {
+      addedNodeIds: nodeDiff.addedNodeIds,
+      modifiedNodeIds: nodeDiff.modifiedNodeIds,
+      removedNodeIds: nodeDiff.removedNodeIds,
+    });
+  };
+
+  console.log("[App Review] Opening review diagram surface", { fileName, counts });
+
+  const preview = await openReviewDiagramPreview(
+    {
+      addedNodeIds: nodeDiff.addedNodeIds,
+      modifiedNodeIds: nodeDiff.modifiedNodeIds,
+      removedNodeIds: nodeDiff.removedNodeIds,
+      counts,
+      changes,
+      oldContent,
+      fileName,
+      reviewRef: surfaceOptions.reviewRef,
+      onCompareSideBySide: openSideBySide,
+      onViewDiffCode: surfaceOptions.onViewDiffCode,
+    },
+    newContent,
+    vscode.ViewColumn.Active,
+  );
+
+  if (!preview.panel) {
+    vscode.window.showErrorMessage(
+      `Review diagram failed to open for ${fileName}. Run npm run compile and restart the Extension Development Host.`,
+    );
+  }
+
+  const closePanels = (): void => {
+    try {
+      preview.dispose();
+    } catch {
+      /* best-effort */
+    }
+    try {
+      splitDispose?.();
+    } catch {
+      /* best-effort */
+    }
+    splitDispose = undefined;
+  };
+
+  return { closePanels, panel: preview.panel };
 }

@@ -3,7 +3,7 @@ import * as path from "path";
 import {
     DiagramChangeItem,
     DiagramDiffCounts,
-} from "../commercial/prReview/diagramNodeDiff";
+} from "../commercial/sync/diagramNodeDiff";
 import {
     renderChangesList,
     renderHeaderActionButtons,
@@ -13,21 +13,25 @@ import {
     renderThemeSelect,
     reviewChromeScript,
     reviewChromeStyles,
-} from "../commercial/prReview/reviewChrome";
+} from "../commercial/sync/reviewChrome";
 
-export interface PrReviewPreviewContext {
+export interface ReviewDiagramPreviewContext {
     counts: DiagramDiffCounts;
     changes: DiagramChangeItem[];
     addedNodeIds: string[];
     modifiedNodeIds: string[];
-  prRef?: string;
+  reviewRef?: string;
   themeLabel?: string;
   /** Mermaid theme key passed to the webview renderer. */
   currentTheme?: string;
+  /** Workbench theme name for theme picker colors (matches preview panel). */
+  vscodeThemeName?: string;
   fileName?: string;
   removedNodeIds?: string[];
     /** Encoded diagram text for the before state — swapped in via postMessage. */
     beforeDiagramText?: string;
+    /** Host hint from AST probe: `ast` when mappings exist, else `none`. Webview re-checks SVG. */
+    highlightCapability?: "ast" | "none";
 }
 
 export function getWebviewHTML(
@@ -42,7 +46,12 @@ export function getWebviewHTML(
     maxEdges?: number;
   },
   highlightAddedNodeIds?: string[],
-  prReview?: PrReviewPreviewContext,
+  nodeHighlights?: {
+    addedNodeIds: string[];
+    modifiedNodeIds: string[];
+    removedNodeIds: string[];
+  },
+  reviewDiagram?: ReviewDiagramPreviewContext,
 ): string {
   const scriptUri = panel.webview.asWebviewUri(
     vscode.Uri.file(path.join(extensionPath, "out", "svelte", "bundle.js"))
@@ -55,18 +64,26 @@ export function getWebviewHTML(
     // Optional cleanup code here
   });
 
-  const addedIds = prReview?.addedNodeIds ?? highlightAddedNodeIds ?? [];
-  const modifiedIds = prReview?.modifiedNodeIds ?? [];
-  const removedIds = prReview?.removedNodeIds ?? [];
+  const addedIds =
+    reviewDiagram?.addedNodeIds ??
+    nodeHighlights?.addedNodeIds ??
+    highlightAddedNodeIds ??
+    [];
+  const modifiedIds = reviewDiagram?.modifiedNodeIds ?? nodeHighlights?.modifiedNodeIds ?? [];
+  const removedIds = reviewDiagram?.removedNodeIds ?? nodeHighlights?.removedNodeIds ?? [];
   const initialHighlightJson = JSON.stringify({
     added: addedIds,
     modified: modifiedIds,
     removed: removedIds,
   });
+  const enableNodeHighlights =
+    addedIds.length > 0 || modifiedIds.length > 0 || removedIds.length > 0;
 
-  const prReviewHeader = prReview ? buildPrReviewHeader(prReview) : "";
-  const prReviewStage = prReview ? buildPrReviewStage(prReview) : "";
+  const reviewHeader = reviewDiagram ? buildReviewDiagramHeader(reviewDiagram) : "";
+  const reviewStage = reviewDiagram ? buildReviewDiagramStage(reviewDiagram) : "";
   const nonce = makeNonce();
+  const reviewInteraction = Boolean(reviewDiagram);
+  const hostHighlightCapability = reviewDiagram?.highlightCapability ?? "none";
 
   return /*html*/ `
     <!DOCTYPE html>
@@ -105,61 +122,61 @@ export function getWebviewHTML(
           flex-direction: column;
           overflow: hidden;
         }
-        .mc-pr-review-shell {
+        .mc-review-diagram-shell {
           position: relative;
           flex-shrink: 0;
           z-index: 300;
         }
-        .mc-pr-review-body {
+        .mc-review-diagram-body {
           flex: 1 1 auto;
           min-height: 0;
           display: flex;
           flex-direction: column;
         }
-        .mc-pr-review-body.has-chrome {
+        .mc-review-diagram-body.has-chrome {
           position: relative;
         }
-        .mc-pr-review-stage {
+        .mc-review-diagram-stage {
           position: absolute;
           inset: 0;
           pointer-events: none;
           z-index: 200;
         }
-        .mc-pr-review-stage .mc-changes-list,
-        .mc-pr-review-stage .mc-review-toolbar {
+        .mc-review-diagram-stage .mc-changes-panel,
+        .mc-review-diagram-stage .mc-review-toolbar {
           pointer-events: auto;
         }
         .mc-review-header-bar {
           flex-shrink: 0;
         }
-        ${reviewChromeStyles()}
+        ${reviewDiagram ? reviewChromeStyles() : ""}
         /* Added nodes — green outline */
-        .mermaid-pr-review-added > rect,
-        .mermaid-pr-review-added > circle,
-        .mermaid-pr-review-added > polygon,
-        .mermaid-pr-review-added > path,
-        .mermaid-pr-review-added > ellipse {
+        .mermaid-review-diagram-added > rect,
+        .mermaid-review-diagram-added > circle,
+        .mermaid-review-diagram-added > polygon,
+        .mermaid-review-diagram-added > path,
+        .mermaid-review-diagram-added > ellipse {
           fill: var(--vscode-diffEditor-insertedLineBackground, rgba(155, 185, 85, 0.25)) !important;
           stroke: var(--vscode-gitDecoration-addedResourceForeground, #4caf50) !important;
           stroke-width: 2.5px !important;
-          animation: mermaid-pr-review-fade-in 240ms ease-out;
+          animation: mermaid-review-diagram-fade-in 240ms ease-out;
         }
         /* Modified nodes — amber outline */
-        .mermaid-pr-review-modified > rect,
-        .mermaid-pr-review-modified > circle,
-        .mermaid-pr-review-modified > polygon,
-        .mermaid-pr-review-modified > path,
-        .mermaid-pr-review-modified > ellipse {
+        .mermaid-review-diagram-modified > rect,
+        .mermaid-review-diagram-modified > circle,
+        .mermaid-review-diagram-modified > polygon,
+        .mermaid-review-diagram-modified > path,
+        .mermaid-review-diagram-modified > ellipse {
           fill: color-mix(in srgb, var(--vscode-gitDecoration-modifiedResourceForeground, #d29922) 18%, transparent) !important;
           stroke: var(--vscode-gitDecoration-modifiedResourceForeground, #d29922) !important;
           stroke-width: 2.5px !important;
         }
         /* Removed nodes — red outline (Before view) */
-        .mermaid-pr-review-removed > rect,
-        .mermaid-pr-review-removed > circle,
-        .mermaid-pr-review-removed > polygon,
-        .mermaid-pr-review-removed > path,
-        .mermaid-pr-review-removed > ellipse {
+        .mermaid-review-diagram-removed > rect,
+        .mermaid-review-diagram-removed > circle,
+        .mermaid-review-diagram-removed > polygon,
+        .mermaid-review-diagram-removed > path,
+        .mermaid-review-diagram-removed > ellipse {
           fill: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground, #f85149) 20%, transparent) !important;
           stroke: var(--vscode-gitDecoration-deletedResourceForeground, #f85149) !important;
           stroke-width: 2.5px !important;
@@ -171,9 +188,9 @@ export function getWebviewHTML(
         #mermaid-diagram.mc-review-autofocus g.stateGroup {
           transition: opacity 280ms ease, filter 280ms ease;
         }
-        #mermaid-diagram.mc-review-autofocus g.node:not(.mermaid-pr-review-focus),
-        #mermaid-diagram.mc-review-autofocus g.classGroup:not(.mermaid-pr-review-focus),
-        #mermaid-diagram.mc-review-autofocus g.stateGroup:not(.mermaid-pr-review-focus) {
+        #mermaid-diagram.mc-review-autofocus g.node:not(.mermaid-review-diagram-focus),
+        #mermaid-diagram.mc-review-autofocus g.classGroup:not(.mermaid-review-diagram-focus),
+        #mermaid-diagram.mc-review-autofocus g.stateGroup:not(.mermaid-review-diagram-focus) {
           opacity: 0.2 !important;
         }
         #mermaid-diagram.mc-review-autofocus .edgePath,
@@ -185,54 +202,54 @@ export function getWebviewHTML(
         #mermaid-diagram.mc-review-autofocus g.cluster rect {
           opacity: 0.35 !important;
         }
-        .mermaid-pr-review-focus > rect,
-        .mermaid-pr-review-focus > circle,
-        .mermaid-pr-review-focus > polygon,
-        .mermaid-pr-review-focus > path,
-        .mermaid-pr-review-focus > ellipse {
+        .mermaid-review-diagram-focus > rect,
+        .mermaid-review-diagram-focus > circle,
+        .mermaid-review-diagram-focus > polygon,
+        .mermaid-review-diagram-focus > path,
+        .mermaid-review-diagram-focus > ellipse {
           stroke-width: 3.5px !important;
           filter: drop-shadow(0 0 10px var(--vscode-focusBorder, #007fd4))
             drop-shadow(0 0 4px rgba(255, 255, 255, 0.35));
         }
-        .mermaid-pr-review-focus {
+        .mermaid-review-diagram-focus {
           opacity: 1 !important;
         }
         /* Phase 2 enter animations — stagger via --mc-stagger on g.node */
-        g.mermaid-pr-review-stagger-added > rect,
-        g.mermaid-pr-review-stagger-added > circle,
-        g.mermaid-pr-review-stagger-added > polygon,
-        g.mermaid-pr-review-stagger-added > path,
-        g.mermaid-pr-review-stagger-added > ellipse {
+        g.mermaid-review-diagram-stagger-added > rect,
+        g.mermaid-review-diagram-stagger-added > circle,
+        g.mermaid-review-diagram-stagger-added > polygon,
+        g.mermaid-review-diagram-stagger-added > path,
+        g.mermaid-review-diagram-stagger-added > ellipse {
           animation: mc-review-pop-in 520ms cubic-bezier(0.22, 1, 0.36, 1) var(--mc-stagger, 0ms) both;
         }
-        g.mermaid-pr-review-stagger-modified > rect,
-        g.mermaid-pr-review-stagger-modified > circle,
-        g.mermaid-pr-review-stagger-modified > polygon,
-        g.mermaid-pr-review-stagger-modified > path,
-        g.mermaid-pr-review-stagger-modified > ellipse {
+        g.mermaid-review-diagram-stagger-modified > rect,
+        g.mermaid-review-diagram-stagger-modified > circle,
+        g.mermaid-review-diagram-stagger-modified > polygon,
+        g.mermaid-review-diagram-stagger-modified > path,
+        g.mermaid-review-diagram-stagger-modified > ellipse {
           animation: mc-review-pulse-modified 640ms ease-out var(--mc-stagger, 0ms) both;
         }
-        g.mermaid-pr-review-stagger-removed > rect,
-        g.mermaid-pr-review-stagger-removed > circle,
-        g.mermaid-pr-review-stagger-removed > polygon,
-        g.mermaid-pr-review-stagger-removed > path,
-        g.mermaid-pr-review-stagger-removed > ellipse {
+        g.mermaid-review-diagram-stagger-removed > rect,
+        g.mermaid-review-diagram-stagger-removed > circle,
+        g.mermaid-review-diagram-stagger-removed > polygon,
+        g.mermaid-review-diagram-stagger-removed > path,
+        g.mermaid-review-diagram-stagger-removed > ellipse {
           animation: mc-review-removed-in 520ms ease-out var(--mc-stagger, 0ms) both;
         }
-        g.mermaid-pr-review-stagger-modified .label,
-        g.mermaid-pr-review-stagger-modified text,
-        g.mermaid-pr-review-stagger-modified foreignObject {
+        g.mermaid-review-diagram-stagger-modified .label,
+        g.mermaid-review-diagram-stagger-modified text,
+        g.mermaid-review-diagram-stagger-modified foreignObject {
           animation: mc-review-label-reveal 560ms ease-out var(--mc-stagger, 0ms) both;
         }
-        .mermaid-pr-review-added .label,
-        .mermaid-pr-review-added text,
-        .mermaid-pr-review-modified .label,
-        .mermaid-pr-review-modified text,
-        .mermaid-pr-review-removed .label,
-        .mermaid-pr-review-removed text {
+        .mermaid-review-diagram-added .label,
+        .mermaid-review-diagram-added text,
+        .mermaid-review-diagram-modified .label,
+        .mermaid-review-diagram-modified text,
+        .mermaid-review-diagram-removed .label,
+        .mermaid-review-diagram-removed text {
           font-weight: 600;
         }
-        @keyframes mermaid-pr-review-fade-in {
+        @keyframes mermaid-review-diagram-fade-in {
           from { opacity: 0; }
           to { opacity: 1; }
         }
@@ -255,28 +272,28 @@ export function getWebviewHTML(
           100% { opacity: 1; }
         }
         @media (prefers-reduced-motion: reduce) {
-          g.mermaid-pr-review-stagger-added > rect,
-          g.mermaid-pr-review-stagger-added > circle,
-          g.mermaid-pr-review-stagger-added > polygon,
-          g.mermaid-pr-review-stagger-added > path,
-          g.mermaid-pr-review-stagger-added > ellipse,
-          g.mermaid-pr-review-stagger-modified > rect,
-          g.mermaid-pr-review-stagger-modified > circle,
-          g.mermaid-pr-review-stagger-modified > polygon,
-          g.mermaid-pr-review-stagger-modified > path,
-          g.mermaid-pr-review-stagger-modified > ellipse,
-          g.mermaid-pr-review-stagger-removed > rect,
-          g.mermaid-pr-review-stagger-removed > circle,
-          g.mermaid-pr-review-stagger-removed > polygon,
-          g.mermaid-pr-review-stagger-removed > path,
-          g.mermaid-pr-review-stagger-removed > ellipse,
-          g.mermaid-pr-review-stagger-modified .label,
-          g.mermaid-pr-review-stagger-modified text,
-          g.mermaid-pr-review-stagger-modified foreignObject,
-          .mermaid-pr-review-added > rect,
-          .mermaid-pr-review-added > circle,
-          .mermaid-pr-review-modified > rect,
-          .mermaid-pr-review-modified > circle {
+          g.mermaid-review-diagram-stagger-added > rect,
+          g.mermaid-review-diagram-stagger-added > circle,
+          g.mermaid-review-diagram-stagger-added > polygon,
+          g.mermaid-review-diagram-stagger-added > path,
+          g.mermaid-review-diagram-stagger-added > ellipse,
+          g.mermaid-review-diagram-stagger-modified > rect,
+          g.mermaid-review-diagram-stagger-modified > circle,
+          g.mermaid-review-diagram-stagger-modified > polygon,
+          g.mermaid-review-diagram-stagger-modified > path,
+          g.mermaid-review-diagram-stagger-modified > ellipse,
+          g.mermaid-review-diagram-stagger-removed > rect,
+          g.mermaid-review-diagram-stagger-removed > circle,
+          g.mermaid-review-diagram-stagger-removed > polygon,
+          g.mermaid-review-diagram-stagger-removed > path,
+          g.mermaid-review-diagram-stagger-removed > ellipse,
+          g.mermaid-review-diagram-stagger-modified .label,
+          g.mermaid-review-diagram-stagger-modified text,
+          g.mermaid-review-diagram-stagger-modified foreignObject,
+          .mermaid-review-diagram-added > rect,
+          .mermaid-review-diagram-added > circle,
+          .mermaid-review-diagram-modified > rect,
+          .mermaid-review-diagram-modified > circle {
             animation: none !important;
           }
           #mermaid-diagram.mc-review-fade {
@@ -286,9 +303,9 @@ export function getWebviewHTML(
       </style>
     </head>
     <body>
-      ${prReviewHeader}
-      <div class="mc-pr-review-body${prReview ? " has-chrome" : ""}">
-      ${prReviewStage}
+      ${reviewHeader}
+      <div class="mc-review-diagram-body${reviewDiagram ? " has-chrome" : ""}">
+      ${reviewStage}
       <div
         id="app"
         data-initial-content="${encodeURIComponent(initialContent)}"
@@ -296,28 +313,34 @@ export function getWebviewHTML(
         data-max-zoom="${encodeURIComponent(String(options?.maxZoom ?? 5))}"
         data-max-char-length="${encodeURIComponent(String(options?.maxCharLength ?? 90000))}"
         data-max-edges="${encodeURIComponent(String(options?.maxEdges ?? 1000))}"
-        ${prReview?.beforeDiagramText ? `data-before-content="${encodeURIComponent(prReview.beforeDiagramText)}"` : ""}
-        ${prReview ? `data-pr-review="true"` : ""}
+        ${reviewDiagram?.beforeDiagramText ? `data-before-content="${encodeURIComponent(reviewDiagram.beforeDiagramText)}"` : ""}
+        ${reviewDiagram ? `data-review-diagram="true"` : ""}
       ></div>
       </div>
       <script nonce="${nonce}">
-        ${prReview ? reviewChromeScript(nonce) : ""}
+        ${reviewDiagram ? reviewChromeScript(nonce) : ""}
       </script>
-      <script>
+      ${enableNodeHighlights ? `<script>
         (function () {
           let highlights = ${initialHighlightJson};
-          const ADDED_CLASS = "mermaid-pr-review-added";
-          const MODIFIED_CLASS = "mermaid-pr-review-modified";
-          const REMOVED_CLASS = "mermaid-pr-review-removed";
-          const FOCUS_CLASS = "mermaid-pr-review-focus";
-          const STAGGER_ADDED = "mermaid-pr-review-stagger-added";
-          const STAGGER_MODIFIED = "mermaid-pr-review-stagger-modified";
-          const STAGGER_REMOVED = "mermaid-pr-review-stagger-removed";
+          const reviewInteraction = ${reviewInteraction};
+          const hostHighlightCapability = ${JSON.stringify(hostHighlightCapability)};
+          let svgHighlightsActive = null;
+          let focusTargetMatched = false;
+          const ADDED_CLASS = "mermaid-review-diagram-added";
+          const MODIFIED_CLASS = "mermaid-review-diagram-modified";
+          const REMOVED_CLASS = "mermaid-review-diagram-removed";
+          const FOCUS_CLASS = "mermaid-review-diagram-focus";
+          const STAGGER_ADDED = "mermaid-review-diagram-stagger-added";
+          const STAGGER_MODIFIED = "mermaid-review-diagram-stagger-modified";
+          const STAGGER_REMOVED = "mermaid-review-diagram-stagger-removed";
           const STAGGER_MS = 45;
           const MAX_STAGGER = 8;
           let focusNodeId = null;
+          let focusGeneration = 0;
           let hasInitialZoomed = false;
           let reviewPhase = "now";
+          let highlightTimer = null;
           const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
           function nodeMatches(g, nodeId) {
@@ -327,6 +350,48 @@ export function getWebviewHTML(
           }
 
           let activeFilter = null;
+
+          function allHighlightIds() {
+            return highlights.added
+              .concat(highlights.modified)
+              .concat(highlights.removed || []);
+          }
+
+          function resetSvgHighlightCapability() {
+            svgHighlightsActive = null;
+          }
+
+          /** True when diff node IDs map to rendered SVG groups (dynamic; no per-diagram hardcoding). */
+          function canPaintSvgHighlights() {
+            if (svgHighlightsActive !== null) {
+              return svgHighlightsActive;
+            }
+            const groups = document.querySelectorAll("g.node, g.classGroup, g.stateGroup");
+            if (!groups.length) {
+              return false;
+            }
+            const ids = allHighlightIds();
+            if (!ids.length) {
+              svgHighlightsActive = false;
+              return false;
+            }
+            let matched = 0;
+            for (let i = 0; i < ids.length; i++) {
+              for (let j = 0; j < groups.length; j++) {
+                if (nodeMatches(groups[j], ids[i])) {
+                  matched++;
+                  break;
+                }
+              }
+            }
+            const ratio = matched / ids.length;
+            if (hostHighlightCapability === "ast") {
+              svgHighlightsActive = matched > 0;
+            } else {
+              svgHighlightsActive = matched > 0 && ratio >= 0.2;
+            }
+            return svgHighlightsActive;
+          }
 
           function classifyNode(g) {
             const id = g.getAttribute("id") || "";
@@ -374,26 +439,50 @@ export function getWebviewHTML(
             });
           }
 
+          function scheduleApplyHighlight() {
+            if (highlightTimer) {
+              clearTimeout(highlightTimer);
+            }
+            highlightTimer = setTimeout(function () {
+              highlightTimer = null;
+              applyHighlight();
+            }, 48);
+          }
+
           function applyHighlight() {
             const hasAny =
               highlights.added.length ||
               highlights.modified.length ||
               (highlights.removed || []).length;
+            const paint = canPaintSvgHighlights();
             let firstHighlighted = null;
             const diagramEl = document.getElementById("mermaid-diagram");
             if (diagramEl) {
-              diagramEl.classList.toggle("mc-review-autofocus", !!focusNodeId);
+              diagramEl.classList.toggle(
+                "mc-review-autofocus",
+                paint && reviewInteraction && !!focusNodeId && focusTargetMatched,
+              );
             }
             document.querySelectorAll("g.node, g.classGroup, g.stateGroup").forEach(function (g) {
               clearStaggerClasses(g);
+              if (!paint) {
+                g.classList.remove(
+                  ADDED_CLASS,
+                  MODIFIED_CLASS,
+                  REMOVED_CLASS,
+                  FOCUS_CLASS,
+                  "mermaid-review-diagram-dimmed",
+                );
+                return;
+              }
               const kind = classifyNode(g);
               const isFocus = focusNodeId && nodeMatches(g, focusNodeId);
               g.classList.toggle(ADDED_CLASS, kind === "added");
               g.classList.toggle(MODIFIED_CLASS, kind === "modified");
               g.classList.toggle(REMOVED_CLASS, kind === "removed");
               g.classList.toggle(FOCUS_CLASS, isFocus);
-              const dim = activeFilter !== null && kind !== activeFilter;
-              g.classList.toggle("mermaid-pr-review-dimmed", dim);
+              const dim = reviewInteraction && activeFilter !== null && kind !== activeFilter;
+              g.classList.toggle("mermaid-review-diagram-dimmed", dim);
               if (kind && !firstHighlighted && !dim) {
                 firstHighlighted = g;
               }
@@ -404,7 +493,7 @@ export function getWebviewHTML(
               });
               enterPass = false;
             }
-            if (!hasAny) return;
+            if (!hasAny || !paint) return;
             if (firstHighlighted && !hasInitialZoomed && !focusNodeId) {
               requestAnimationFrame(function () {
                 centerOnElement(firstHighlighted);
@@ -430,39 +519,66 @@ export function getWebviewHTML(
             return parts.length > 1 ? parts[1] : null;
           }
 
-          function focusNode(nodeId, attempt) {
+          function focusNode(nodeId, attempt, generation) {
             if (attempt === undefined) attempt = 0;
+            if (generation === undefined) {
+              generation = ++focusGeneration;
+            } else if (generation !== focusGeneration) {
+              return;
+            }
             focusNodeId = nodeId;
+            focusTargetMatched = false;
             applyHighlight();
-            window.dispatchEvent(new CustomEvent("mc-review-focus", { detail: { nodeId: nodeId } }));
+            if (reviewInteraction) {
+              window.dispatchEvent(new CustomEvent("mc-review-focus", { detail: { nodeId: nodeId } }));
+            }
             const groups = document.querySelectorAll("g.node, g.classGroup, g.stateGroup");
             for (let i = 0; i < groups.length; i++) {
               if (nodeMatches(groups[i], nodeId)) {
+                focusTargetMatched = true;
+                applyHighlight();
                 centerOnElement(groups[i]);
-                window.postMessage({ type: "centerOnNode", nodeId: nodeId, autofocus: true }, "*");
+                const useSpotlight = canPaintSvgHighlights();
+                window.postMessage({
+                  type: "centerOnNode",
+                  nodeId: nodeId,
+                  autofocus: useSpotlight,
+                }, "*");
                 return;
               }
             }
-            if (attempt < 24) {
-              setTimeout(function () { focusNode(nodeId, attempt + 1); }, 120);
+            if (attempt < 12) {
+              setTimeout(function () { focusNode(nodeId, attempt + 1, generation); }, 100);
+              return;
             }
+            focusNodeId = null;
+            applyHighlight();
           }
 
           function clearFocus() {
+            focusGeneration++;
             focusNodeId = null;
+            focusTargetMatched = false;
             applyHighlight();
-            window.dispatchEvent(new CustomEvent("mc-review-focus", { detail: { nodeId: null } }));
+            if (reviewInteraction) {
+              window.dispatchEvent(new CustomEvent("mc-review-focus", { detail: { nodeId: null } }));
+            }
           }
 
-          window.addEventListener("mc-review-filter", function (e) {
-            activeFilter = e.detail && e.detail.filter ? e.detail.filter : null;
-            applyHighlight();
-          });
+          if (reviewInteraction) {
+            window.addEventListener("mc-review-filter", function (e) {
+              activeFilter = e.detail && e.detail.filter ? e.detail.filter : null;
+              clearFocus();
+            });
+          }
 
           const observer = new MutationObserver(function () {
-            applyHighlight();
+            scheduleApplyHighlight();
           });
-          observer.observe(document.body, { childList: true, subtree: true });
+          observer.observe(document.getElementById("mermaid-diagram") || document.body, {
+            childList: true,
+            subtree: true,
+          });
 
           window.addEventListener("message", function (event) {
             const msg = event && event.data;
@@ -474,6 +590,7 @@ export function getWebviewHTML(
                 removed: Array.isArray(msg.removedNodeIds) ? msg.removedNodeIds : (highlights.removed || []),
               };
               reviewPhase = msg.phase === "before" ? "before" : "now";
+              resetSvgHighlightCapability();
               clearFocus();
               enterPass = true;
               hasInitialZoomed = false;
@@ -488,24 +605,24 @@ export function getWebviewHTML(
 
           applyHighlight();
         })();
-      </script>
+      </script>` : ""}
     </body>
     </html>
   `;
 }
 
-function buildPrReviewHeader(ctx: PrReviewPreviewContext): string {
+function buildReviewDiagramHeader(ctx: ReviewDiagramPreviewContext): string {
     const summary = renderSummaryChips(ctx.counts);
-    const meta = renderMetaChips({ prRef: ctx.prRef });
-    const theme = renderThemeSelect(ctx.currentTheme ?? "redux-dark");
+    const meta = renderMetaChips({ reviewRef: ctx.reviewRef });
+    const theme = renderThemeSelect(ctx.currentTheme ?? "redux-dark", ctx.vscodeThemeName);
     const actions = renderHeaderActionButtons();
     return `<header class="mc-review-header-bar mc-review-chrome">${summary}<div class="mc-header-actions mc-review-chrome">${meta}${theme}${actions}</div></header>`;
 }
 
-function buildPrReviewStage(ctx: PrReviewPreviewContext): string {
+function buildReviewDiagramStage(ctx: ReviewDiagramPreviewContext): string {
     const changes = renderChangesList(ctx.changes);
     const toggle = renderNowBeforeToggle("now");
-    return `<div class="mc-pr-review-stage">
+    return `<div class="mc-review-diagram-stage">
         ${changes}
         <div class="mc-review-toolbar mc-review-chrome">
           <button type="button" class="mc-pill-link" data-action="compare-side-by-side">Compare side by side</button>

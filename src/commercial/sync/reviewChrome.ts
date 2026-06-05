@@ -2,22 +2,8 @@ import {
     DiagramChangeItem,
     DiagramDiffCounts,
 } from "./diagramNodeDiff";
-
-/** Diagram themes available in the preview webview (matches ThemeSelector.svelte). */
-export const MERMAID_PREVIEW_THEMES: ReadonlyArray<{ key: string; label: string }> = [
-    { key: "redux-dark", label: "Redux Dark" },
-    { key: "redux", label: "Redux" },
-    { key: "redux-color", label: "Redux Color" },
-    { key: "redux-dark-color", label: "Redux Dark Color" },
-    { key: "neo-dark", label: "Neo Dark" },
-    { key: "neo", label: "Neo" },
-    { key: "mc", label: "Mermaid Chart" },
-    { key: "default", label: "Default" },
-    { key: "dark", label: "Dark" },
-    { key: "forest", label: "Forest" },
-    { key: "base", label: "Base" },
-    { key: "neutral", label: "Neutral" },
-];
+import { MERMAID_PREVIEW_THEMES } from "../../../webview/src/themes/previewThemes";
+import { getThemeColors } from "../../../webview/src/themes/themeConfig";
 
 const SAVE_ICON_SVG = /* svg */ `<svg class="mc-pill-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path d="M8 1.5l4.5 4.5v7.5H3.5V6L8 1.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
@@ -121,25 +107,71 @@ export function reviewChromeStyles(): string {
   .mc-pill-branch .mc-pill-icon { color: var(--mc-dot-branch); }
   .mc-pill-action .mc-pill-icon { color: var(--mc-save-accent); }
 
-  .mc-pill-theme {
-    padding: 4px 10px 4px 8px;
-    gap: 6px;
+  /* Theme pill trigger — original review chrome button */
+  .mc-theme-picker {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
   }
-  .mc-pill-theme select {
+  button.mc-pill.mc-pill-theme {
+    cursor: pointer;
+  }
+  .mc-pill-theme .mc-theme-pill-label {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Dropdown list — matches webview ThemeSelector.svelte */
+  .mc-theme-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: auto;
+    min-width: 160px;
+    z-index: 1000;
+    background: var(--dropdown-bg, var(--vscode-editorWidget-background, #252526));
+    border: 1px solid var(--dropdown-border, var(--mc-pill-border));
+    border-radius: 4px;
+    box-shadow: 0 4px 14px 0 #00000024;
+    overflow: hidden;
+    font-family: var(--vscode-font-family);
+    font-size: 12px;
+  }
+  .mc-theme-picker.is-open .mc-theme-dropdown {
+    display: block;
+  }
+  .mc-theme-dropdown-title {
+    padding: 8px 14px;
+    color: var(--dropdown-text, var(--mc-pill-text));
+    font-size: 12px;
+    font-weight: normal;
+    border-bottom: 1px solid var(--dropdown-border, var(--mc-pill-border));
+    background: none;
+  }
+  .mc-theme-dropdown-item {
     appearance: none;
+    display: block;
+    width: 100%;
+    padding: 8px 14px;
     border: none;
-    background: transparent;
-    color: var(--mc-pill-text);
+    background: none;
+    color: var(--dropdown-text, var(--mc-pill-text));
     font: inherit;
     font-size: 12px;
+    text-align: left;
     cursor: pointer;
-    padding: 0;
-    margin: 0;
-    max-width: 120px;
+    transition: background-color 0.15s ease;
   }
-  .mc-pill-theme select:focus-visible {
-    outline: 1px solid var(--vscode-focusBorder);
-    outline-offset: 2px;
+  .mc-theme-dropdown-item:hover {
+    background: var(--dropdown-hover-bg, var(--vscode-list-hoverBackground));
+  }
+  .mc-theme-dropdown-item.is-selected {
+    background: var(--dropdown-selected-bg, var(--vscode-button-background));
+    color: var(--dropdown-selected-text, var(--vscode-button-foreground, #fff));
   }
 
   .mc-header-actions {
@@ -198,6 +230,14 @@ export function reviewChromeStyles(): string {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
     overflow: hidden;
     pointer-events: auto;
+    transition: max-height 180ms ease, opacity 150ms ease, border-color 150ms ease;
+  }
+  .mc-changes-panel.collapsed {
+    max-height: 0;
+    opacity: 0;
+    border-color: transparent;
+    pointer-events: none;
+    box-shadow: none;
   }
   .mc-changes-scroll {
     overflow-y: auto;
@@ -230,10 +270,9 @@ export function reviewChromeStyles(): string {
   .mc-change-row-wrap {
     display: flex;
     align-items: center;
-    gap: 4px;
+    min-height: 36px;
     border-radius: 8px;
     border: 1px solid transparent;
-    padding-right: 4px;
     transition: border-color 100ms ease, background 100ms ease;
   }
   .mc-change-row-wrap.list-focus {
@@ -244,6 +283,7 @@ export function reviewChromeStyles(): string {
   button.mc-change-row {
     appearance: none;
     display: flex;
+    width: 100%;
     align-items: center;
     gap: 8px;
     flex: 1;
@@ -265,29 +305,6 @@ export function reviewChromeStyles(): string {
   }
   .mc-change-row-wrap.filter-hidden { display: none; }
   .mc-change-row-wrap.hidden { display: none; }
-
-  button.mc-view-code-link {
-    appearance: none;
-    display: none;
-    flex-shrink: 0;
-    border: none;
-    background: none;
-    color: var(--vscode-textLink-foreground);
-    font: inherit;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 4px 8px;
-    border-radius: 6px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  button.mc-view-code-link:hover {
-    background: color-mix(in srgb, var(--vscode-textLink-foreground) 12%, transparent);
-    text-decoration: underline;
-  }
-  .mc-change-row-wrap.list-focus button.mc-view-code-link {
-    display: inline-flex;
-  }
 
   .mc-change-label {
     flex: 1;
@@ -319,8 +336,10 @@ export function reviewChromeStyles(): string {
 
   .mc-review-toolbar {
     position: absolute;
-    top: 10px;
     right: 10px;
+    bottom: 10px;
+    top: auto;
+    left: auto;
     z-index: 200;
     display: flex;
     align-items: center;
@@ -366,7 +385,7 @@ export function reviewChromeStyles(): string {
     from { opacity: 0; }
     to { opacity: 1; }
   }
-  .mermaid-pr-review-dimmed {
+  .mermaid-review-diagram-dimmed {
     opacity: 0.12 !important;
     pointer-events: none;
   }
@@ -396,16 +415,62 @@ function filterPill(kind: string, label: string, count: number): string {
     );
 }
 
-export function renderThemeSelect(currentTheme: string): string {
-    const options = MERMAID_PREVIEW_THEMES.map(
-        (t) =>
-            `<option value="${escapeHtml(t.key)}"${t.key === currentTheme ? " selected" : ""}>${escapeHtml(t.label)}</option>`,
-    ).join("");
+/** Same dropdown color logic as ThemeSelector.svelte + themeConfig. */
+function themePickerAppearance(diagramTheme: string, vscodeThemeName = "Default Light+"): {
+    modeClass: string;
+    style: string;
+} {
+    const isDarkDiagram = diagramTheme.includes("dark") || diagramTheme === "dark";
+    const vscodeThemeColors = getThemeColors(vscodeThemeName);
+    if (isDarkDiagram) {
+        const text = vscodeThemeColors.isDark ? "#cccccc" : "#333333";
+        const selectedText = vscodeThemeColors.isDark ? "#ffffff" : "#333333";
+        return {
+            modeClass: "mc-theme-diagram-dark",
+            style:
+                `--dropdown-bg:${vscodeThemeColors.modalBackground};` +
+                `--dropdown-border:${vscodeThemeColors.secondaryBackground};` +
+                `--dropdown-text:${text};` +
+                `--dropdown-hover-bg:${vscodeThemeColors.secondaryBackground};` +
+                `--dropdown-selected-bg:${vscodeThemeColors.accentColor};` +
+                `--dropdown-selected-text:${selectedText};`,
+        };
+    }
+    return {
+        modeClass: "mc-theme-diagram-light",
+        style:
+            "--dropdown-bg:#ffffff;" +
+            "--dropdown-border:#c8c8c8;" +
+            "--dropdown-text:#333333;" +
+            "--dropdown-hover-bg:#e8e8e8;" +
+            "--dropdown-selected-bg:#0060C0;" +
+            "--dropdown-selected-text:#ffffff;",
+    };
+}
+
+function themeLabelForKey(themeKey: string): string {
+    const match = MERMAID_PREVIEW_THEMES.find((t) => t.key === themeKey);
+    return match?.name ?? themeKey;
+}
+
+export function renderThemeSelect(currentTheme: string, vscodeThemeName?: string): string {
+    const { modeClass, style } = themePickerAppearance(currentTheme, vscodeThemeName);
+    const label = themeLabelForKey(currentTheme);
+    const items = MERMAID_PREVIEW_THEMES.map((t) => {
+        const selected = t.key === currentTheme ? " is-selected" : "";
+        return (
+            `<button type="button" class="mc-theme-dropdown-item${selected}" data-action="theme-pick" ` +
+            `data-theme-key="${escapeHtml(t.key)}">${escapeHtml(t.name)}</button>`
+        );
+    }).join("");
     return (
-        `<label class="mc-pill mc-pill-theme mc-review-chrome" title="Diagram theme">` +
+        `<div class="mc-theme-picker mc-review-chrome ${modeClass}" data-current-theme="${escapeHtml(currentTheme)}" style="${style}">` +
+        `<button type="button" class="mc-pill mc-pill-theme mc-review-chrome" data-action="theme-toggle" ` +
+        `aria-label="Diagram theme" aria-haspopup="listbox" title="Diagram theme">` +
         `<span class="mc-status-dot theme" aria-hidden="true"></span>` +
-        `<select data-action="theme-select" aria-label="Diagram theme">${options}</select>` +
-        `</label>`
+        `<span class="mc-pill-label mc-theme-pill-label">${escapeHtml(label)}</span></button>` +
+        `<div class="mc-theme-dropdown" role="listbox" aria-label="Diagram theme">` +
+        `<div class="mc-theme-dropdown-title">Themes</div>${items}</div></div>`
     );
 }
 
@@ -418,13 +483,13 @@ export function renderHeaderActionButtons(): string {
     );
 }
 
-export function renderMetaChips(opts: { prRef?: string }): string {
-    if (!opts.prRef?.trim()) {
+export function renderMetaChips(opts: { reviewRef?: string }): string {
+    if (!opts.reviewRef?.trim()) {
         return "";
     }
-    const ref = escapeHtml(opts.prRef.trim());
+    const ref = escapeHtml(opts.reviewRef.trim());
     return (
-        `<span class="mc-pill mc-pill-branch mc-review-chrome" title="Pull request">` +
+        `<span class="mc-pill mc-pill-branch mc-review-chrome" title="Review reference">` +
         `${BRANCH_ICON_SVG}` +
         `<span class="mc-pill-label">${ref}</span></span>`
     );
@@ -496,7 +561,7 @@ export function renderChangesList(changes: DiagramChangeItem[]): string {
             ? `<button type="button" class="mc-changes-more" data-action="expand-changes" style="margin-top:4px">Show all ${changes.length}</button>`
             : "";
 
-    return `<nav class="mc-changes-panel mc-review-chrome" aria-label="Diagram changes">
+    return `<nav class="mc-changes-panel mc-review-chrome collapsed" aria-label="Diagram changes">
       <div class="mc-changes-scroll">${sections.join("")}${expandAll}</div>
     </nav>`;
 }
@@ -505,10 +570,16 @@ export function reviewChromeScript(_nonce: string): string {
     return /* js */ `
     (function () {
       var w = window;
-      if (!w.__mermaidVscodeApi && typeof acquireVsCodeApi === "function") {
-        w.__mermaidVscodeApi = acquireVsCodeApi();
-      }
       var vscode = w.__mermaidVscodeApi;
+      if (!vscode && typeof acquireVsCodeApi === "function") {
+        try {
+          vscode = acquireVsCodeApi();
+          w.__mermaidVscodeApi = vscode;
+        } catch (err) {
+          console.warn("[Mermaid Review] VS Code API already acquired", err);
+          vscode = w.__mermaidVscodeApi;
+        }
+      }
       if (!vscode) return;
 
       var activeFilter = null;
@@ -523,6 +594,8 @@ export function reviewChromeScript(_nonce: string): string {
           btn.setAttribute("aria-pressed", on ? "true" : "false");
         });
         if (list) {
+          list.classList.toggle("collapsed", activeFilter === null);
+          list.setAttribute("aria-hidden", activeFilter === null ? "true" : "false");
           list.querySelectorAll(".mc-change-row-wrap[data-kind]").forEach(function (wrap) {
             var kind = wrap.getAttribute("data-kind");
             wrap.classList.toggle("filter-hidden", activeFilter !== null && kind !== activeFilter);
@@ -541,10 +614,47 @@ export function reviewChromeScript(_nonce: string): string {
         });
       });
 
-      var themeSelect = document.querySelector("[data-action=theme-select]");
-      if (themeSelect) {
-        themeSelect.addEventListener("change", function () {
-          vscode.postMessage({ type: "setTheme", theme: themeSelect.value });
+      var themePicker = document.querySelector(".mc-theme-picker");
+      if (themePicker) {
+        var themeTrigger = themePicker.querySelector("[data-action=theme-toggle]");
+        var themePillLabel = themePicker.querySelector(".mc-theme-pill-label");
+        var closeThemePicker = function () {
+          themePicker.classList.remove("is-open");
+        };
+        var openThemePicker = function () {
+          themePicker.classList.add("is-open");
+        };
+        if (themeTrigger) {
+          themeTrigger.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            if (themePicker.classList.contains("is-open")) {
+              closeThemePicker();
+            } else {
+              openThemePicker();
+            }
+          });
+        }
+        themePicker.querySelectorAll("[data-action=theme-pick]").forEach(function (btn) {
+          btn.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            var key = btn.getAttribute("data-theme-key");
+            if (!key) return;
+            themePicker.setAttribute("data-current-theme", key);
+            if (themePillLabel) {
+              themePillLabel.textContent = btn.textContent.trim();
+            }
+            themePicker.querySelectorAll(".mc-theme-dropdown-item").forEach(function (item) {
+              item.classList.toggle("is-selected", item.getAttribute("data-theme-key") === key);
+            });
+            closeThemePicker();
+            vscode.postMessage({ type: "setTheme", theme: key });
+          });
+        });
+        document.addEventListener("click", function (ev) {
+          if (!themePicker.classList.contains("is-open")) return;
+          if (!ev.target.closest(".mc-theme-picker")) {
+            closeThemePicker();
+          }
         });
       }
 
@@ -562,30 +672,34 @@ export function reviewChromeScript(_nonce: string): string {
         });
       }
 
+      function activatePhasePill(phase) {
+        document.querySelectorAll(".mc-segmented-pill button[data-phase]").forEach(function (btn) {
+          btn.classList.toggle("active", btn.getAttribute("data-phase") === phase);
+        });
+      }
+
+      function focusDiagramNode(nodeId, kind) {
+        if (!nodeId) return;
+        if (kind === "removed") {
+          var beforeBtn = document.querySelector('.mc-segmented-pill button[data-phase="before"]');
+          if (beforeBtn && !beforeBtn.classList.contains("active")) {
+            activatePhasePill("before");
+            vscode.postMessage({ type: "switchPhase", phase: "before" });
+            setTimeout(function () {
+              vscode.postMessage({ type: "focusChange", nodeId: nodeId });
+            }, 420);
+            return;
+          }
+        }
+        vscode.postMessage({ type: "focusChange", nodeId: nodeId });
+      }
+
       if (list) {
         list.querySelectorAll("button.mc-change-row[data-node-id]").forEach(function (row) {
-          row.addEventListener("click", function (ev) {
-            if (ev.target.closest("[data-action=view-change-code]")) return;
+          row.addEventListener("click", function () {
             var nodeId = row.getAttribute("data-node-id");
-            if (nodeId) {
-              vscode.postMessage({ type: "focusChange", nodeId: nodeId });
-            }
-          });
-        });
-        list.querySelectorAll("[data-action=view-change-code]").forEach(function (btn) {
-          btn.addEventListener("click", function (ev) {
-            ev.stopPropagation();
-            var nodeId = btn.getAttribute("data-node-id");
-            var kind = btn.getAttribute("data-kind") || "modified";
-            var changeLabel = btn.getAttribute("data-label") || "";
-            if (nodeId) {
-              vscode.postMessage({
-                type: "viewChangeCode",
-                nodeId: nodeId,
-                kind: kind,
-                changeLabel: changeLabel,
-              });
-            }
+            var kind = row.getAttribute("data-kind") || "";
+            focusDiagramNode(nodeId, kind);
           });
         });
         list.querySelectorAll("[data-action=expand-group]").forEach(function (btn) {
@@ -639,10 +753,7 @@ export function reviewChromeScript(_nonce: string): string {
         var id = e.detail && e.detail.nodeId;
         if (!list) return;
         list.querySelectorAll(".mc-change-row-wrap").forEach(function (wrap) {
-          wrap.classList.toggle(
-            "list-focus",
-            Boolean(id && wrap.querySelector('[data-node-id="' + id + '"]')),
-          );
+          wrap.classList.toggle("list-focus", Boolean(id && wrap.getAttribute("data-node-id") === id));
         });
       });
     })();
@@ -652,11 +763,10 @@ export function reviewChromeScript(_nonce: string): string {
 function changeRowHtml(c: DiagramChangeItem, hidden: boolean): string {
     const hiddenClass = hidden ? " hidden" : "";
     return (
-        `<div class="mc-change-row-wrap${hiddenClass}" data-kind="${c.kind}">` +
+        `<div class="mc-change-row-wrap${hiddenClass}" data-kind="${c.kind}" data-node-id="${escapeHtml(c.nodeId)}">` +
         `<button type="button" class="mc-change-row ${c.kind}" data-node-id="${escapeHtml(c.nodeId)}" data-kind="${c.kind}" data-label="${escapeHtml(c.label)}" title="${escapeHtml(c.label)}">` +
         `<span class="mc-status-dot ${c.kind}" aria-hidden="true"></span>` +
         `<span class="mc-change-label">${escapeHtml(c.label)}</span></button>` +
-        `<button type="button" class="mc-view-code-link" data-action="view-change-code" data-node-id="${escapeHtml(c.nodeId)}" data-kind="${c.kind}" data-label="${escapeHtml(c.label)}" title="Open diff at this change">View code</button>` +
         `</div>`
     );
 }

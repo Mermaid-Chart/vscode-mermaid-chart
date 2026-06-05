@@ -99,6 +99,12 @@ export interface DiagramChangeItem {
     label: string;
 }
 
+/** Optional node focus when opening app-review vscode.diff from View code. */
+export interface DiagramCodeDiffFocus {
+    nodeId: string;
+    kind?: DiagramChangeKind;
+}
+
 export interface DiagramNodeDiff {
     addedNodeIds: string[];
     modifiedNodeIds: string[];

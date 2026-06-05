@@ -48,108 +48,62 @@ import {
 } from "@mermaid-chart/vscode-utils";;
 import { PreviewBridgeImpl } from "./commercial/ai/tools/previewTool";
 import { ValidationBridgeImpl } from "./commercial/ai/tools/validationTool";
-import { openDiagramDiffWebviews } from "./commercial/sync/diagramDiffView";
+import {
+  openDiagramDiffWebviews,
+  setReviewDiagramExtensionPath,
+} from "./commercial/sync/diagramDiffView";
 import { injectMermaidTheme } from "./previewmarkdown/themeing";
 import { extendMarkdownItWithMermaid } from "./previewmarkdown/shared-md-mermaid";
 import * as packageJson from '../package.json'; 
 import { clearTmLanguageCache } from "./syntaxHighlighter";
-import { GitTrailerDetector } from "./commercial/prReview/gitTrailerDetector";
-import { BotEditCodeLensProvider, OPEN_REVIEW_COMMAND } from "./commercial/prReview/botEditCodeLensProvider";
-import { BotEditFileDecorationProvider } from "./commercial/prReview/botEditFileDecorationProvider";
-import { BotEditContentProvider } from "./commercial/prReview/botEditContentProvider";
-import { openReview, registerReviewCommands } from "./commercial/prReview/openReview";
-import {
-  PendingReviewTreeProvider,
-  registerPendingReviewCommands,
-} from "./commercial/prReview/pendingReviewTreeProvider";
-import {
-  offerPrReviewDemoInDevHost,
-  registerPrReviewDemoCommand,
-} from "./commercial/prReview/openPrReviewDemo";
 import { AppReviewFeature } from "./appReviewFeature";
 
 
 const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
 let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWords.json');
 let isExtensionStarted = false;
+let appReviewFeatureInstance: AppReviewFeature | undefined;
+let aiToolsRegistered = false;
 
+function registerAiToolsOnce(context: vscode.ExtensionContext): void {
+  if (aiToolsRegistered) {
+    return;
+  }
+  try {
+    registerTools(context);
+    aiToolsRegistered = true;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("already registered")) {
+      aiToolsRegistered = true;
+      console.warn("[MermaidExtension] AI tools already registered — skipping duplicate registerTools");
+      return;
+    }
+    throw err;
+  }
+}
+
+function registerAppReviewFeatureOnce(context: vscode.ExtensionContext): void {
+  if (appReviewFeatureInstance) {
+    return;
+  }
+  appReviewFeatureInstance = new AppReviewFeature();
+  appReviewFeatureInstance.register(context);
+  context.subscriptions.push({
+    dispose: () => {
+      appReviewFeatureInstance?.dispose();
+      appReviewFeatureInstance = undefined;
+    },
+  });
+}
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("Activating Mermaid Chart extension");
-
-  // PR Review — register first so bot-edit detection works even if auth/API setup fails.
-  try {
-    console.log("[PR Review] === activating PR review feature (build Jun2 v10 — now-before-toggle) ===");
-    const botEditDetector = new GitTrailerDetector();
-    const botEditCodeLensProvider = new BotEditCodeLensProvider(botEditDetector);
-    const botEditFileDecorationProvider = new BotEditFileDecorationProvider(botEditDetector);
-    const botEditContentProvider = new BotEditContentProvider();
-    const pendingReviewTreeProvider = new PendingReviewTreeProvider(botEditDetector);
-
-    const refreshHasBotEditCtx = async () => {
-      const uri = vscode.window.activeTextEditor?.document.uri;
-      if (!uri || uri.scheme !== "file") {
-        await vscode.commands.executeCommand(
-          "setContext",
-          "mermaidChart.prReview.hasBotEdit",
-          false,
-        );
-        return;
-      }
-      const info = await botEditDetector.detect(uri);
-      await vscode.commands.executeCommand(
-        "setContext",
-        "mermaidChart.prReview.hasBotEdit",
-        Boolean(info),
-      );
-    };
-    context.subscriptions.push(
-      vscode.window.onDidChangeActiveTextEditor(() => refreshHasBotEditCtx()),
-      botEditDetector.onDidChange(() => refreshHasBotEditCtx()),
-    );
-    refreshHasBotEditCtx();
-
-    context.subscriptions.push(
-      botEditDetector,
-      botEditCodeLensProvider,
-      botEditFileDecorationProvider,
-      botEditContentProvider,
-      vscode.languages.registerCodeLensProvider(
-        [
-          { language: "mermaid" },
-          { pattern: "**/*.mmd" },
-          { pattern: "**/*.mermaid" },
-        ],
-        botEditCodeLensProvider,
-      ),
-      vscode.window.registerFileDecorationProvider(botEditFileDecorationProvider),
-      pendingReviewTreeProvider,
-      vscode.window.registerTreeDataProvider(
-        "mermaidSyncPendingReview",
-        pendingReviewTreeProvider,
-      ),
-      ...registerReviewCommands(context, botEditDetector, botEditContentProvider),
-      ...registerPendingReviewCommands(),
-      vscode.commands.registerCommand(OPEN_REVIEW_COMMAND, async (uri?: vscode.Uri) => {
-        const target = uri ?? vscode.window.activeTextEditor?.document.uri;
-        if (!target) {
-          vscode.window.showWarningMessage("PR Review: no active editor — open a .mmd file first.");
-          return;
-        }
-        await openReview(context, botEditDetector, botEditContentProvider, target);
-      }),
-    );
-    console.log("[PR Review] registration complete");
-    registerPrReviewDemoCommand(context);
-    offerPrReviewDemoInDevHost(context);
-  } catch (err) {
-    console.error("[PR Review] FAILED to register providers:", err);
-  }
+  setReviewDiagramExtensionPath(context.extensionUri.fsPath);
 
   initializePlugin(pluginID);
-  // Register AI tools first to ensure they're available
   console.log("[MermaidExtension] Registering AI tools...");
-  registerTools(context);
+  registerAiToolsOnce(context);
   
   // Initialize the bridge for commercial tools
   setPreviewBridge(new PreviewBridgeImpl());
@@ -159,7 +113,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize AI chat participant after tools are registered
   initializeAIChatParticipant(context);
 
-  new AppReviewFeature().register(context);
+  registerAppReviewFeatureOnce(context);
 
   const mermaidWebviewProvider = new MermaidWebviewProvider(context);
 
@@ -1090,4 +1044,6 @@ return {
 // This method is called when your extension is deactivated
 export function deactivate() {
   clearTmLanguageCache();
+  aiToolsRegistered = false;
+  appReviewFeatureInstance = undefined;
 }

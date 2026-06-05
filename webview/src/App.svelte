@@ -27,7 +27,7 @@
   let maxTextSize = 90000;
   let maxEdges = 1000;
   let isExportModalOpen = false;
-  let isPrReview = false;
+  let isReviewDiagram = false;
   let isRepairing = false;
   let aiCredits = null; // AI credits data: {remaining: number, total: number}
   let isAuthenticated = false; // Authentication status
@@ -786,7 +786,7 @@
 
   onMount(async () => {
     const appElement = document.getElementById("app");
-    isPrReview = appElement?.dataset.prReview === "true";
+    isReviewDiagram = appElement?.dataset.reviewDiagram === "true";
     const initialContent = appElement?.dataset.initialContent;
     const currentTheme = appElement?.dataset.currentTheme;
     const initialMaxZoom = appElement?.dataset.maxZoom;
@@ -854,7 +854,7 @@
     gap: 10px;
     overflow: hidden;
   }
-  :global(#app[data-pr-review="true"]) #app-container {
+  :global(#app[data-review-diagram="true"]) #app-container {
     height: 100%;
   }
   .sidebar-container {
@@ -889,7 +889,7 @@
   <div id="mermaid-diagram"></div>
   <div class="sidebar-container">
     {#if !errorMessage}
-    {#if !isPrReview}
+    {#if !isReviewDiagram}
     <LeftSideBar 
       {sidebarBackgroundColor} 
       {svgColor}

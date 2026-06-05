@@ -1,8 +1,8 @@
 {
-  "name": "vscode-mermaid-chart-test",
-  "publisher": "MermaidChartTest",
-  "displayName": "Mermaid (Test)",
-  "description": "Local test build of the Mermaid VS Code extension — same features as the published plugin, with a distinct extension id for F5 development (avoids clashing with the marketplace Mermaid extension).",
+  "name": "vscode-mermaid-chart",
+  "publisher": "MermaidChart",
+  "displayName": "Mermaid",
+  "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
   "version": "2.6.8",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
@@ -44,21 +44,10 @@
     ]
   },
   "activationEvents": [
-    "onStartupFinished",
-    "onLanguage:mermaid",
-    "onAuthenticationRequest:mermaidchart",
-    "onView:mermaidWebview",
-    "onView:mermaidSuggestions",
-    "onView:mermaidChart"
+    "onLanguage"
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "authentication": [
-      {
-        "id": "mermaidchart",
-        "label": "Mermaid Chart"
-      }
-    ],
     "markdown.previewScripts": [
       "./dist-preview/bundle.js"
     ],
@@ -591,7 +580,7 @@
       }
     ],
     "configuration": {
-      "title": "Mermaid Chart (Test)",
+      "title": "Mermaid Chart",
       "properties": {
         "mermaidChart.baseUrl": {
           "type": "string",
@@ -675,21 +664,6 @@
           "default": "false",
           "description": "Automatic name suggestion for exported diagrams"
         },
-        "mermaidChart.openPreviewOnOpen": {
-          "type": "boolean",
-          "default": false,
-          "description": "When enabled, focusing a Mermaid diagram file opens the Mermaid Preview panel automatically."
-        },
-        "mermaidChart.prReview.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Surface bot-regenerated Mermaid diagrams (banner, tab indicator, review actions) when the configured commit trailer is present."
-        },
-        "mermaidChart.prReview.commitTrailer": {
-          "type": "string",
-          "default": "Mermaid-Sync: regenerated",
-          "description": "Commit-message trailer (Key: value) emitted by the Mermaid Sync GitHub App. Used to identify bot-authored edits on .mmd files."
-        },
         "mermaidChart.preCommitSync.enabled": {
           "type": "boolean",
           "default": true,
@@ -706,13 +680,8 @@
       "activitybar": [
         {
           "id": "mermaidActivityBar",
-          "title": "Mermaid (Test)",
+          "title": "Mermaid Chart",
           "icon": "images/mermaid-icon-32-preview.svg"
-        },
-        {
-          "id": "mermaidSync",
-          "title": "Mermaid Sync",
-          "icon": "$(sync)"
         }
       ]
     },
@@ -720,26 +689,16 @@
       "mermaidActivityBar": [
         {
           "id": "mermaidChart",
-          "name": "Cloud diagrams",
+          "name": "",
+          "contextualOnly": true,
           "when": "mermaid.showChart"
         },
         {
           "id": "mermaidWebview",
-          "name": "Sign in",
+          "name": "Mermaid Chart",
           "type": "webview",
+          "contextualOnly": true,
           "when": "mermaid.showWebview"
-        },
-        {
-          "id": "mermaidSuggestions",
-          "name": "Diagram Suggestions",
-          "type": "webview"
-        }
-      ],
-      "mermaidSync": [
-        {
-          "id": "mermaidSyncPendingReview",
-          "name": "Pending review",
-          "when": "config.mermaidChart.prReview.enabled"
         }
       ]
     },
@@ -747,11 +706,6 @@
       "view/title": [
         {
           "command": "mermaidChart.refresh",
-          "group": "navigation",
-          "when": "view == mermaidChart"
-        },
-        {
-          "command": "mermaidChart.logout",
           "group": "navigation",
           "when": "view == mermaidChart"
         },
@@ -764,11 +718,6 @@
           "command": "mermaidChart.diagramHelp",
           "when": "view == mermaidWebview",
           "group": "navigation"
-        },
-        {
-          "command": "mermaidChart.logout",
-          "group": "navigation",
-          "when": "view == mermaidSuggestions && mermaid.isLoggedIn"
         }
       ],
       "view/item/context": [
@@ -825,33 +774,6 @@
           "group": "navigation"
         },
         {
-          "command": "mermaidChart.generateDiagram",
-          "when": "resourceExtname =~ /^(?!\\.(mmd|mermaid)$)/ && resourceLangId !~ /^mermaid/",
-          "group": "navigation"
-        },
-        {
-          "command": "mermaidChart.repairAndSaveToCloud",
-          "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/",
-          "group": "navigation"
-        }
-      ],
-      "editor/title": [
-        {
-          "command": "mermaidChart.prReview.edit",
-          "when": "mermaidChart.prReview.hasBotEdit && resourceExtname =~ /^\\.(mmd|mermaid)$/",
-          "group": "navigation@8"
-        },
-        {
-          "command": "mermaidChart.prReview.reject",
-          "when": "mermaidChart.prReview.hasBotEdit && resourceExtname =~ /^\\.(mmd|mermaid)$/",
-          "group": "navigation@9"
-        },
-        {
-          "command": "mermaidChart.prReview.accept",
-          "when": "mermaidChart.prReview.hasBotEdit && resourceExtname =~ /^\\.(mmd|mermaid)$/",
-          "group": "navigation@10"
-        },
-        {
           "command": "mermaidChart.reviewAppCommits",
           "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/",
           "group": "appReview"
@@ -874,23 +796,6 @@
         "command": "mermaidChart.showCompletions",
         "key": "ctrl+shift+k",
         "when": "editorLangId =~ /^mermaid/"
-      },
-      {
-        "command": "mermaidChart.prReview.accept",
-        "key": "ctrl+enter",
-        "mac": "cmd+enter",
-        "when": "mermaidChart.prReview.hasBotEdit && editorLangId =~ /^mermaid/"
-      },
-      {
-        "command": "mermaidChart.prReview.reject",
-        "key": "escape",
-        "when": "mermaidChart.prReview.hasBotEdit && editorLangId =~ /^mermaid/ && !suggestWidgetVisible && !findWidgetVisible"
-      },
-      {
-        "command": "mermaidChart.prReview.edit",
-        "key": "ctrl+e",
-        "mac": "cmd+e",
-        "when": "mermaidChart.prReview.hasBotEdit && editorLangId =~ /^mermaid/"
       }
     ],
     "commands": [
@@ -924,21 +829,20 @@
       },
       {
         "command": "mermaidChart.logout",
-        "title": "MermaidChart: Logout",
-        "icon": "$(sign-out)"
+        "title": "MermaidChart: Logout"
       },
       {
         "command": "mermaidChart.login",
         "title": "MermaidChart: Login"
       },
       {
-        "command": "mermaidChart.openSidebar",
-        "title": "Mermaid (Test): Open sign-in & cloud (bottom panel)",
-        "icon": "images/mermaid-icon.svg"
-      },
-      {
         "command": "mermaidChart.createMermaidFile",
         "title": "MermaidChart: Create Diagram"
+      },
+      {
+        "command": "mermaidChart.focus",
+        "title": "Mermaid Charts: Focus on View",
+        "icon": "images/mermaid-icon.svg"
       },
       {
         "command": "mermaidChart.refresh",
@@ -974,7 +878,7 @@
       },
       {
         "command": "mermaidChart.openCopilotChat",
-        "title": "Mermaid (Test): Open chat with @mermaid-chart"
+        "title": "MermaidChart: Open AI Chat"
       },
       {
         "command": "mermaidChart.generateCloudDiagram",
@@ -997,62 +901,10 @@
         "title": "MermaidChart: Open Diagram Diff (Current vs Updated)"
       },
       {
-        "command": "mermaidChart.generateDiagram",
-        "title": "MermaidChart: Generate Diagram from Code",
-        "icon": "$(sparkle)"
-      },
-      {
-        "command": "mermaidChart.copyDiagramLink",
-        "title": "MermaidChart: Copy Diagram Link"
-      },
-      {
-        "command": "mermaidChart.improveDiagram",
-        "title": "Improve this diagram",
-        "icon": "$(lightbulb)"
-      },
-      {
-        "command": "mermaidChart.repairAndSaveToCloud",
-        "title": "MermaidChart: Repair & Save to Cloud",
-        "icon": "$(cloud-upload)"
-      },
-      {
-        "command": "mermaidChart.prReview.openReview",
-        "title": "Mermaid (Test): Review Synced Diagram",
-        "icon": "$(diff)"
-      },
-      {
-        "command": "mermaidChart.prReview.openDemo",
-        "title": "Mermaid (Test): Open PR Review Demo (Now/Before)"
-      },
-      {
-        "command": "mermaidChart.prReview.accept",
-        "title": "MermaidChart: Accept Synced Diagram",
-        "icon": "$(check)"
-      },
-      {
-        "command": "mermaidChart.prReview.reject",
-        "title": "MermaidChart: Reject Synced Diagram",
-        "icon": "$(discard)"
-      },
-      {
-        "command": "mermaidChart.prReview.edit",
-        "title": "MermaidChart: Edit Synced Diagram",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "mermaidChart.prReview.commitEdits",
-        "title": "MermaidChart: Commit Edits to Synced Diagram",
-        "icon": "$(git-commit)"
-      },
-      {
-        "command": "mermaidChart.prReview.showUpsell",
-        "title": "MermaidChart: Show Pro Feature Upsell"
-      },
-      {
         "command": "mermaidChart.regenerateDiagramWithMermaidAI",
         "title": "MermaidChart: Regenerate with Mermaid AI"
       },
-      {
+      {        
         "command": "mermaidChart.reviewAppCommits",
         "title": "MermaidChart: Review Mermaid Sync"
       },
@@ -1108,9 +960,9 @@
     "chatParticipants": [
       {
         "id": "mermaid-chart",
-        "fullName": "Mermaid Chart AI Chat (Test)",
+        "fullName": "Mermaid Chart AI Chat",
         "name": "mermaid-chart",
-        "description": "VS Code Chat participant: mention @mermaid-chart in GitHub Copilot Chat to generate diagrams with Mermaid tools. Requires Copilot Chat in VS Code; Cursor chat uses a different system.",
+        "description": "Official VS Code Extension for AI Chat",
         "isSticky": true,
         "commands": [
           {
@@ -1283,9 +1135,9 @@
     "precompile": "pnpm --filter ./webview build && webpack --mode=production --config ./build/markdownPreview.webpack.config.js",
     "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --sourcemap --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --minify",
     "watch": "tsc -p ./ --noEmit --watch",
-    "pretest": "pnpm compile && tsc -p ./ && pnpm lint",
+    "pretest": "pnpm compile && pnpm lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/src/test/runTest.js",
+    "test": "node ./out/test/runTest.js",
     "package": "pnpm vsce package --no-dependencies",
     "publish": "pnpm vsce publish --no-dependencies"
   },

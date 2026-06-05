@@ -139,10 +139,33 @@ async function parseWithAST(code: string, diagramType: string): Promise<DiagramA
   }
 }
 
+export type DiagramHighlightCapabilityMode = "ast" | "none";
+
+export interface DiagramHighlightCapability {
+  mode: DiagramHighlightCapabilityMode;
+  diagramType: "flowchart" | "sequence" | "unknown";
+}
+
+/**
+ * Whether AST element mappings exist for this diagram (flowchart / sequence only).
+ * Used as a host-side hint; the webview still verifies IDs against rendered SVG nodes.
+ */
+export async function resolveDiagramHighlightCapability(
+  code: string,
+): Promise<DiagramHighlightCapability> {
+  const diagramType = detectDiagramType(code);
+  if (diagramType === "unknown") {
+    return { mode: "none", diagramType };
+  }
+  const ast = await parseWithAST(code, diagramType);
+  const hasMappings = (ast?.elementMappings?.length ?? 0) > 0;
+  return { mode: hasMappings ? "ast" : "none", diagramType };
+}
+
 /**
  * Detect diagram type from code
  */
-function detectDiagramType(code: string): 'flowchart' | 'sequence' | 'unknown' {
+export function detectDiagramType(code: string): "flowchart" | "sequence" | "unknown" {
   const trimmed = code.trim();
   if (trimmed.includes('sequenceDiagram')) {
     return 'sequence';

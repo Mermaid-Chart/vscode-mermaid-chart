@@ -36,7 +36,7 @@ export class AppReviewCodeLensProvider implements vscode.CodeLensProvider {
           title: "Review changes",
           command: "mermaidChart.openReviewFileDiff",
           arguments: [fileUri],
-          tooltip: "Open diff and diagram previews (save right side to update this file)",
+          tooltip: "Open diagram review (Now/Before, changes list, diff code)",
         })
       );
     }

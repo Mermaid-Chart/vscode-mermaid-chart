@@ -9,6 +9,33 @@
  */
 
 import mermaid, { type MermaidConfig } from '@mermaid-chart/mermaid';
+import { splitFrontMatter } from '../../frontmatter';
+
+export type DiagramChangeKind = 'added' | 'modified' | 'removed';
+
+export interface DiagramChangeItem {
+  kind: DiagramChangeKind;
+  nodeId: string;
+  label: string;
+}
+
+export interface DiagramDiffCounts {
+  added: number;
+  modified: number;
+  removed: number;
+  total: number;
+}
+
+export interface ReviewSurfaceDiff {
+  counts: DiagramDiffCounts;
+  changes: DiagramChangeItem[];
+  addedNodeIds: string[];
+  modifiedNodeIds: string[];
+  removedNodeIds: string[];
+  newHighlightInstructions: HighlightInstruction[];
+  oldHighlightInstructions: HighlightInstruction[];
+  astAvailable: boolean;
+}
 
 // AST and element mapping interfaces (from collab approach)
 export interface ElementPosition {
@@ -105,31 +132,7 @@ async function parseWithAST(code: string, diagramType: string): Promise<DiagramA
     // Extract AST using collab's approach
     const db = res.diagram.db as { getAST?: () => DiagramAST };
     if (typeof db.getAST === 'function') {
-      const ast = db.getAST();
-      console.log('[AST-Diff] Extracted AST with', ast?.elementMappings?.length || 0, 'elements');
-      
-      // Debug: Log element mappings with ALL data to find sequence messages
-      if (ast?.elementMappings) {
-        console.log('[AST-Diff] Element mappings:');
-        ast.elementMappings.slice(0, 10).forEach((mapping, i) => {
-          console.log(`  [${i}] ${mapping.type} '${mapping.id}' -> svgId: '${mapping.svgId || 'N/A'}' data:`, mapping.data);
-        });
-        
-        // Debug: Log all unique element types
-        const elementTypes = [...new Set(ast.elementMappings.map(m => m.type))];
-        console.log('[AST-Diff] All element types found:', elementTypes);
-        
-        // Debug: Check if messages are stored elsewhere in AST
-        console.log('[AST-Diff] Full AST structure keys:', Object.keys(ast));
-        if ((ast as any).messages) {
-          console.log('[AST-Diff] Found messages property:', (ast as any).messages);
-        }
-        if ((ast as any).interactions) {
-          console.log('[AST-Diff] Found interactions property:', (ast as any).interactions);
-        }
-      }
-      
-      return ast;
+      return db.getAST();
     }
     
     return undefined;
@@ -139,10 +142,33 @@ async function parseWithAST(code: string, diagramType: string): Promise<DiagramA
   }
 }
 
+export type DiagramHighlightCapabilityMode = "ast" | "none";
+
+export interface DiagramHighlightCapability {
+  mode: DiagramHighlightCapabilityMode;
+  diagramType: "flowchart" | "sequence" | "unknown";
+}
+
+/**
+ * Whether AST element mappings exist for this diagram (flowchart / sequence only).
+ * Used as a host-side hint; the webview still verifies IDs against rendered SVG nodes.
+ */
+export async function resolveDiagramHighlightCapability(
+  code: string,
+): Promise<DiagramHighlightCapability> {
+  const diagramType = detectDiagramType(code);
+  if (diagramType === "unknown") {
+    return { mode: "none", diagramType };
+  }
+  const ast = await parseWithAST(code, diagramType);
+  const hasMappings = (ast?.elementMappings?.length ?? 0) > 0;
+  return { mode: hasMappings ? "ast" : "none", diagramType };
+}
+
 /**
  * Detect diagram type from code
  */
-function detectDiagramType(code: string): 'flowchart' | 'sequence' | 'unknown' {
+export function detectDiagramType(code: string): "flowchart" | "sequence" | "unknown" {
   const trimmed = code.trim();
   if (trimmed.includes('sequenceDiagram')) {
     return 'sequence';
@@ -317,21 +343,13 @@ function calculateASTBasedDiff(oldAST: DiagramAST, newAST: DiagramAST, diagramTy
     const bestVertex = getBestVertex(newElements, logicalId);
     if (bestVertex) {
       newNodesMap.set(logicalId, bestVertex);
-      console.log('[AST-Diff] New node (best):', bestVertex.id, `-> logical ID: '${logicalId}'`, 'type:', bestVertex.type, 'data:', bestVertex.data);
-      
+
       if (!oldNodesMap.has(logicalId)) {
-        // New node
         diff.addedNodes.push(bestVertex.id);
-        console.log('[AST-Diff] Added node:', bestVertex.id, `(logical: ${logicalId})`);
       } else {
-        // Check if node was modified
         const oldNode = oldNodesMap.get(logicalId)!;
         if (isNodeModified(oldNode, bestVertex)) {
           diff.modifiedNodes.push(bestVertex.id);
-          console.log('[AST-Diff] Modified node:', bestVertex.id, `(logical: ${logicalId})`, {
-            oldData: oldNode.data,
-            newData: bestVertex.data
-          });
         }
       }
     }
@@ -342,21 +360,13 @@ function calculateASTBasedDiff(oldAST: DiagramAST, newAST: DiagramAST, diagramTy
     if (isEdgeElement(element)) {
       const logicalId = getLogicalId(element, diagramType);
       newEdgesMap.set(logicalId, element);
-      console.log('[AST-Diff] New edge:', element.id, `-> logical ID: '${logicalId}'`, 'type:', element.type, 'data:', element.data);
-      
+
       if (!oldEdgesMap.has(logicalId)) {
-        // New edge
         diff.addedEdges.push(element.id);
-        console.log('[AST-Diff] Added edge:', element.id, `(logical: ${logicalId})`);
       } else {
-        // Check if edge was modified
         const oldEdge = oldEdgesMap.get(logicalId)!;
         if (isEdgeModified(oldEdge, element)) {
           diff.modifiedEdges.push(element.id);
-          console.log('[AST-Diff] Modified edge:', element.id, `(logical: ${logicalId})`, {
-            oldData: oldEdge.data,
-            newData: element.data
-          });
         }
       }
     }
@@ -376,7 +386,6 @@ function calculateASTBasedDiff(oldAST: DiagramAST, newAST: DiagramAST, diagramTy
     }
   });
   
-  console.log('[AST-Diff] AST diff result:', diff);
   return diff;
 }
 
@@ -399,8 +408,6 @@ export async function createHighlightInstructions(
     throw new Error('AST data missing from diff calculation. Ensure calculateDiagramDiff was called first.');
   }
   
-  console.log(`[AST-Diff] Creating highlight instructions for ${diagramType} diagram`);
-
   // Helper to find element mapping by ID
   const findElementMapping = (ast: DiagramAST | undefined, elementId: string) => {
     const mapping = ast?.elementMappings?.find(mapping => mapping.id === elementId);
@@ -478,12 +485,150 @@ export async function createHighlightInstructions(
   diff.modifiedEdges.forEach(edgeId => newDiagramInstructions.push(createEdgeInstruction(edgeId, newAST, 'modified')));
   diff.removedEdges.forEach(edgeId => oldDiagramInstructions.push(createEdgeInstruction(edgeId, oldAST, 'removed')));
 
-  console.log('[AST-Diff] Generated instructions:', {
-    newDiagram: newDiagramInstructions.length,
-    oldDiagram: oldDiagramInstructions.length
-  });
-  
   return { newDiagramInstructions, oldDiagramInstructions };
+}
+
+function findAstMapping(ast: DiagramAST | undefined, elementId: string): ElementMapping | undefined {
+  return ast?.elementMappings?.find((mapping) => mapping.id === elementId);
+}
+
+function elementDisplayLabel(mapping: ElementMapping | undefined, fallbackId: string): string {
+  const data = mapping?.data;
+  if (!data || typeof data !== 'object') {
+    return fallbackId;
+  }
+  const text = data.text ?? data.label ?? data.message ?? data.labelText;
+  if (text != null && String(text).trim()) {
+    return String(text).trim();
+  }
+  if (data.from != null && data.to != null) {
+    return `${data.from} → ${data.to}`;
+  }
+  if (data.id != null) {
+    return String(data.id);
+  }
+  return fallbackId;
+}
+
+function focusNodeIdFromMapping(mapping: ElementMapping | undefined, parserId: string): string {
+  if (mapping?.data?.id != null) {
+    return String(mapping.data.id);
+  }
+  return parserId;
+}
+
+export function buildReviewChangeList(
+  diff: DiagramDiff,
+  oldAST?: DiagramAST,
+  newAST?: DiagramAST,
+): DiagramChangeItem[] {
+  const items: DiagramChangeItem[] = [];
+
+  for (const parserId of diff.addedNodes) {
+    const mapping = findAstMapping(newAST, parserId);
+    const nodeId = focusNodeIdFromMapping(mapping, parserId);
+    items.push({ kind: 'added', nodeId, label: elementDisplayLabel(mapping, nodeId) });
+  }
+  for (const parserId of diff.modifiedNodes) {
+    const oldMapping = findAstMapping(oldAST, parserId);
+    const newMapping = findAstMapping(newAST, parserId);
+    const nodeId = focusNodeIdFromMapping(newMapping ?? oldMapping, parserId);
+    const oldLabel = elementDisplayLabel(oldMapping, nodeId);
+    const newLabel = elementDisplayLabel(newMapping, nodeId);
+    items.push({
+      kind: 'modified',
+      nodeId,
+      label: oldLabel !== newLabel ? `${oldLabel} → ${newLabel}` : newLabel,
+    });
+  }
+  for (const parserId of diff.removedNodes) {
+    const mapping = findAstMapping(oldAST, parserId);
+    const nodeId = focusNodeIdFromMapping(mapping, parserId);
+    items.push({ kind: 'removed', nodeId, label: elementDisplayLabel(mapping, nodeId) });
+  }
+  for (const parserId of diff.addedEdges) {
+    const mapping = findAstMapping(newAST, parserId);
+    const nodeId = focusNodeIdFromMapping(mapping, parserId);
+    items.push({ kind: 'added', nodeId, label: elementDisplayLabel(mapping, nodeId) });
+  }
+  for (const parserId of diff.modifiedEdges) {
+    const oldMapping = findAstMapping(oldAST, parserId);
+    const newMapping = findAstMapping(newAST, parserId);
+    const nodeId = focusNodeIdFromMapping(newMapping ?? oldMapping, parserId);
+    const oldLabel = elementDisplayLabel(oldMapping, nodeId);
+    const newLabel = elementDisplayLabel(newMapping, nodeId);
+    items.push({
+      kind: 'modified',
+      nodeId,
+      label: oldLabel !== newLabel ? `${oldLabel} → ${newLabel}` : newLabel,
+    });
+  }
+  for (const parserId of diff.removedEdges) {
+    const mapping = findAstMapping(oldAST, parserId);
+    const nodeId = focusNodeIdFromMapping(mapping, parserId);
+    items.push({ kind: 'removed', nodeId, label: elementDisplayLabel(mapping, nodeId) });
+  }
+
+  return items;
+}
+
+export function summarizeAstDiff(diff: DiagramDiff): DiagramDiffCounts {
+  const added = diff.addedNodes.length + diff.addedEdges.length;
+  const modified = diff.modifiedNodes.length + diff.modifiedEdges.length;
+  const removed = diff.removedNodes.length + diff.removedEdges.length;
+  return { added, modified, removed, total: added + modified + removed };
+}
+
+function filterIdsFromInstructions(
+  instructions: HighlightInstruction[],
+  changeType: DiagramChangeKind,
+): string[] {
+  return instructions
+    .filter((instruction) => instruction.changeType === changeType)
+    .map((instruction) => instruction.elementId ?? '')
+    .filter((id) => id.length > 0);
+}
+
+const EMPTY_REVIEW_SURFACE: ReviewSurfaceDiff = {
+  counts: { added: 0, modified: 0, removed: 0, total: 0 },
+  changes: [],
+  addedNodeIds: [],
+  modifiedNodeIds: [],
+  removedNodeIds: [],
+  newHighlightInstructions: [],
+  oldHighlightInstructions: [],
+  astAvailable: false,
+};
+
+/**
+ * AST-based diff for the app-review surface: counts, change list, and highlight instructions.
+ * Returns an empty result when the diagram type is unsupported or parsing fails.
+ */
+export async function computeReviewSurfaceDiff(
+  oldContent: string,
+  newContent: string,
+): Promise<ReviewSurfaceDiff> {
+  const { diagramText: oldDiagramText } = splitFrontMatter(oldContent);
+  const { diagramText: newDiagramText } = splitFrontMatter(newContent);
+
+  try {
+    const diagramDiff = await calculateDiagramDiff(oldDiagramText, newDiagramText);
+    const { newDiagramInstructions, oldDiagramInstructions } =
+      await createHighlightInstructions(diagramDiff);
+
+    return {
+      counts: summarizeAstDiff(diagramDiff),
+      changes: buildReviewChangeList(diagramDiff, diagramDiff.oldAST, diagramDiff.newAST),
+      addedNodeIds: filterIdsFromInstructions(newDiagramInstructions, 'added'),
+      modifiedNodeIds: filterIdsFromInstructions(newDiagramInstructions, 'modified'),
+      removedNodeIds: filterIdsFromInstructions(oldDiagramInstructions, 'removed'),
+      newHighlightInstructions: newDiagramInstructions,
+      oldHighlightInstructions: oldDiagramInstructions,
+      astAvailable: true,
+    };
+  } catch {
+    return EMPTY_REVIEW_SURFACE;
+  }
 }
 
 /**
@@ -506,11 +651,6 @@ function isNodeModified(oldNode: ElementMapping, newNode: ElementMapping): boole
   const shapeFields = ['shape', 'type', 'nodeType'];
   for (const field of shapeFields) {
     if (oldData[field] !== newData[field]) {
-      console.log(`[AST-Diff] Node ${field} changed:`, {
-        nodeId: `${oldNode.id} (logical: ${oldData.id || oldNode.id})`,
-        old: oldData[field],
-        new: newData[field]
-      });
       return true;
     }
   }
@@ -532,22 +672,12 @@ function isEdgeModified(oldEdge: ElementMapping, newEdge: ElementMapping): boole
     const messageFields = ['message', 'text', 'label'];
     for (const field of messageFields) {
       if (oldData[field] !== newData[field]) {
-        console.log(`[AST-Diff] Sequence message ${field} changed:`, {
-          edgeId: oldEdge.id,
-          old: oldData[field],
-          new: newData[field]
-        });
         return true;
       }
     }
     
     // Check if participants changed (structural change)
     if (oldData.from !== newData.from || oldData.to !== newData.to) {
-      console.log('[AST-Diff] Sequence message participants changed:', {
-        edgeId: oldEdge.id,
-        old: `${oldData.from}->${oldData.to}`,
-        new: `${newData.from}->${newData.to}`
-      });
       return true;
     }
     
@@ -558,11 +688,6 @@ function isEdgeModified(oldEdge: ElementMapping, newEdge: ElementMapping): boole
   const edgeFields = ['text', 'label', 'labelText', 'start', 'end', 'stroke', 'type'];
   for (const field of edgeFields) {
     if (oldData[field] !== newData[field]) {
-      console.log(`[AST-Diff] Edge ${field} changed:`, {
-        edgeId: oldEdge.id,
-        old: oldData[field],
-        new: newData[field]
-      });
       return true;
     }
   }

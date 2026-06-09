@@ -23,24 +23,26 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
     _token: vscode.CancellationToken
   ): Promise<vscode.CodeLens[]> {
     const codeLenses: vscode.CodeLens[] = [];
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) return codeLenses;
-  
+
     const session = await vscode.authentication.getSession(
       MermaidChartAuthenticationProvider.id,
       [],
       { silent: true }
     );
 
-    if (editor?.document?.languageId.startsWith('mermaid')){
+    if (document.languageId.startsWith("mermaid")) {
       this.provideCodeLensesForMermaid(document, codeLenses, session);
     } else if (this.isCodingFile(document) && this.showGenerateDiagramCodeLens()) {
       this.addCodingFileCodeLenses(codeLenses, document);
     } else {
       for (const token of this.mermaidChartTokens) {
-        const documentText = editor.document.getText(token.range);
+        const tokenUri = token.uri?.toString() ?? "";
+        if (tokenUri && tokenUri !== document.uri.toString()) {
+          continue;
+        }
+        const documentText = document.getText(token.range);
         const diagramId = extractIdFromCode(documentText);
-        const isAux = isAuxFile(editor.document.fileName);
+        const isAux = isAuxFile(document.fileName);
         if (isAux) {
           this.addAuxFileCodeLenses(codeLenses, token, session, diagramId);
         } else {
@@ -163,6 +165,36 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
   }
 
   private provideCodeLensesForMermaid(document: vscode.TextDocument, codeLenses: vscode.CodeLens[], session: vscode.AuthenticationSession | undefined) {
+    const firstLine = new vscode.Range(0, 0, 0, 0);
+
+    const mermaidTopBottomLenses = [
+      new vscode.CodeLens(firstLine, {
+        title: "$(lightbulb) Improve this diagram",
+        command: "mermaidChart.improveDiagram",
+        arguments: [document.uri],
+        tooltip: "Open Improve diagram in the sidebar",
+      }),
+      new vscode.CodeLens(firstLine, {
+        title: "$(wrench) Repair diagram",
+        command: "mermaidChart.repairDiagram",
+        arguments: [],
+        tooltip: "Repair syntax with Mermaid Chart AI",
+      }),
+      new vscode.CodeLens(firstLine, {
+        title: "$(cloud-upload) Save to Mermaid Chart",
+        command: "mermaidChart.connectDiagramToMermaidChart",
+        arguments: [],
+        tooltip: "Connect or save this diagram to your Mermaid Chart account",
+      }),
+      new vscode.CodeLens(firstLine, {
+        title: "$(preview) Preview diagram",
+        command: "mermaidChart.preview",
+        arguments: [],
+        tooltip: "Open or focus the Mermaid preview",
+      }),
+    ];
+    codeLenses.push(...mermaidTopBottomLenses);
+
     const text = document.getText();
     const metadata = extractMetadataFromCode(text);
     if (metadata?.references) {

@@ -1,8 +1,16 @@
+import * as vscode from "vscode";
 import {
   sendLanguageModelUserPrompt,
   isLanguageModelAvailable,
-  getLanguageModelProviderName,
+  getLanguageModelDisplayName,
+  throwIfLanguageModelCancelled,
+  type LanguageModelRequestOptions,
 } from "./vscodeLanguageModel";
+
+export interface GenerateImprovementOptions extends LanguageModelRequestOptions {
+  modelId?: string;
+  cancellationToken?: vscode.CancellationToken;
+}
 
 export type ImprovementKind = "layout" | "styling";
 
@@ -536,11 +544,13 @@ ${currentCode}
 
 async function generateOne(
   currentCode: string,
-  spec: (typeof CARD_SPECS)[number]
+  spec: (typeof CARD_SPECS)[number],
+  options?: GenerateImprovementOptions
 ): Promise<DiagramImprovementCard | undefined> {
   const raw = await sendLanguageModelUserPrompt(
     buildSinglePrompt(currentCode, spec),
-    `Generate a ${spec.fallbackTitle} Mermaid diagram improvement for the VS Code sidebar.`
+    `Generate a ${spec.fallbackTitle} Mermaid diagram improvement for the VS Code sidebar.`,
+    options
   );
   if (!raw?.trim()) {
     return undefined;
@@ -563,7 +573,8 @@ async function generateOne(
  * Two improvement cards (layout optimization, styling) via the VS Code language model (Copilot / Cursor).
  */
 export async function generateDiagramImprovements(
-  currentCode: string
+  currentCode: string,
+  options?: GenerateImprovementOptions
 ): Promise<{ cards: DiagramImprovementCard[]; providerName?: string }> {
   if (!currentCode.trim()) {
     return { cards: [] };
@@ -574,19 +585,33 @@ export async function generateDiagramImprovements(
     return { cards: [] };
   }
 
-  const providerName = await getLanguageModelProviderName();
+  throwIfLanguageModelCancelled(options?.cancellationToken);
+
+  const providerName = await getLanguageModelDisplayName(options?.modelId);
 
   const batchRaw = await sendLanguageModelUserPrompt(
     buildBatchPrompt(currentCode),
-    "Generate two Mermaid diagram improvement variants (layout and styling) for the VS Code sidebar."
+    "Generate two Mermaid diagram improvement variants (layout and styling) for the VS Code sidebar.",
+    options
   );
+
+  throwIfLanguageModelCancelled(options?.cancellationToken);
 
   const fromBatch = batchRaw ? parseBatchJson(batchRaw) : undefined;
   if (fromBatch && fromBatch.length > 0) {
     return { cards: fromBatch.slice(0, MAX_IMPROVEMENT_CARDS), providerName };
   }
 
-  const results = await Promise.all(CARD_SPECS.map((spec) => generateOne(currentCode, spec)));
-  const cards = results.filter((c): c is DiagramImprovementCard => !!c).slice(0, MAX_IMPROVEMENT_CARDS);
+  const cards: DiagramImprovementCard[] = [];
+  for (const spec of CARD_SPECS) {
+    throwIfLanguageModelCancelled(options?.cancellationToken);
+    const card = await generateOne(currentCode, spec, options);
+    if (card) {
+      cards.push(card);
+    }
+    if (cards.length >= MAX_IMPROVEMENT_CARDS) {
+      break;
+    }
+  }
   return { cards, providerName };
 }

@@ -10,7 +10,14 @@ import {
   getCachedImprovements,
   setCachedImprovements,
 } from "../services/diagramImprovementCache";
+import {
+  isLanguageModelCancellation,
+  listAvailableChatModels,
+  type LanguageModelInfo,
+} from "../services/vscodeLanguageModel";
 import { canOpenMermaidPreview, getActiveOrOpenMermaidDocument } from "../util";
+
+const SELECTED_MODEL_STATE_KEY = "diagramImprovement.selectedModelId";
 
 export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = "mermaidImproveDiagram";
@@ -24,12 +31,17 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
   private loadError = "";
   private providerLabel = "";
   private hasDiagramFile = false;
+  private availableModels: LanguageModelInfo[] = [];
+  private selectedModelId = "";
+  private activeCancelSource?: vscode.CancellationTokenSource;
+  private activeGenerationKey?: string;
   /** URIs with an in-flight LLM request (sidebar may show another file meanwhile). */
   private readonly generatingUris = new Set<string>();
 
   constructor(
     private readonly extensionUri: vscode.Uri,
-    private readonly diffProvider: DiagramImprovementDiffProvider
+    private readonly diffProvider: DiagramImprovementDiffProvider,
+    private readonly extensionContext: vscode.ExtensionContext
   ) {}
 
   resolveWebviewView(
@@ -42,23 +54,62 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [this.extensionUri],
     };
-    this.syncToActiveDiagram();
-    this.render();
+
+    void this.refreshModels().then(() => {
+      this.syncToActiveDiagram();
+      this.render();
+    });
 
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === "refresh" || msg.type === "generate") {
         await this.runGeneration(true);
       } else if (msg.type === "openCard" && typeof msg.id === "string") {
         await this.openCardDiff(msg.id);
+      } else if (msg.type === "setModel" && typeof msg.modelId === "string") {
+        this.selectedModelId = msg.modelId;
+        void this.extensionContext.globalState.update(SELECTED_MODEL_STATE_KEY, msg.modelId);
+      } else if (msg.type === "cancel") {
+        this.cancelActiveGeneration();
       }
     });
 
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        this.syncToActiveDiagram();
-        this.render();
+        void this.refreshModels().then(() => {
+          this.syncToActiveDiagram();
+          this.render();
+        });
       }
     });
+  }
+
+  private async refreshModels(): Promise<void> {
+    this.availableModels = await listAvailableChatModels();
+    const saved = this.extensionContext.globalState.get<string>(SELECTED_MODEL_STATE_KEY);
+    if (saved && this.availableModels.some((m) => m.id === saved)) {
+      this.selectedModelId = saved;
+    } else if (this.availableModels.length > 0) {
+      this.selectedModelId = this.availableModels[0].id;
+    } else {
+      this.selectedModelId = "";
+    }
+  }
+
+  private cancelActiveGeneration(): void {
+    if (!this.activeCancelSource && !this.isLoading) {
+      return;
+    }
+
+    this.activeCancelSource?.cancel();
+
+    if (this.activeGenerationKey) {
+      this.generatingUris.delete(this.activeGenerationKey);
+    }
+
+    this.isLoading = false;
+    this.cards = [];
+    this.loadError = "Generation cancelled.";
+    this.render();
   }
 
   /** Switch sidebar to another open diagram (or idle) without regenerating. */
@@ -122,6 +173,7 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
       return;
     }
 
+    await this.refreshModels();
     this.loadDocumentState(doc, false);
 
     await vscode.commands.executeCommand(`${DiagramImprovementPanel.viewType}.focus`);
@@ -183,6 +235,16 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
       return;
     }
 
+    if (this.availableModels.length === 0) {
+      await this.refreshModels();
+    }
+    if (!this.selectedModelId || this.availableModels.length === 0) {
+      this.loadError =
+        "No AI model available. Install GitHub Copilot Chat or enable Cursor AI, then try Generate.";
+      this.render();
+      return;
+    }
+
     const generationUri = this.targetUri;
     const generationKey = generationUri.toString();
 
@@ -203,7 +265,12 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
     }
 
     const content = this.baseContent;
-    const fileName = this.diagramFileName;
+    const modelId = this.selectedModelId;
+
+    this.activeCancelSource?.dispose();
+    this.activeCancelSource = new vscode.CancellationTokenSource();
+    const cancellationToken = this.activeCancelSource.token;
+    this.activeGenerationKey = generationKey;
 
     this.generatingUris.add(generationKey);
     this.isLoading = true;
@@ -212,13 +279,14 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
     this.render();
 
     try {
-      const { cards, providerName } = await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Window,
-          title: `Generating improvements for ${fileName}…`,
-        },
-        () => generateDiagramImprovements(content)
-      );
+      const { cards, providerName } = await generateDiagramImprovements(content, {
+        modelId,
+        cancellationToken,
+      });
+
+      if (cancellationToken.isCancellationRequested) {
+        return;
+      }
 
       const providerLabel = providerName ?? "";
       if (cards.length > 0) {
@@ -237,8 +305,29 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
           ? ""
           : "No AI model available. Install GitHub Copilot Chat or enable Cursor AI, then try Generate.";
       this.render();
+    } catch (err) {
+      if (cancellationToken.isCancellationRequested || isLanguageModelCancellation(err)) {
+        return;
+      }
+      if (this.targetUri?.toString() !== generationKey) {
+        return;
+      }
+      this.isLoading = false;
+      this.cards = [];
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Could not generate diagram improvements. Please try again.";
+      this.loadError = message;
+      this.render();
+      void vscode.window.showErrorMessage(message);
     } finally {
       this.generatingUris.delete(generationKey);
+      if (this.activeGenerationKey === generationKey) {
+        this.activeGenerationKey = undefined;
+      }
+      this.activeCancelSource?.dispose();
+      this.activeCancelSource = undefined;
     }
   }
 
@@ -266,6 +355,27 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
       return;
     }
     this.view.webview.html = this.buildHtml();
+  }
+
+  private buildModelSelectHtml(): string {
+    if (this.availableModels.length === 0) {
+      return `<select class="model-select" id="modelSelect" disabled aria-label="Language model">
+        <option>No model available</option>
+      </select>`;
+    }
+
+    const options = this.availableModels
+      .map(
+        (m) =>
+          `<option value="${escapeHtmlAttr(m.id)}"${
+            m.id === this.selectedModelId ? " selected" : ""
+          }>${escapeHtmlAttr(m.name)}</option>`
+      )
+      .join("");
+
+    return `<select class="model-select" id="modelSelect" aria-label="Language model"${
+      this.isLoading ? " disabled" : ""
+    }>${options}</select>`;
   }
 
   private buildHtml(): string {
@@ -298,6 +408,8 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
     const metaText = this.providerLabel
       ? `${this.diagramFileName} · via ${this.providerLabel}`
       : this.diagramFileName;
+    const noModels = this.availableModels.length === 0;
+    const modelSelectHtml = this.buildModelSelectHtml();
 
     const cardsHtml =
       this.cards.length === 0 && !this.isLoading
@@ -305,7 +417,9 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
             this.loadError ||
               "Generate 2 optimized diagram variants: layout grouping and full styling."
           )}</p>
-          <button type="button" class="primary-btn" id="btnGenerate">Generate improvements</button>`
+          <button type="button" class="primary-btn" id="btnGenerate"${
+            noModels ? " disabled" : ""
+          }>Generate improvements</button>`
         : this.cards
             .map(
               (card, index) => `
@@ -338,10 +452,24 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       gap: 8px;
     }
     .meta { font-size: 11px; opacity: 0.45; line-height: 1.4; flex: 1; min-width: 0; word-break: break-word; }
+    .model-row { margin-bottom: 10px; }
+    .model-select {
+      width: 100%;
+      padding: 4px 8px;
+      font: inherit;
+      font-size: 12px;
+      color: var(--vscode-foreground);
+      background: var(--vscode-dropdown-background, var(--vscode-input-background));
+      border: 1px solid var(--vscode-dropdown-border, var(--vscode-input-border, rgba(128,128,128,0.35)));
+      border-radius: 4px;
+      outline: none;
+    }
+    .model-select:disabled { opacity: 0.55; }
+    .model-select:focus { border-color: var(--vscode-focusBorder, #007fd4); }
     .text-btn {
       background: none;
       border: none;
@@ -365,17 +493,28 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
       font-size: 12px;
       cursor: pointer;
     }
-    .primary-btn:hover { background: var(--vscode-button-hoverBackground); }
+    .primary-btn:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
+    .primary-btn:disabled { opacity: 0.45; cursor: default; }
+    .loading-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 12px 0;
+    }
     .loading {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 12px 0;
       opacity: 0.55;
+      min-width: 0;
+      flex: 1;
     }
+    .loading span { font-size: 11px; }
     .spinner {
       width: 14px;
       height: 14px;
+      flex-shrink: 0;
       border: 2px solid rgba(128,128,128,0.2);
       border-top-color: var(--vscode-progressBar-background, #3794ff);
       border-radius: 50%;
@@ -431,9 +570,13 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
     <span class="meta">${escapeHtmlAttr(metaText)}</span>
     <button type="button" class="text-btn" id="btnRefresh" ${this.isLoading ? "disabled" : ""}>Refresh</button>
   </div>
+  <div class="model-row">${modelSelectHtml}</div>
   ${
     this.isLoading
-      ? `<div class="loading"><div class="spinner"></div><span>Generating 2 improvements…</span></div>`
+      ? `<div class="loading-row">
+          <div class="loading"><div class="spinner"></div><span>Generating 2 improvements…</span></div>
+          <button type="button" class="text-btn" id="btnCancel">Cancel</button>
+        </div>`
       : `<div class="cards">${cardsHtml}</div>`
   }
 
@@ -445,6 +588,13 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
     });
     document.getElementById('btnGenerate')?.addEventListener('click', () => {
       vscode.postMessage({ type: 'generate' });
+    });
+    document.getElementById('btnCancel')?.addEventListener('click', () => {
+      vscode.postMessage({ type: 'cancel' });
+    });
+    document.getElementById('modelSelect')?.addEventListener('change', (e) => {
+      const modelId = e.target.value;
+      if (modelId) vscode.postMessage({ type: 'setModel', modelId });
     });
     document.querySelectorAll('.improve-card').forEach((el) => {
       el.addEventListener('click', () => {

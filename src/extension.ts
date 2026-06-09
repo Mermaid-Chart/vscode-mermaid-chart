@@ -132,7 +132,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const diagramImprovementDiffProvider = new DiagramImprovementDiffProvider();
   const diagramImprovementPanel = new DiagramImprovementPanel(
     context.extensionUri,
-    diagramImprovementDiffProvider
+    diagramImprovementDiffProvider,
+    context
   );
   context.subscriptions.push(
     diagramImprovementDiffProvider,

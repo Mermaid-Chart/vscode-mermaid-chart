@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import mermaid, { type MermaidConfig } from "@mermaid-chart/mermaid";
 import { RepairDiagram } from "../panels/repairDiagram";
-import { canOpenMermaidPreview, getActiveOrOpenMermaidDocument } from "../util";
+import { canOpenMermaidPreview, ensureAuthenticated, getActiveOrOpenMermaidDocument } from "../util";
 
 /** CodeLens repair the active .mmd using Mermaid AI (requires sign-in). */
 export async function repairActiveDiagram(): Promise<void> {
@@ -35,6 +35,9 @@ export async function repairActiveDiagram(): Promise<void> {
     );
     return;
   } catch (err) {
+    if (!(await ensureAuthenticated())) {
+      return;
+    }
     const errorText = err instanceof Error ? err.message : String(err);
     await RepairDiagram.repairDiagram(code, errorText, doc);
   }

@@ -1,6 +1,9 @@
 import type MarkdownIt from 'markdown-it';
 
 const mermaidLanguageId = 'mermaid';
+/** HTML class for our preview renderer — VS Code built-in only targets `.mermaid`. */
+export const mermaidChartContainerClass = 'mermaid-chart';
+export const mermaidChartContainerSelector = `.${mermaidChartContainerClass}`;
 const containerTokenName = 'mermaidContainer';
 
 const min_markers = 3;
@@ -132,7 +135,7 @@ export function extendMarkdownItWithMermaid(md: MarkdownIt, config: { languageId
         md.renderer.rules[containerTokenName] = (tokens: MarkdownIt.Token[], idx: number) => {
             const token = tokens[idx];
             const src = token.content;
-            return `<div class="${mermaidLanguageId}">${preProcess(src)}</div>`;
+            return `<div class="${mermaidChartContainerClass}">${preProcess(src)}</div>`;
         };
     });
 
@@ -140,7 +143,7 @@ export function extendMarkdownItWithMermaid(md: MarkdownIt, config: { languageId
     md.options.highlight = (code: string, lang: string, attrs: string) => {
         const reg = new RegExp('\\b(' + config.languageIds().map(escapeRegExp).join('|') + ')\\b', 'i');
         if (lang && reg.test(lang)) {
-            return `<pre style="all:unset;"><div class="${mermaidLanguageId}">${preProcess(code)}</div></pre>`;
+            return `<pre style="all:unset;"><div class="${mermaidChartContainerClass}">${preProcess(code)}</div></pre>`;
         }
         return highlight?.(code, lang, attrs) ?? code;
     };
@@ -158,4 +161,18 @@ function preProcess(source: string): string {
 
 function escapeRegExp(string: string): string {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Renames built-in `.mermaid` divs to `.mermaid-chart` so only our preview script renders them. */
+export function prepareMermaidChartHtml(html: string): string {
+    return html.replace(
+        /<div\b([^>]*\bclass=")([^"]*)"([^>]*)>/gi,
+        (full, before: string, classes: string, after: string) => {
+            if (!/\bmermaid\b/.test(classes) || classes.includes(mermaidChartContainerClass)) {
+                return full;
+            }
+            const newClasses = classes.replace(/\bmermaid\b/, mermaidChartContainerClass);
+            return `<div${before}${newClasses}"${after}>`;
+        }
+    );
 }

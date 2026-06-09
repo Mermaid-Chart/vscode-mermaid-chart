@@ -1,5 +1,8 @@
 # Change Log
 
+### 2.6.9 - 2026-06-9 
+- Fixed an bug where Mermaid diagrams were not rendering correctly in Markdown files
+
 ### 2.6.7 - 2026-05-29
 - Added **Generate Mermaid Diagram from Code** — This command appears at the bottom of supported code files, or you can directly use `@mermaid-chart /generate_diagram_from_code` to select files, choose a diagram type, and generate Mermaid diagrams using AI.
 - Added **Review Mermaid Sync** — Provides highlight, diff preview, accept, reject, and commit actions for .mmd/.mermaid files updated by the [Mermaid Diagram Sync GitHub App](https://github.com/marketplace/mermaid-diagram-sync); Also includes automatic detection after `git pull` and support for MermaidChart: Connect GitHub for Mermaid Diagram Sync for PR-aware reviews.

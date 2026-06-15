@@ -4,6 +4,9 @@ import * as packageJson from '../package.json';
 class Analytics {
 
   public sendEvent(eventName: string, eventID:string, errorMessage?: string, diagramType?:string) {
+    if (!vscode.env.isTelemetryEnabled) {
+      return;
+    }
     const analyticsID = vscode.env.machineId;
     const pluginID= packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
     const payload = {

@@ -25,6 +25,10 @@ export function setCachedImprovements(
   cacheByUri.set(cacheKey(uri), { cards, providerLabel });
 }
 
+export function clearCachedImprovements(uri: vscode.Uri): void {
+  cacheByUri.delete(cacheKey(uri));
+}
+
 export function clearDiagramImprovementCache(): void {
   cacheByUri.clear();
 }

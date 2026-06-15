@@ -9,6 +9,7 @@ import {
 import {
   getCachedImprovements,
   setCachedImprovements,
+  clearCachedImprovements,
 } from "../services/diagramImprovementCache";
 import {
   isLanguageModelCancellation,
@@ -111,6 +112,11 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
     this.isLoading = false;
     this.cards = [];
     this.loadError = "Generation cancelled.";
+    if (this.targetUri) {
+      clearCachedImprovements(this.targetUri);
+    } else if (this.activeGenerationKey) {
+      clearCachedImprovements(vscode.Uri.parse(this.activeGenerationKey));
+    }
     this.render();
   }
 
@@ -179,13 +185,6 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
     this.loadDocumentState(doc, false);
 
     await vscode.commands.executeCommand(`${DiagramImprovementPanel.viewType}.focus`);
-
-    const cached = getCachedImprovements(doc.uri);
-    if (cached && cached.cards.length > 0) {
-      this.applyCacheEntry(cached);
-      this.render();
-      return;
-    }
 
     await this.runGeneration(true);
   }

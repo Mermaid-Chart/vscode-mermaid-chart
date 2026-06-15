@@ -82,6 +82,13 @@ class Analytics {
       "VS_CODE_PLUGIN_GENERATE_DIAGRAM_FROM_CODE",
     );
   }
+
+  public trackImproveDiagramInvoked() {
+    this.sendEvent(
+      "VS Code Improve Diagram Invoked",
+      "VS_CODE_PLUGIN_IMPROVE_DIAGRAM",
+    );
+  }
 }
 
 

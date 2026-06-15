@@ -16,6 +16,7 @@ import {
   type LanguageModelInfo,
 } from "../services/vscodeLanguageModel";
 import { canOpenMermaidPreview, getActiveOrOpenMermaidDocument } from "../util";
+import analytics from "../analytics";
 
 const SELECTED_MODEL_STATE_KEY = "diagramImprovement.selectedModelId";
 
@@ -62,6 +63,7 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === "refresh" || msg.type === "generate") {
+        analytics.trackImproveDiagramInvoked();
         await this.runGeneration(true);
       } else if (msg.type === "openCard" && typeof msg.id === "string") {
         await this.openCardDiff(msg.id);

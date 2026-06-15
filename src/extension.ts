@@ -151,6 +151,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("mermaidChart.improveDiagram", async (uri?: vscode.Uri) => {
+      analytics.trackImproveDiagramInvoked();
       await diagramImprovementPanel.openImproveDiagram(uri);
     }),
     vscode.commands.registerCommand("mermaidChart.repairDiagram", repairActiveDiagram)

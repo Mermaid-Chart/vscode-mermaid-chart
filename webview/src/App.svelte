@@ -29,7 +29,8 @@
   let isExportModalOpen = false;
   let isRepairing = false;
   let aiCredits = null; // AI credits data: {remaining: number, total: number}
-  let isAuthenticated = false; // Authentication status
+  let isAuthenticated = false;
+  let authResolved = false;
   let highlightInstructions: HighlightInstruction[] = [];
   
   let vscodeThemeName = 'Default Light+';
@@ -624,13 +625,12 @@
       // Update authentication status if provided
       if (receivedAuth !== undefined) {
         isAuthenticated = receivedAuth;
-        console.log('Authentication status updated:', isAuthenticated);
+        authResolved = true;
       }
       
-      // Update AI credits if provided
-      if (receivedAICredits) {
-        console.log('Received AI credits:', receivedAICredits);
+      if (receivedAICredits !== undefined) {
         aiCredits = receivedAICredits;
+        authResolved = true;
       }
       
       if (validateOnly && content) {
@@ -663,15 +663,13 @@
         aiCredits = updatedCredits;
       }
     } else if (type === "aiCreditsUpdate") {
-      // Handle AI credits and authentication update
       const { aiCredits: receivedCredits, isAuthenticated: receivedAuthStatus } = event.data;
-      if (receivedCredits) {
-        console.log('AI credits update received:', receivedCredits);
+      if (receivedCredits !== undefined) {
         aiCredits = receivedCredits;
       }
       if (receivedAuthStatus !== undefined) {
         isAuthenticated = receivedAuthStatus;
-        console.log('Authentication status updated:', isAuthenticated);
+        authResolved = true;
       }
     } else if (type === "applyHighlights") {
       // Handle diagram diff highlighting
@@ -708,6 +706,7 @@
       const parsed = Number(decodeURIComponent(initialMaxEdges));
       if (!Number.isNaN(parsed) && parsed > 0) maxEdges = parsed;
     }
+
     if (initialContent) {
       diagramContent = decodeURIComponent(initialContent);
       theme = decodeURIComponent(currentTheme) as "default" | "base" | "dark" | "forest" | "neutral" | "null";
@@ -776,7 +775,7 @@
 
 
 <div id="app-container" style="background: {theme?.includes('dark') ? '#1e1e1e' : 'white'}">
-  <ErrorMessage {errorMessage} {isRepairing} {aiCredits} {isAuthenticated} on:repair={handleRepair} on:login={handleLogin} />
+  <ErrorMessage {errorMessage} {isRepairing} {aiCredits} {isAuthenticated} {authResolved} on:repair={handleRepair} on:login={handleLogin} />
   <div id="mermaid-diagram"></div>
   <div class="sidebar-container">
     {#if !errorMessage}

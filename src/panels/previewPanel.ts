@@ -25,9 +25,10 @@ export class PreviewPanel {
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private lastContent: string = "";
   
-  // Simple per-preview-panel caching
   private cachedAICredits: {remaining: number, total: number} | null = null;
-  private creditsFetched: boolean = false;
+  private creditsFetched = false;
+  private authKnown = false;
+  private isUserAuthenticated = false;
 
   // Use shared decoration manager
 
@@ -46,6 +47,24 @@ export class PreviewPanel {
   public static setMcAPI(mcAPI: MermaidChartVSCode) {
     PreviewPanel.mcAPI = mcAPI;
     RepairDiagram.setMcAPI(mcAPI);
+  }
+
+  public static getMcAPI(): MermaidChartVSCode | undefined {
+    return PreviewPanel.mcAPI;
+  }
+
+  /** Auth snapshot for diff previews — only when this panel has already resolved auth. */
+  public static peekAuthState():
+    | { aiCredits: { remaining: number; total: number } | null; isAuthenticated: boolean }
+    | undefined {
+    const panel = PreviewPanel.currentPanel;
+    if (!panel?.authKnown) {
+      return undefined;
+    }
+    return {
+      aiCredits: panel.cachedAICredits,
+      isAuthenticated: panel.isUserAuthenticated,
+    };
   }
 
   public static createOrShow(document: vscode.TextDocument) {
@@ -104,20 +123,23 @@ export class PreviewPanel {
       // Only fetch credits on initial panel creation
       this.fetchAndSendCredits();
     }
-    
-    this.panel.webview.postMessage({
+
+    const message: Record<string, unknown> = {
       type: "update",
       content:this.lastContent,
-      currentTheme: currentTheme,
-      vscodeThemeName: vscodeThemeName,
-      vscodeThemeColors: vscodeThemeColors,
+      currentTheme,
+      vscodeThemeName,
+      vscodeThemeColors,
       isFileChange: this.isFileChange,
-      maxZoom: maxZoom,
-      maxCharLength: maxCharLength,
+      maxZoom,
+      maxCharLength,
       maxEdge: maxEdges,
-      aiCredits: this.cachedAICredits,
-      isAuthenticated: await this.checkAuthenticationStatus()
-    });
+    };
+    if (this.authKnown) {
+      message.isAuthenticated = this.isUserAuthenticated;
+      message.aiCredits = this.cachedAICredits;
+    }
+    this.panel.webview.postMessage(message);
     this.isFileChange = false;
   }
 
@@ -132,34 +154,24 @@ export class PreviewPanel {
         const response = await PreviewPanel.mcAPI.getAICredits();
         this.cachedAICredits = response.aiCredits;
         this.creditsFetched = true;
+        this.isUserAuthenticated = true;
+        this.authKnown = true;
         return this.cachedAICredits;
       }
     } catch (error) {
       console.log("Failed to fetch AI credits:", error);
     }
+    this.authKnown = true;
+    this.isUserAuthenticated = false;
     return null;
-  }
-
-  private async checkAuthenticationStatus(): Promise<boolean> {
-    try {
-      if (PreviewPanel.mcAPI) {
-        // Try to get AI credits to check if user is authenticated
-        await PreviewPanel.mcAPI.getAICredits();
-        return true;
-      }
-    } catch (error) {
-      console.log("User not authenticated:", error);
-    }
-    return false;
   }
 
   private async fetchAndSendCredits() {
     const aiCredits = await this.fetchAICredits();
-    const isAuthenticated = await this.checkAuthenticationStatus();
     this.panel.webview.postMessage({
       type: "aiCreditsUpdate",
-      aiCredits: aiCredits,
-      isAuthenticated: isAuthenticated
+      aiCredits,
+      isAuthenticated: this.isUserAuthenticated,
     });
   }
 

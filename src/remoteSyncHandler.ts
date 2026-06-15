@@ -212,7 +212,10 @@ export class RemoteSyncHandler {
             this.disposeDiffPanels?.();
             this.diffPanelCloseWatcher?.dispose();
 
-            this.disposeDiffPanels = openDiagramDiffWebviews(localContent, remoteContent);
+            this.disposeDiffPanels = openDiagramDiffWebviews(localContent, remoteContent, {
+                currentRepairDocumentUri: document.uri,
+                incomingRepairDocumentUri: document.uri,
+            });
             this.openDiffPreviews.add(diagramId);
 
             const docUri = document.uri.toString();

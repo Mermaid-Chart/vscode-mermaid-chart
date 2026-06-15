@@ -145,7 +145,10 @@ export class AppDiffViewProvider {
 
     let disposeDiagramPanels: (() => void) | undefined;
     try {
-      disposeDiagramPanels = openDiagramDiffWebviews(mapping.originalContent, currentContent);
+      disposeDiagramPanels = openDiagramDiffWebviews(mapping.originalContent, currentContent, {
+        currentRepairDocumentUri: vscode.Uri.file(mapping.originalFilePath),
+        incomingRepairDocumentUri: incomingTempUri,
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       vscode.window.showWarningMessage(`Code diff opened, but diagram previews failed: ${msg}`);

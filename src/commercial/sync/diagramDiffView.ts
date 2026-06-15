@@ -1,128 +1,120 @@
 import * as vscode from "vscode";
 import { splitFrontMatter } from "../../frontmatter";
-import { getWebviewHTML } from "../../templates/previewTemplate";
-import * as packageJson from "../../../package.json";
+import { setupDiagramDiffPreview } from "../../diagramDiffPreview";
 import { calculateDiagramDiff, createHighlightInstructions, type HighlightInstruction } from "./diagramDiffHighlighter";
 
-/**
- * Open the diagram diff view: two separate webviews (Current and Updated), each with
- * full preview UI (zoom, pan, theme, export).
- *
- * Returns a dispose function — call it to close both preview panels programmatically
- * (e.g. when the associated diff editor or conflict document is closed).
- */
-export function openDiagramDiffWebviews(oldContent: string, newContent: string): () => void {
+export interface DiagramDiffWebviewOptions {
+  currentRepairDocumentUri?: vscode.Uri;
+  incomingRepairDocumentUri?: vscode.Uri;
+}
+
+function applyDiffHighlights(
+  panelCurrent: vscode.WebviewPanel | undefined,
+  panelUpdated: vscode.WebviewPanel | undefined,
+  newDiagramInstructions: HighlightInstruction[],
+  oldDiagramInstructions: HighlightInstruction[]
+): void {
+  if (newDiagramInstructions.length > 0) {
+    panelUpdated?.webview.postMessage({
+      type: "applyHighlights",
+      highlights: newDiagramInstructions,
+    });
+  }
+  if (oldDiagramInstructions.length > 0) {
+    panelCurrent?.webview.postMessage({
+      type: "applyHighlights",
+      highlights: oldDiagramInstructions,
+    });
+  }
+}
+
+export function openDiagramDiffWebviews(
+  oldContent: string,
+  newContent: string,
+  options?: DiagramDiffWebviewOptions
+): () => void {
   let panelCurrent: vscode.WebviewPanel | undefined;
   let panelUpdated: vscode.WebviewPanel | undefined;
+  const disposables: vscode.Disposable[] = [];
 
   const disposePanels = (): void => {
     panelCurrent?.dispose();
     panelUpdated?.dispose();
     panelCurrent = undefined;
     panelUpdated = undefined;
+    while (disposables.length) {
+      disposables.pop()?.dispose();
+    }
   };
 
-  const openPanels = async (
-    oldDiagramText: string,
-    newDiagramText: string,
-    newDiagramInstructions: HighlightInstruction[],
-    oldDiagramInstructions: HighlightInstruction[]
-  ): Promise<void> => {
-    const extensionPath = vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
-    if (!extensionPath) {
-      console.error("[Mermaid Diagram Diff] Unable to resolve extension path");
-      vscode.window.showErrorMessage("Unable to resolve extension path for diagram diff.");
-      return;
-    }
-
-    const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
-    const config = vscode.workspace.getConfiguration();
-    const darkTheme = config.get<string>("mermaid.vscode.dark", "redux-dark");
-    const lightTheme = config.get<string>("mermaid.vscode.light", "redux");
-    const theme = isDarkTheme ? darkTheme : lightTheme;
-
-    // Panel 1: Current (old) diagram – top, full preview UI (zoom, pan, theme)
+  const openPanels = (oldDiagramText: string, newDiagramText: string): void => {
     panelCurrent = vscode.window.createWebviewPanel(
       "mermaidDiagramDiffCurrent",
       "Current Changes",
       vscode.ViewColumn.Beside,
-      { enableScripts: true }
+      { enableScripts: true, retainContextWhenHidden: true }
     );
-    panelCurrent.webview.html = getWebviewHTML(
-      panelCurrent,
-      extensionPath,
-      oldDiagramText,
-      theme,
-      false
-    );
-
-    // Panel 2: Updated (new) diagram – bottom, full preview UI
     panelUpdated = vscode.window.createWebviewPanel(
       "mermaidDiagramDiffUpdated",
       "Incoming Changes",
       vscode.ViewColumn.Beside,
-      { enableScripts: true }
+      { enableScripts: true, retainContextWhenHidden: true }
     );
-    panelUpdated.webview.html = getWebviewHTML(
+
+    setupDiagramDiffPreview(
+      panelCurrent,
+      oldDiagramText,
+      options?.currentRepairDocumentUri,
+      disposables
+    );
+    setupDiagramDiffPreview(
       panelUpdated,
-      extensionPath,
       newDiagramText,
-      theme,
-      false
+      options?.incomingRepairDocumentUri,
+      disposables
     );
 
-    // Set up highlighting for both panels after a short delay to ensure rendering is complete
-    if (newDiagramInstructions.length > 0 || oldDiagramInstructions.length > 0) {
-      setTimeout(() => {
-        // Send added/modified highlights to the new (updated) panel
-        if (newDiagramInstructions.length > 0) {
-          panelUpdated?.webview.postMessage({
-            type: "applyHighlights",
-            highlights: newDiagramInstructions
-          });
-        }
-        
-        // Send removed highlights to the old (current) panel  
-        if (oldDiagramInstructions.length > 0) {
-          panelCurrent?.webview.postMessage({
-            type: "applyHighlights",
-            highlights: oldDiagramInstructions
-          });
-        }
-      }, 1000); // Wait 1 second for diagram to render
-    }
-
-    // Set editor layout: code diff on left, two diagram panels stacked vertically on right
-    setTimeout(() => {
-      void vscode.commands.executeCommand("vscode.setEditorLayout", {
-        orientation: 0,
-        groups: [
-          { size: 0.5 },
-          {
-            groups: [{ size: 0.5 }, { size: 0.5 }],
-            size: 0.5,
-            orientation: 1,
-          },
-        ],
-      });
-    }, 150);
+    void vscode.commands.executeCommand("vscode.setEditorLayout", {
+      orientation: 0,
+      groups: [
+        { size: 0.5 },
+        {
+          groups: [{ size: 0.5 }, { size: 0.5 }],
+          size: 0.5,
+          orientation: 1,
+        },
+      ],
+    });
   };
 
   try {
     const { diagramText: oldDiagramText } = splitFrontMatter(oldContent);
     const { diagramText: newDiagramText } = splitFrontMatter(newContent);
 
+    openPanels(oldDiagramText, newDiagramText);
+
     void calculateDiagramDiff(oldDiagramText, newDiagramText)
-      .then(async (diagramDiff) => {
-        const { newDiagramInstructions, oldDiagramInstructions } =
-          await createHighlightInstructions(diagramDiff);
-        await openPanels(oldDiagramText, newDiagramText, newDiagramInstructions, oldDiagramInstructions);
-      })
-      .catch(async (error: unknown) => {
+      .then(createHighlightInstructions)
+      .catch((error: unknown) => {
         const msg = error instanceof Error ? error.message : String(error);
-        console.error({ err: msg }, "[Mermaid Diagram Diff] AST diff failed; opening previews without highlights");
-        vscode.window.showWarningMessage(`Diagram diff highlights unavailable: ${msg}`);
-        await openPanels(oldDiagramText, newDiagramText, [], []);
+        console.error({ err: msg }, "[Mermaid Diagram Diff] AST diff failed; previews open without highlights");
+        return {
+          newDiagramInstructions: [] as HighlightInstruction[],
+          oldDiagramInstructions: [] as HighlightInstruction[],
+        };
+      })
+      .then(({ newDiagramInstructions, oldDiagramInstructions }) => {
+        if (newDiagramInstructions.length === 0 && oldDiagramInstructions.length === 0) {
+          return;
+        }
+        setTimeout(() => {
+          applyDiffHighlights(
+            panelCurrent,
+            panelUpdated,
+            newDiagramInstructions,
+            oldDiagramInstructions
+          );
+        }, 400);
       });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

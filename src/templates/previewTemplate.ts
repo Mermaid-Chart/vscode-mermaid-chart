@@ -20,25 +20,10 @@ export function getWebviewHTML(
     vscode.Uri.file(path.join(extensionPath, "media", "recursive-latin-full-normal.woff2"))
   );
 
-  // Make sure the panel retains state when hidden
-  // panel.onDidChangeViewState((e) => {
-  //   // Rerender content when panel becomes visible again
-  //   if (e.webviewPanel.visible) {
-  //     panel.webview.postMessage({
-  //       type: "update",
-  //       content: initialContent,
-  //       currentTheme: currentTheme,
-  //       isFileChange: false,
-  //       validateOnly: validateOnly,
-  //     });
-  //   }
-  // });
-  
-  // Ensure panel doesn't close automatically
   panel.onDidDispose(() => {
     // Optional cleanup code here
   });
-  
+
   return /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
@@ -80,29 +65,3 @@ export function getWebviewHTML(
     </html>
   `;
 }
-
-// // Add this helper function to create a persistent panel
-// export function createPersistentPanel(context: vscode.ExtensionContext, viewType: string, title: string): vscode.WebviewPanel {
-//   // Check if we already have a panel stored in context
-//   const existingPanel = context.globalState.get<string>('mermaidPreviewPanelId');
-  
-//   // Create options for a persistent panel
-//   const panelOptions = {
-//     enableScripts: true,
-//     retainContextWhenHidden: true,  // Important to keep panel state when not visible
-//     localResourceRoots: [vscode.Uri.file(context.extensionPath)]
-//   };
-  
-//   // Create the panel
-//   const panel = vscode.window.createWebviewPanel(
-//     viewType,
-//     title,
-//     vscode.ViewColumn.Beside,
-//     panelOptions
-//   );
-  
-//   // Store panel ID
-//   context.globalState.update('mermaidPreviewPanelId', panel.title);
-  
-//   return panel;
-// }

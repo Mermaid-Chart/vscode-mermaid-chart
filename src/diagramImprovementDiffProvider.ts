@@ -71,7 +71,10 @@ export class DiagramImprovementDiffProvider implements vscode.Disposable {
 
     let disposeDiagramPanels: (() => void) | undefined;
     try {
-      disposeDiagramPanels = openDiagramDiffWebviews(baseContent, proposedContent);
+      disposeDiagramPanels = openDiagramDiffWebviews(baseContent, proposedContent, {
+        currentRepairDocumentUri: originalFileUri,
+        incomingRepairDocumentUri: incomingTempUri,
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       vscode.window.showWarningMessage(`Code diff opened, but diagram previews failed: ${msg}`);

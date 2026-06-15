@@ -72,7 +72,7 @@ export class DiagramImprovementDiffProvider implements vscode.Disposable {
     let disposeDiagramPanels: (() => void) | undefined;
     try {
       disposeDiagramPanels = openDiagramDiffWebviews(baseContent, proposedContent, {
-        currentRepairDocumentUri: originalFileUri,
+        currentRepairDocumentUri: originalTempUri,
         incomingRepairDocumentUri: incomingTempUri,
       });
     } catch (e) {

@@ -146,7 +146,7 @@ export class AppDiffViewProvider {
     let disposeDiagramPanels: (() => void) | undefined;
     try {
       disposeDiagramPanels = openDiagramDiffWebviews(mapping.originalContent, currentContent, {
-        currentRepairDocumentUri: vscode.Uri.file(mapping.originalFilePath),
+        currentRepairDocumentUri: originalTempUri,
         incomingRepairDocumentUri: incomingTempUri,
       });
     } catch (e) {

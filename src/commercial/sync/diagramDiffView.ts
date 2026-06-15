@@ -1,11 +1,40 @@
 import * as vscode from "vscode";
 import { splitFrontMatter } from "../../frontmatter";
 import { setupDiagramDiffPreview } from "../../diagramDiffPreview";
+import { debounce } from "../../utils/debounce";
 import { calculateDiagramDiff, createHighlightInstructions, type HighlightInstruction } from "./diagramDiffHighlighter";
 
 export interface DiagramDiffWebviewOptions {
   currentRepairDocumentUri?: vscode.Uri;
   incomingRepairDocumentUri?: vscode.Uri;
+}
+
+function pushPreviewContent(panel: vscode.WebviewPanel | undefined, fullText: string): void {
+  if (!panel) {
+    return;
+  }
+  const { diagramText } = splitFrontMatter(fullText);
+  panel.webview.postMessage({ type: "update", content: diagramText });
+}
+
+function wirePreviewDocumentSync(
+  panel: vscode.WebviewPanel | undefined,
+  sourceUri: vscode.Uri | undefined,
+  disposables: vscode.Disposable[]
+): void {
+  if (!panel || !sourceUri) {
+    return;
+  }
+  const sourceKey = sourceUri.toString();
+  const refresh = debounce((text: string) => pushPreviewContent(panel, text), 300);
+  disposables.push(
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      if (event.document.uri.toString() !== sourceKey) {
+        return;
+      }
+      refresh(event.document.getText());
+    })
+  );
 }
 
 function applyDiffHighlights(
@@ -73,6 +102,9 @@ export function openDiagramDiffWebviews(
       options?.incomingRepairDocumentUri,
       disposables
     );
+
+    wirePreviewDocumentSync(panelCurrent, options?.currentRepairDocumentUri, disposables);
+    wirePreviewDocumentSync(panelUpdated, options?.incomingRepairDocumentUri, disposables);
 
     void vscode.commands.executeCommand("vscode.setEditorLayout", {
       orientation: 0,

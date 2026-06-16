@@ -222,7 +222,7 @@ export interface ReviewDiagramPreviewOptions {
 }
 
 /**
- * Open the diagram diff view: two separate webviews (Before and Now), each with
+ * Open the diagram diff view: two separate webviews (Before and After), each with
  * full preview UI (zoom, pan, theme, export).
  *
  * Opt-in path — app review default uses {@link openReviewDiagramPreview}
@@ -259,7 +259,7 @@ export function openDiagramDiffWebviews(
     );
     panelUpdated = vscode.window.createWebviewPanel(
       "mermaidDiagramDiffUpdated",
-      "Now",
+      "After",
       vscode.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true },
     );

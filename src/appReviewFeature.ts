@@ -87,9 +87,11 @@ export class AppReviewFeature implements vscode.Disposable {
       ),
       vscode.commands.registerCommand("mermaidChart.openReviewFileDiff", async (uri?: vscode.Uri) => {
         const target = uri ?? vscode.window.activeTextEditor?.document.uri;
-        if (target) {
-          await this.diffViewProvider.showAppDiff(target);
+        if (!target) {
+          vscode.window.showWarningMessage("Open a diagram file (.mmd) to review changes.");
+          return;
         }
+        await this.diffViewProvider.showAppDiff(target);
       }),
       vscode.commands.registerCommand("mermaidChart.appReviewAccept", async (uri?: vscode.Uri) => {
         const target = uri ?? vscode.window.activeTextEditor?.document.uri;

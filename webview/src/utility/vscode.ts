@@ -1,14 +1,31 @@
 import type { WebviewApi } from "vscode-webview";
 
+declare global {
+  interface Window {
+    /** Set by review chrome inline script before the Svelte bundle loads. */
+    __mermaidVscodeApi?: WebviewApi<unknown>;
+  }
+}
+
+function getVsCodeApi(): WebviewApi<unknown> | undefined {
+  if (typeof window !== "undefined" && window.__mermaidVscodeApi) {
+    return window.__mermaidVscodeApi;
+  }
+  if (typeof acquireVsCodeApi === "function") {
+    const api = acquireVsCodeApi();
+    if (typeof window !== "undefined") {
+      window.__mermaidVscodeApi = api;
+    }
+    return api;
+  }
+  return undefined;
+}
 
 class VSCodeAPIWrapper {
   private readonly vsCodeApi: WebviewApi<unknown> | undefined;
 
   constructor() {
-   
-    if (typeof acquireVsCodeApi === "function") {
-      this.vsCodeApi = acquireVsCodeApi();
-    }
+    this.vsCodeApi = getVsCodeApi();
   }
 
  

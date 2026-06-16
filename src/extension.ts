@@ -53,7 +53,10 @@ import {
 } from "@mermaid-chart/vscode-utils";;
 import { PreviewBridgeImpl } from "./commercial/ai/tools/previewTool";
 import { ValidationBridgeImpl } from "./commercial/ai/tools/validationTool";
-import { openDiagramDiffWebviews } from "./commercial/sync/diagramDiffView";
+import {
+  openDiagramDiffWebviews,
+  setReviewDiagramExtensionPath,
+} from "./commercial/sync/diagramDiffView";
 import { injectMermaidTheme } from "./previewmarkdown/themeing";
 import { extendMarkdownItWithMermaid } from "./previewmarkdown/shared-md-mermaid";
 import * as packageJson from '../package.json'; 
@@ -64,15 +67,48 @@ import { AppReviewFeature } from "./appReviewFeature";
 const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
 let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWords.json');
 let isExtensionStarted = false;
+let appReviewFeatureInstance: AppReviewFeature | undefined;
+let aiToolsRegistered = false;
 
+function registerAiToolsOnce(context: vscode.ExtensionContext): void {
+  if (aiToolsRegistered) {
+    return;
+  }
+  try {
+    registerTools(context);
+    aiToolsRegistered = true;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("already registered")) {
+      aiToolsRegistered = true;
+      console.warn("[MermaidExtension] AI tools already registered — skipping duplicate registerTools");
+      return;
+    }
+    throw err;
+  }
+}
+
+function registerAppReviewFeatureOnce(context: vscode.ExtensionContext): void {
+  if (appReviewFeatureInstance) {
+    return;
+  }
+  appReviewFeatureInstance = new AppReviewFeature();
+  appReviewFeatureInstance.register(context);
+  context.subscriptions.push({
+    dispose: () => {
+      appReviewFeatureInstance?.dispose();
+      appReviewFeatureInstance = undefined;
+    },
+  });
+}
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("Activating Mermaid Chart extension");
+  setReviewDiagramExtensionPath(context.extensionUri.fsPath);
 
   initializePlugin(pluginID);
-  // Register AI tools first to ensure they're available
   console.log("[MermaidExtension] Registering AI tools...");
-  registerTools(context);
+  registerAiToolsOnce(context);
   
   // Initialize the bridge for commercial tools
   setPreviewBridge(new PreviewBridgeImpl());
@@ -82,7 +118,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize AI chat participant after tools are registered
   initializeAIChatParticipant(context);
 
-  new AppReviewFeature().register(context);
+  registerAppReviewFeatureOnce(context);
 
   const mermaidWebviewProvider = new MermaidWebviewProvider(context);
 
@@ -1043,4 +1079,6 @@ return {
 export function deactivate() {
   clearTmLanguageCache();
   clearDiagramImprovementCache();
+  aiToolsRegistered = false;
+  appReviewFeatureInstance = undefined;
 }

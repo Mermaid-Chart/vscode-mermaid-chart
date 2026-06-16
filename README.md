@@ -445,6 +445,12 @@ If a path is **not** in `.mermaidignore`, the GitHub app can regenerate that dia
 
 ![vscode-plugin-review-mermaid-sync-preview](https://mermaid.ai/docs/img/plugins/vscode-plugin-review-mermaid-sync-preview.gif)
 
+#### Diagram diff UI upgrade
+
+The **Review Changes** experience has been upgraded with a refreshed diagram diff UI—clearer change summaries, an easier-to-scan changes list, and a more visual layout so you can compare the app proposal with the previous version at a glance. See the demo below.
+
+![vscode-plugin-review-diagram-diff-ui](https://mermaid.ai/docs/img/plugins/vscode-plugin-review-diagram-diff-ui.gif)
+
 ### Diagram Diff Highlighting
 - **Enhanced Visual Clarity**: Our diagram diff previews now include advanced change highlighting to make differences even more visible and understandable.<br>
 - **Color-Coded Changes**:

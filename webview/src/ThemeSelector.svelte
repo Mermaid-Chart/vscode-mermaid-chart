@@ -22,20 +22,9 @@
 
   let isDropdownOpen = false;
   
-  // Available themes (excluding null and mc)
-  const themes = [
-    { key: 'mc', name: 'Mermaid Chart' },
-    { key: 'neo', name: 'Neo' },
-    { key: 'neo-dark', name: 'Neo Dark' },
-    { key: 'default', name: 'Default' },
-    { key: 'forest', name: 'Forest' },
-    { key: 'base', name: 'Base' },
-    { key: 'dark', name: 'Dark' },
-    { key: 'neutral', name: 'Neutral' },
-    { key: 'redux-dark', name: 'Redux Dark' },
-    { key: 'redux-color', name: 'Redux Color' },
-    { key: 'redux-dark-color', name: 'Redux Dark Color' },
-  ];
+  import { MERMAID_PREVIEW_THEMES } from './themes/previewThemes';
+
+  const themes = MERMAID_PREVIEW_THEMES;
 
   function toggleDropdown() {
     isDropdownOpen = !isDropdownOpen;

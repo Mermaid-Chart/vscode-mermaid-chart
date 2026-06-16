@@ -1,5 +1,10 @@
 # Change Log
 
+### 2.7.0 - 2026-06-16
+- Added **Improve Diagram** — CodeLens commands at the top of .mmd / .mermaid files (**Preview Diagram**, **Save Diagram to Mermaid Chart**, **Repair Diagram**, **Improve Diagram**). 
+- **Improve Diagram** opens a sidebar view that generates two AI variants (layout/grouping and styling), with model selection, diff preview, and dual diagram previews before applying changes.
+- Updated diagram diff UI for review Mermaid sync command 
+
 ### 2.6.9 - 2026-06-9 
 - Fixed an bug where Mermaid diagrams were not rendering correctly in Markdown files
 

@@ -7,3 +7,4 @@ node_modules
 .npmrc
 webview/.npmrc
 dist-preview
+dist-sidebar

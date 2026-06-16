@@ -1,6 +1,8 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import { splitFrontMatter } from "../../frontmatter";
+import { setupDiagramDiffPreview } from "../../diagramDiffPreview";
+import { debounce } from "../../utils/debounce";
 import { getWebviewHTML, ReviewDiagramPreviewContext } from "../../templates/previewTemplate";
 import * as packageJson from "../../../package.json";
 import { buildReviewChromeLiveUpdate } from "./reviewChrome";
@@ -14,6 +16,7 @@ import {
   type ReviewSurfaceDiff,
 } from "./diagramDiffHighlighter";
 import { getThemeColors } from "../../../webview/src/themes/themeConfig";
+import { saveDiagramAsPng, saveDiagramAsSvg } from "../../services/renderService";
 
 const EXTENSION_ID = `${packageJson.publisher}.${packageJson.name}`;
 
@@ -55,19 +58,57 @@ function readPreviewLimits(): { maxZoom: number; maxCharLength: number; maxEdges
   };
 }
 
-/** Side-by-side diff panels — App.svelte applyHighlights (svgSelector overlays). */
-function postAstHighlights(
-  panel: vscode.WebviewPanel | undefined,
-  instructions: HighlightInstruction[],
-): void {
+export interface DiagramDiffWebviewOptions {
+  currentRepairDocumentUri?: vscode.Uri;
+  incomingRepairDocumentUri?: vscode.Uri;
+}
+
+function pushPreviewContent(panel: vscode.WebviewPanel | undefined, fullText: string): void {
   if (!panel) {
     return;
   }
-  if (instructions.length === 0) {
-    panel.webview.postMessage({ type: "clearHighlights" });
+  const { diagramText } = splitFrontMatter(fullText);
+  panel.webview.postMessage({ type: "update", content: diagramText });
+}
+
+function wirePreviewDocumentSync(
+  panel: vscode.WebviewPanel | undefined,
+  sourceUri: vscode.Uri | undefined,
+  disposables: vscode.Disposable[],
+): void {
+  if (!panel || !sourceUri) {
     return;
   }
-  panel.webview.postMessage({ type: "applyHighlights", highlights: instructions });
+  const sourceKey = sourceUri.toString();
+  const refresh = debounce((text: string) => pushPreviewContent(panel, text), 300);
+  disposables.push(
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      if (event.document.uri.toString() !== sourceKey) {
+        return;
+      }
+      refresh(event.document.getText());
+    }),
+  );
+}
+
+function applyDiffHighlights(
+  panelCurrent: vscode.WebviewPanel | undefined,
+  panelUpdated: vscode.WebviewPanel | undefined,
+  newDiagramInstructions: HighlightInstruction[],
+  oldDiagramInstructions: HighlightInstruction[],
+): void {
+  if (newDiagramInstructions.length > 0) {
+    panelUpdated?.webview.postMessage({
+      type: "applyHighlights",
+      highlights: newDiagramInstructions,
+    });
+  }
+  if (oldDiagramInstructions.length > 0) {
+    panelCurrent?.webview.postMessage({
+      type: "applyHighlights",
+      highlights: oldDiagramInstructions,
+    });
+  }
 }
 
 /** Review chrome — green/amber/red CSS + stagger via previewTemplate inline script. */
@@ -165,29 +206,6 @@ function postReviewChromeUpdate(
   });
 }
 
-function wireAstHighlightsOnRender(
-  panel: vscode.WebviewPanel,
-  getInstructions: () => HighlightInstruction[],
-): vscode.Disposable {
-  return panel.webview.onDidReceiveMessage((message: { type?: string }) => {
-    if (message?.type === "diagramRendered") {
-      postAstHighlights(panel, getInstructions());
-    }
-  });
-}
-
-function wireAstHighlightRepost(
-  panel: vscode.WebviewPanel,
-  getInstructions: () => HighlightInstruction[],
-): void {
-  const repost = (): void => {
-    if (panel.visible) {
-      postAstHighlights(panel, getInstructions());
-    }
-  };
-  panel.onDidChangeViewState(repost);
-}
-
 export interface ReviewDiagramPreviewOptions {
   counts: DiagramDiffCounts;
   changes: DiagramChangeItem[];
@@ -197,13 +215,14 @@ export interface ReviewDiagramPreviewOptions {
   astAvailable: boolean;
   oldContent: string;
   fileName: string;
+  fileUri?: vscode.Uri;
   reviewRef?: string;
   onCompareSideBySide?: () => void;
   onViewDiffCode?: () => void;
 }
 
 /**
- * Open the diagram diff view: two separate webviews (Before and Now), each with
+ * Open the diagram diff view: two separate webviews (Before and After), each with
  * full preview UI (zoom, pan, theme, export).
  *
  * Opt-in path — app review default uses {@link openReviewDiagramPreview}
@@ -214,6 +233,7 @@ export interface ReviewDiagramPreviewOptions {
 export function openDiagramDiffWebviews(
   oldContent: string,
   newContent: string,
+  options?: DiagramDiffWebviewOptions,
 ): () => void {
   let panelCurrent: vscode.WebviewPanel | undefined;
   let panelUpdated: vscode.WebviewPanel | undefined;
@@ -230,90 +250,77 @@ export function openDiagramDiffWebviews(
     panelUpdated = undefined;
   };
 
-  const openPanels = async (
-    oldDiagramText: string,
-    newDiagramText: string,
-    newDiagramInstructions: HighlightInstruction[],
-    oldDiagramInstructions: HighlightInstruction[],
-  ): Promise<void> => {
-    const extensionPath = resolveExtensionPath();
-    if (!extensionPath) {
-      console.error("[Mermaid Diagram Diff] Unable to resolve extension path");
-      vscode.window.showErrorMessage("Unable to resolve extension path for diagram diff.");
-      return;
-    }
-
-    const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
-    const config = vscode.workspace.getConfiguration();
-    const darkTheme = config.get<string>("mermaid.vscode.dark", "redux-dark");
-    const lightTheme = config.get<string>("mermaid.vscode.light", "redux");
-    const theme = isDarkTheme ? darkTheme : lightTheme;
-
+  const openPanels = (oldDiagramText: string, newDiagramText: string): void => {
     panelCurrent = vscode.window.createWebviewPanel(
       "mermaidDiagramDiffCurrent",
       "Before",
       vscode.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true },
     );
-    panelCurrent.webview.html = getWebviewHTML(
-      panelCurrent,
-      extensionPath,
-      oldDiagramText,
-      theme,
-      false,
-    );
-
     panelUpdated = vscode.window.createWebviewPanel(
       "mermaidDiagramDiffUpdated",
-      "Now",
+      "After",
       vscode.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true },
     );
-    panelUpdated.webview.html = getWebviewHTML(
+
+    setupDiagramDiffPreview(
+      panelCurrent,
+      oldDiagramText,
+      options?.currentRepairDocumentUri,
+      disposables,
+    );
+    setupDiagramDiffPreview(
       panelUpdated,
-      extensionPath,
       newDiagramText,
-      theme,
-      false,
+      options?.incomingRepairDocumentUri,
+      disposables,
     );
 
-    disposables.push(
-      wireAstHighlightsOnRender(panelCurrent, () => oldDiagramInstructions),
-      wireAstHighlightsOnRender(panelUpdated, () => newDiagramInstructions),
-    );
-    wireAstHighlightRepost(panelCurrent, () => oldDiagramInstructions);
-    wireAstHighlightRepost(panelUpdated, () => newDiagramInstructions);
+    wirePreviewDocumentSync(panelCurrent, options?.currentRepairDocumentUri, disposables);
+    wirePreviewDocumentSync(panelUpdated, options?.incomingRepairDocumentUri, disposables);
 
-    setTimeout(() => {
-      void vscode.commands.executeCommand("vscode.setEditorLayout", {
-        orientation: 0,
-        groups: [
-          { size: 0.5 },
-          {
-            groups: [{ size: 0.5 }, { size: 0.5 }],
-            size: 0.5,
-            orientation: 1,
-          },
-        ],
-      });
-    }, 150);
+    void vscode.commands.executeCommand("vscode.setEditorLayout", {
+      orientation: 0,
+      groups: [
+        { size: 0.5 },
+        {
+          groups: [{ size: 0.5 }, { size: 0.5 }],
+          size: 0.5,
+          orientation: 1,
+        },
+      ],
+    });
   };
 
   try {
     const { diagramText: oldDiagramText } = splitFrontMatter(oldContent);
     const { diagramText: newDiagramText } = splitFrontMatter(newContent);
 
+    openPanels(oldDiagramText, newDiagramText);
+
     void calculateDiagramDiff(oldDiagramText, newDiagramText)
-      .then(async (diagramDiff) => {
-        const { newDiagramInstructions, oldDiagramInstructions } =
-          await createHighlightInstructions(diagramDiff);
-        await openPanels(oldDiagramText, newDiagramText, newDiagramInstructions, oldDiagramInstructions);
-      })
-      .catch(async (error: unknown) => {
+      .then(createHighlightInstructions)
+      .catch((error: unknown) => {
         const msg = error instanceof Error ? error.message : String(error);
-        console.error({ err: msg }, "[Mermaid Diagram Diff] AST diff failed; opening previews without highlights");
-        vscode.window.showWarningMessage(`Diagram diff highlights unavailable: ${msg}`);
-        await openPanels(oldDiagramText, newDiagramText, [], []);
+        console.error({ err: msg }, "[Mermaid Diagram Diff] AST diff failed; previews open without highlights");
+        return {
+          newDiagramInstructions: [] as HighlightInstruction[],
+          oldDiagramInstructions: [] as HighlightInstruction[],
+        };
+      })
+      .then(({ newDiagramInstructions, oldDiagramInstructions }) => {
+        if (newDiagramInstructions.length === 0 && oldDiagramInstructions.length === 0) {
+          return;
+        }
+        setTimeout(() => {
+          applyDiffHighlights(
+            panelCurrent,
+            panelUpdated,
+            newDiagramInstructions,
+            oldDiagramInstructions
+          );
+        }, 400);
       });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -529,16 +536,58 @@ function wireReviewDiagramMessages(
   let currentTheme = initialTheme;
   const limits = readPreviewLimits();
 
-  return panel.webview.onDidReceiveMessage((message: {
+  return panel.webview.onDidReceiveMessage(async (message: {
     type?: string;
     phase?: string;
     nodeId?: string;
     theme?: string;
+    pngBase64?: string;
+    svgBase64?: string;
+    message?: string;
   }) => {
     if (!message?.type) { return; }
 
     if (message.type === "diagramRendered") {
       hooks.onDiagramRendered();
+      return;
+    }
+
+    if (message.type === "exportPng" && message.pngBase64) {
+      if (!options.fileUri) {
+        vscode.window.showErrorMessage("Cannot export: no diagram file is associated with this review.");
+        return;
+      }
+      const doc = await vscode.workspace.openTextDocument(options.fileUri);
+      const diagramCode = getPhase() === "now" ? getNewDiagramText() : getOldDiagramText();
+      await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Exporting PNG...",
+        cancellable: false,
+      }, async () => {
+        await saveDiagramAsPng(doc, message.pngBase64!, diagramCode);
+      });
+      return;
+    }
+
+    if (message.type === "exportSvg" && message.svgBase64) {
+      if (!options.fileUri) {
+        vscode.window.showErrorMessage("Cannot export: no diagram file is associated with this review.");
+        return;
+      }
+      const doc = await vscode.workspace.openTextDocument(options.fileUri);
+      const diagramCode = getPhase() === "now" ? getNewDiagramText() : getOldDiagramText();
+      await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Exporting SVG...",
+        cancellable: false,
+      }, async () => {
+        await saveDiagramAsSvg(doc, message.svgBase64!, diagramCode);
+      });
+      return;
+    }
+
+    if (message.type === "error" && message.message) {
+      vscode.window.showErrorMessage(message.message);
       return;
     }
 
@@ -642,6 +691,7 @@ export async function openAppReviewDiagramSurface(
       astAvailable: surfaceDiff.astAvailable,
       oldContent,
       fileName,
+      fileUri,
       reviewRef: surfaceOptions.reviewRef,
       onCompareSideBySide: openSideBySide,
       onViewDiffCode: surfaceOptions.onViewDiffCode,

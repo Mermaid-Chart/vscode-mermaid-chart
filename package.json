@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid",
   "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.6.9",
+  "version": "2.7.0",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -689,7 +689,7 @@
       "mermaidActivityBar": [
         {
           "id": "mermaidChart",
-          "name": "",
+          "name": "Mermaid Chart",
           "contextualOnly": true,
           "when": "mermaid.showChart"
         },
@@ -699,6 +699,11 @@
           "type": "webview",
           "contextualOnly": true,
           "when": "mermaid.showWebview"
+        },
+        {
+          "id": "mermaidImproveDiagram",
+          "name": "Improve diagram",
+          "type": "webview"
         }
       ]
     },
@@ -826,6 +831,16 @@
       {
         "command": "mermaidChart.preview",
         "title": "MermaidChart: Preview Diagram"
+      },
+      {
+        "command": "mermaidChart.improveDiagram",
+        "title": "MermaidChart: Improve Diagram",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "mermaidChart.repairDiagram",
+        "title": "MermaidChart: Repair Diagram",
+        "icon": "$(wrench)"
       },
       {
         "command": "mermaidChart.logout",
@@ -1132,7 +1147,7 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm compile",
-    "precompile": "pnpm --filter ./webview build && webpack --mode=production --config ./build/markdownPreview.webpack.config.js",
+    "precompile": "pnpm --filter ./webview build && webpack --mode=production --config ./build/markdownPreview.webpack.config.js && webpack --mode=production --config ./build/sidebarMermaid.webpack.config.js",
     "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --sourcemap --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --minify",
     "watch": "tsc -p ./ --noEmit --watch",
     "pretest": "pnpm compile && pnpm lint",

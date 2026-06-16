@@ -150,6 +150,21 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 
 ![vscode-plugin-repair-diagram](https://mermaid.ai/docs/img/plugins/vscode-plugin-repair-diagram.gif)
 
+### Improve Diagram
+
+Refine existing diagrams with AI-suggested layout and styling improvements — without rewriting Mermaid from scratch. **Improve Diagram** adds quick actions at the top of every `.mmd` and `.mermaid` file and a dedicated **Improve diagram** view in the Mermaid activity bar, where you can compare alternatives side by side before applying them.
+
+- **Quick Actions via CodeLens**: At the top of each diagram file, choose from **Preview Diagram**, **Save Diagram to Mermaid Chart**, **Repair Diagram** (for Mermaid syntax errors), or **Improve Diagram** — all without leaving the editor.<br>
+- **Two AI-Powered Variants**: The Improve sidebar generates two optimized suggestions for the active diagram: one focused on **layout and grouping**, and one on **styling** — giving you multiple variations of the same diagram to compare and choose from.<br>
+- **Diff Preview Before You Apply**: Click a suggestion card to open a code diff with dual diagram previews (current vs proposed). Review the changes visually, then save the right side to apply your chosen improvement to the workspace file.<br>
+- **Model Selection**: Choose which chat model powers generation (auto, claude, openAI availbel in your copilot plan) from a dropdown in the sidebar; your selection is remembered across sessions.<br>
+- **Refresh & Cancel**: Regenerate suggestions on demand with **Refresh**, or stop an in-flight request with **Cancel**.<br>
+
+> **Note**<br/>
+> Improve Diagram uses the VS Code Language Model API. Install a supported chat extension (for example GitHub Copilot Chat or Cursor AI) and accept the permission prompt when the extension requests language model access.
+
+![vscode-plugin-improve-diagram](https://mermaid.ai/docs/img/plugins/vscode-plugin-improve-diagram.gif)
+
 
 
 ### Visualize Cloud Infrastructure from Your Codebase
@@ -476,6 +491,8 @@ Users now have the option to open and edit diagrams in the web view on https://m
 | **MermaidChart: Logout** | Logs out from the Mermaid Chart service.. |
 | **MermaidChart: Sync Diagram** | Synchronizes the current diagram with Mermaid Chart.. |
 | **MermaidChart: Preview Diagram** | Opens a preview of the selected Mermaid diagram within the editor. |
+| **MermaidChart: Improve Diagram** | Opens the Improve diagram sidebar and generates two AI layout/styling variants for the active `.mmd` / `.mermaid` file (also available via CodeLens). |
+| **MermaidChart: Repair Diagram** | Repairs Mermaid syntax errors in the active diagram using Mermaid AI (also available via CodeLens). |
 | **MermaidChart: Review Mermaid Sync** | Scans the current branch PR for [Mermaid Diagram Sync](https://github.com/marketplace/mermaid-diagram-sync) app commits and registers diagram files for review. |
 | **MermaidChart: Connect GitHub for Mermaid Diagram Sync** | Signs in to GitHub (repo scope) to load PR base/head content for app review. |
 | **MermaidChart: Disconnect GitHub for Mermaid Diagram Sync** | Clears this extension’s GitHub connection for app review (does not sign you out of GitHub in VS Code). |
@@ -497,6 +514,11 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.7.0 - 2026-06-16
+- Added **Improve Diagram** — CodeLens commands at the top of .mmd / .mermaid files (**Preview Diagram**, **Save Diagram to Mermaid Chart**, **Repair Diagram**, **Improve Diagram**). 
+- **Improve Diagram** opens a sidebar view that generates two AI variants (layout/grouping and styling), with model selection, diff preview, and dual diagram previews before applying changes.
+- Updated diagram diff UI for review Mermaid sync command 
 
 ### 2.6.9 - 2026-06-9 
 - Fixed an bug where Mermaid diagrams were not rendering correctly in Markdown files

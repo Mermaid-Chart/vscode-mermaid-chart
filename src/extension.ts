@@ -24,6 +24,11 @@ import {
   updateViewVisibility,
   viewMermaidChart,
 } from "./util";
+import { DiagramImprovementDiffProvider } from "./diagramImprovementDiffProvider";
+import { DiagramImprovementPanel } from "./panels/diagramImprovementPanel";
+import { clearDiagramImprovementCache } from "./services/diagramImprovementCache";
+import { registerLanguageModelExtensionContext } from "./services/vscodeLanguageModel";
+import { repairActiveDiagram } from "./commands/repairActiveDiagram";
 import { MermaidChartCodeLensProvider } from "./mermaidChartCodeLensProvider";
 import { createMermaidFile, getPreview, openMermaidPreview } from "./commands/createFile";
 import { handleTextDocumentChange } from "./eventHandlers";
@@ -158,14 +163,38 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("mermaidWebview", mermaidWebviewProvider)
   );
-  
+
+  registerLanguageModelExtensionContext(context);
+  const diagramImprovementDiffProvider = new DiagramImprovementDiffProvider();
+  const diagramImprovementPanel = new DiagramImprovementPanel(
+    context.extensionUri,
+    diagramImprovementDiffProvider,
+    context
+  );
+  context.subscriptions.push(
+    diagramImprovementDiffProvider,
+    vscode.window.registerWebviewViewProvider(
+      DiagramImprovementPanel.viewType,
+      diagramImprovementPanel
+    )
+  );
+
   updateViewVisibility(isUserLoggedIn, mermaidWebviewProvider, mermaidChartProvider);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.preview', getPreview)
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("mermaidChart.improveDiagram", async (uri?: vscode.Uri) => {
+      analytics.trackImproveDiagramInvoked();
+      await diagramImprovementPanel.openImproveDiagram(uri);
+    }),
+    vscode.commands.registerCommand("mermaidChart.repairDiagram", repairActiveDiagram)
+  );
+
   const activeEditor = vscode.window.activeTextEditor;
+  diagramImprovementPanel.syncToActiveDiagram();
     if (activeEditor && !isExtensionStarted) {
         isExtensionStarted = true;
         handleTextDocumentChange(activeEditor, diagramMappings, true);
@@ -187,6 +216,7 @@ export async function activate(context: vscode.ExtensionContext) {
       handleTextDocumentChange(event, diagramMappings, true);
       updateMermaidChartTokenHighlighting();
       updateMermaidIdContext(event?.document);
+      diagramImprovementPanel.syncToActiveDiagram();
     },
     null,
     context.subscriptions
@@ -582,6 +612,10 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
 
 context.subscriptions.push(
   vscode.commands.registerCommand('mermaidChart.connectDiagramToMermaidChart', async () => {
+    if (!(await ensureAuthenticated())) {
+      return;
+    }
+
     const activeEditor = vscode.window.activeTextEditor;
     const document = activeEditor?.document;
 
@@ -1044,6 +1078,7 @@ return {
 // This method is called when your extension is deactivated
 export function deactivate() {
   clearTmLanguageCache();
+  clearDiagramImprovementCache();
   aiToolsRegistered = false;
   appReviewFeatureInstance = undefined;
 }

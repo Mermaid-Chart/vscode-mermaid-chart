@@ -25,6 +25,43 @@ const LIGHT_COLOR = "#1E1A2E";
 export const configSection = 'mermaid';
 
 
+/** Whether the Mermaid preview can run for this document (.mmd / .mermaid / mermaid language, or plaintext .mmd). */
+export function canOpenMermaidPreview(document: vscode.TextDocument): boolean {
+  return !(
+    document.languageId !== "plaintext" &&
+    !document.fileName.endsWith(".mmd") &&
+    !document.fileName.endsWith(".mermaid") &&
+    !document.languageId.startsWith("mermaid")
+  );
+}
+
+/**
+ * Active editor, or any still-open diagram tab in the workbench.
+ * Preview / diff webviews take focus away from the text editor; the .mmd tab often stays open.
+ */
+export function getActiveOrOpenMermaidDocument(): vscode.TextDocument | undefined {
+  const active = vscode.window.activeTextEditor;
+  if (active && canOpenMermaidPreview(active.document)) {
+    return active.document;
+  }
+
+  for (const group of vscode.window.tabGroups.all) {
+    for (const tab of group.tabs) {
+      const input = tab.input;
+      if (input instanceof vscode.TabInputText) {
+        const doc = vscode.workspace.textDocuments.find(
+          (d) => d.uri.toString() === input.uri.toString()
+        );
+        if (doc && canOpenMermaidPreview(doc)) {
+          return doc;
+        }
+      }
+    }
+  }
+
+  return undefined;
+}
+
 export const pattern : Record<string, RegExp> = {
   ".md": /```mermaid([\s\S]*?)```/g,
   ".html": /<div class=["']mermaid["']>([\s\S]*?)<\/div>/g,
@@ -125,6 +162,7 @@ export function findMermaidChartTokens(
       mermaidChartTokens.push({
         uuid,
         title: `Chart - ${uuid}`,
+        uri: document.uri,
         range: new vscode.Range(
           lineNumber,
           startCharacter,
@@ -340,10 +378,12 @@ export async function insertMermaidChartToken(
 export function updateViewVisibility(isLoggedIn: boolean,webviewProvider?: MermaidWebviewProvider,mermaidChartProvider?: MermaidChartProvider) {
   vscode.commands.executeCommand("setContext", "mermaid.showChart", isLoggedIn);
   vscode.commands.executeCommand("setContext", "mermaid.showWebview", !isLoggedIn);
+  vscode.commands.executeCommand("setContext", "mermaid.isLoggedIn", isLoggedIn);
   if (isLoggedIn) {
     mermaidChartProvider?.refresh();
   } else {
     webviewProvider?.refresh();
+    mermaidChartProvider?.refresh();
   }
 }
 

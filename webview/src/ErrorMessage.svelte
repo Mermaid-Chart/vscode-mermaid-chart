@@ -6,6 +6,7 @@
     export let isRepairing: boolean = false;
     export let aiCredits: { remaining: number; total: number } | null = null;
     export let isAuthenticated: boolean = false;
+    export let authResolved: boolean = false;
     
     // Debug logging
     $: if (aiCredits) {
@@ -195,7 +196,8 @@
       </div>
       
       <!-- Credits and repair button container -->
-      {#if !isAuthenticated}
+      {#if authResolved}
+        {#if !isAuthenticated}
         <!-- Show login button when user is not authenticated -->
         <div class="credits-bottom button-only">
           <button 
@@ -227,6 +229,7 @@
             </button>
           {/if}
         </div>
+      {/if}
       {/if}
     {/if}
   </div>

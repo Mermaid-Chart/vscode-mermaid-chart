@@ -16,6 +16,7 @@ import {
   type ReviewSurfaceDiff,
 } from "./diagramDiffHighlighter";
 import { getThemeColors } from "../../../webview/src/themes/themeConfig";
+import { saveDiagramAsPng, saveDiagramAsSvg } from "../../services/renderService";
 
 const EXTENSION_ID = `${packageJson.publisher}.${packageJson.name}`;
 
@@ -214,6 +215,7 @@ export interface ReviewDiagramPreviewOptions {
   astAvailable: boolean;
   oldContent: string;
   fileName: string;
+  fileUri?: vscode.Uri;
   reviewRef?: string;
   onCompareSideBySide?: () => void;
   onViewDiffCode?: () => void;
@@ -534,16 +536,58 @@ function wireReviewDiagramMessages(
   let currentTheme = initialTheme;
   const limits = readPreviewLimits();
 
-  return panel.webview.onDidReceiveMessage((message: {
+  return panel.webview.onDidReceiveMessage(async (message: {
     type?: string;
     phase?: string;
     nodeId?: string;
     theme?: string;
+    pngBase64?: string;
+    svgBase64?: string;
+    message?: string;
   }) => {
     if (!message?.type) { return; }
 
     if (message.type === "diagramRendered") {
       hooks.onDiagramRendered();
+      return;
+    }
+
+    if (message.type === "exportPng" && message.pngBase64) {
+      if (!options.fileUri) {
+        vscode.window.showErrorMessage("Cannot export: no diagram file is associated with this review.");
+        return;
+      }
+      const doc = await vscode.workspace.openTextDocument(options.fileUri);
+      const diagramCode = getPhase() === "now" ? getNewDiagramText() : getOldDiagramText();
+      await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Exporting PNG...",
+        cancellable: false,
+      }, async () => {
+        await saveDiagramAsPng(doc, message.pngBase64!, diagramCode);
+      });
+      return;
+    }
+
+    if (message.type === "exportSvg" && message.svgBase64) {
+      if (!options.fileUri) {
+        vscode.window.showErrorMessage("Cannot export: no diagram file is associated with this review.");
+        return;
+      }
+      const doc = await vscode.workspace.openTextDocument(options.fileUri);
+      const diagramCode = getPhase() === "now" ? getNewDiagramText() : getOldDiagramText();
+      await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Exporting SVG...",
+        cancellable: false,
+      }, async () => {
+        await saveDiagramAsSvg(doc, message.svgBase64!, diagramCode);
+      });
+      return;
+    }
+
+    if (message.type === "error" && message.message) {
+      vscode.window.showErrorMessage(message.message);
       return;
     }
 
@@ -647,6 +691,7 @@ export async function openAppReviewDiagramSurface(
       astAvailable: surfaceDiff.astAvailable,
       oldContent,
       fileName,
+      fileUri,
       reviewRef: surfaceOptions.reviewRef,
       onCompareSideBySide: openSideBySide,
       onViewDiffCode: surfaceOptions.onViewDiffCode,

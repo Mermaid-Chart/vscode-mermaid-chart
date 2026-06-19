@@ -307,6 +307,25 @@ export async function getTriggerScope(): Promise<TriggerScope> {
   return { include: smart.triggerInclude, exclude: smart.triggerExclude };
 }
 
+/**
+ * The sync scope — which source paths regenerate connected diagrams. Used by the
+ * pre-emptive local sync (Step 4 / Slice 7). `.mermaidignore` patterns are folded
+ * into the exclude list since the bot must never touch them.
+ */
+export async function getSyncScope(): Promise<TriggerScope> {
+  const root = workspaceRoot();
+  if (!root) {
+    return { include: [], exclude: [] };
+  }
+  const smartText = await readFileIfExists(vscode.Uri.joinPath(root, SMART_UPDATES_FILE));
+  const ignoreText = await readFileIfExists(vscode.Uri.joinPath(root, MERMAIDIGNORE_FILE));
+  const smart = parseSmartUpdates(smartText);
+  return {
+    include: smart.syncInclude,
+    exclude: dedupe([...smart.syncExclude, ...parseIgnore(ignoreText)]),
+  };
+}
+
 /** Absolute URIs of the two config files (for the "edit raw" escape hatch). */
 export function configFileUris(): { ignore?: vscode.Uri; smart?: vscode.Uri } {
   const root = workspaceRoot();

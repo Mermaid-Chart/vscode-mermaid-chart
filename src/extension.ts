@@ -74,6 +74,7 @@ import {
 } from "./commercial/prReview/openPrReviewDemo";
 import { registerSyncConfigPanel } from "./commercial/config/syncConfigPanel";
 import { registerCreateOnCommit } from "./commercial/createOnCommit/createOnCommitService";
+import { registerLocalSync } from "./commercial/localSync/localSyncService";
 
 
 const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
@@ -1129,6 +1130,12 @@ context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
 registerRegenerateCommand(context, mcAPI);
 registerRegenerateWithMermaidAICommand(context, mcAPI);
 PreCommitSyncService.register(context, mcAPI);
+// Step 4 / Slice 7 — pre-emptive local sync (regenerate connected diagrams on save).
+try {
+  registerLocalSync(context, mcAPI);
+} catch (err) {
+  console.error("[Local Sync] FAILED to register:", err);
+}
 
 context.subscriptions.push(
   vscode.commands.registerCommand(

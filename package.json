@@ -686,6 +686,11 @@
           "default": true,
           "description": "After a commit touches code in a configured trigger-scope path that has no linked diagram, quietly offer to generate one. Stays silent until a trigger scope is set in the Mermaid Sync config."
         },
+        "mermaidChart.localSync.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Pre-emptive local sync: when you save a source file in the configured sync scope that a diagram references, offer to regenerate the connected diagram locally and review it as a draft before pushing. Uses Mermaid AI credits, so it is off by default."
+        },
         "mermaidChart.showGenerateDiagramCodeLens": {
           "type": "boolean",
           "default": true,

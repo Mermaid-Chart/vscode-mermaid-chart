@@ -8,11 +8,12 @@ import {
 import { computeReviewSurfaceDiff } from "../sync/diagramDiffHighlighter";
 import { BotEditDetector, BotEditInfo } from "./botEditDetector";
 import { BotEditContentProvider } from "./botEditContentProvider";
-import { acceptReview, commitEdits, editReview, rejectReview } from "./reviewActions";
+import { acceptReview, cancelEdit, commitEdits, editReview, rejectReview } from "./reviewActions";
 
 export const ACCEPT_COMMAND = "mermaidChart.prReview.accept";
 export const REJECT_COMMAND = "mermaidChart.prReview.reject";
 export const EDIT_COMMAND = "mermaidChart.prReview.edit";
+export const CANCEL_EDIT_COMMAND = "mermaidChart.prReview.cancelEdit";
 export const COMMIT_EDITS_COMMAND = "mermaidChart.prReview.commitEdits";
 
 interface ReviewSession {
@@ -192,6 +193,11 @@ export function registerReviewCommands(
             const target = await resolveTargetForAction(detector, uriArg);
             if (!target) { return; }
             await editReview(target.uri, target.info, target.closePanels);
+        }),
+        vscode.commands.registerCommand(CANCEL_EDIT_COMMAND, async (uriArg?: vscode.Uri) => {
+            const target = await resolveTargetForAction(detector, uriArg);
+            if (!target) { return; }
+            await cancelEdit(target.uri, target.info);
         }),
         vscode.commands.registerCommand(COMMIT_EDITS_COMMAND, async (uriArg?: vscode.Uri) => {
             const target = await resolveTargetForAction(detector, uriArg);

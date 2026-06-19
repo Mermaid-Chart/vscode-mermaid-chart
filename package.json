@@ -848,6 +848,10 @@
         {
           "command": "mermaidChart.createOnCommit.dismiss",
           "when": "false"
+        },
+        {
+          "command": "mermaidChart.prReview.cancelEdit",
+          "when": "false"
         }
       ]
     },
@@ -929,6 +933,11 @@
         "command": "mermaidChart.prReview.commitEdits",
         "title": "MermaidChart: Commit Edits to Synced Diagram",
         "icon": "$(git-commit)"
+      },
+      {
+        "command": "mermaidChart.prReview.cancelEdit",
+        "title": "MermaidChart: Cancel Editing Synced Diagram",
+        "icon": "$(close)"
       },
       {
         "command": "mermaidChart.prReview.showUpsell",

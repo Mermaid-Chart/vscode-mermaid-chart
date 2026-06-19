@@ -3,10 +3,12 @@ import analytics from "../../analytics";
 import { BotEditDetector } from "./botEditDetector";
 import {
     ACCEPT_COMMAND,
+    CANCEL_EDIT_COMMAND,
     COMMIT_EDITS_COMMAND,
     EDIT_COMMAND,
     REJECT_COMMAND,
 } from "./openReview";
+import { isInEditMode, onDidChangeEditMode } from "./reviewActions";
 import type { GitExtension } from "../../types/git";
 
 export const OPEN_REVIEW_COMMAND = "mermaidChart.prReview.openReview";
@@ -42,6 +44,8 @@ export class BotEditCodeLensProvider implements vscode.CodeLensProvider {
             vscode.workspace.onDidChangeTextDocument(() => this.emitter.fire()),
             vscode.workspace.onDidSaveTextDocument(() => this.emitter.fire()),
         );
+        // Swap the banner the instant a file enters or leaves edit mode.
+        this.disposables.push(onDidChangeEditMode(() => this.emitter.fire()));
         // Re-render when the Git working tree changes for any open repo
         // (catches `git add` from terminal, post-commit cleanup, etc).
         try {
@@ -97,6 +101,39 @@ export class BotEditCodeLensProvider implements vscode.CodeLensProvider {
         }
 
         const range = new vscode.Range(0, 0, 0, 0);
+
+        // Slice 5: while editing the bot draft, the banner becomes an
+        // unambiguous three-state control. Each title spells out the effect so
+        // the user never has to guess what is saved vs. discarded.
+        if (isInEditMode(document.uri)) {
+            return [
+                new vscode.CodeLens(range, {
+                    title: `$(edit) Editing synced draft · ${info.shortSha}`,
+                    tooltip: `You're editing the diagram Mermaid Sync regenerated in ${info.shortSha}.`,
+                    command: OPEN_REVIEW_COMMAND,
+                    arguments: [document.uri],
+                }),
+                new vscode.CodeLens(range, {
+                    title: `$(check) Save`,
+                    tooltip: `Commit your edited version with a Mermaid-Sync-Reviewed-By trailer.`,
+                    command: COMMIT_EDITS_COMMAND,
+                    arguments: [document.uri],
+                }),
+                new vscode.CodeLens(range, {
+                    title: `$(close) Cancel`,
+                    tooltip: `Discard your edits and go back to the synced draft. Nothing is committed.`,
+                    command: CANCEL_EDIT_COMMAND,
+                    arguments: [document.uri],
+                }),
+                new vscode.CodeLens(range, {
+                    title: `$(discard) Restore original`,
+                    tooltip: `Revert the diagram to the version before ${info.shortSha}.`,
+                    command: REJECT_COMMAND,
+                    arguments: [document.uri],
+                }),
+            ];
+        }
+
         const lenses: vscode.CodeLens[] = [
             new vscode.CodeLens(range, {
                 title: `$(sync) Synced by Mermaid Sync · ${info.shortSha} — Review`,

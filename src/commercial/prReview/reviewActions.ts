@@ -6,14 +6,45 @@ import { BotEditInfo } from "./botEditDetector";
 const REVIEWED_KEY = "mermaidChart.prReview.reviewed";
 
 /**
- * Side-effects that wire the Slice 2 Accept / Reject / Edit affordances to
- * actual workspace and git operations.
+ * Side-effects that wire the Accept / Reject / Edit affordances to actual
+ * workspace and git operations.
  *
  * "Reject" is the only action with destructive force — it asks for explicit
  * confirmation and writes the parent-commit blob back to the working tree.
- * Slice 5 graduates "Edit" to a full three-state edit mode; for now it just
- * focuses the editor.
+ *
+ * Slice 5 graduates "Edit" to a full three-state edit mode: entering edit mode
+ * swaps the review banner for an unambiguous Restore original / Cancel / Save
+ * affordance (see {@link BotEditCodeLensProvider}). Each state reuses existing
+ * plumbing — Restore original → {@link rejectReview}, Save → {@link commitEdits},
+ * Cancel → {@link cancelEdit} — so the editor is never forked.
  */
+
+/**
+ * URIs currently in edit mode. The CodeLens banner reads this to decide whether
+ * to show the review affordance or the three-state edit affordance.
+ */
+const editModeUris = new Set<string>();
+const editModeEmitter = new vscode.EventEmitter<void>();
+
+/** Fires whenever a file enters or leaves edit mode, so banners can refresh. */
+export const onDidChangeEditMode = editModeEmitter.event;
+
+export function isInEditMode(uri: vscode.Uri): boolean {
+    return editModeUris.has(uri.toString());
+}
+
+function enterEditMode(uri: vscode.Uri): void {
+    if (!editModeUris.has(uri.toString())) {
+        editModeUris.add(uri.toString());
+        editModeEmitter.fire();
+    }
+}
+
+function exitEditMode(uri: vscode.Uri): void {
+    if (editModeUris.delete(uri.toString())) {
+        editModeEmitter.fire();
+    }
+}
 
 export async function acceptReview(
     context: vscode.ExtensionContext,
@@ -26,6 +57,7 @@ export async function acceptReview(
         "VS_CODE_PLUGIN_PR_REVIEW_ACCEPT",
     );
     await markReviewed(context, uri, info);
+    exitEditMode(uri);
     closePanels();
     vscode.window.showInformationMessage(
         `Accepted bot edit ${info.shortSha}.`,
@@ -88,12 +120,30 @@ export async function rejectReview(
     });
     await doc.save();
 
+    exitEditMode(uri);
     closePanels();
     vscode.window.showInformationMessage(
         `Restored to parent of ${info.shortSha}. Commit the change to finish rejecting.`,
     );
 }
 
+/**
+ * Snapshot of the bot draft (the on-disk regenerated `.mmd`) taken when the
+ * user enters edit mode, so "Cancel" can restore exactly what the bot produced
+ * even after the file has been saved with the user's edits.
+ */
+const botDraftSnapshot = new Map<string, string>();
+
+/**
+ * Slice 5 edit mode — open the bot's draft in the normal Mermaid editor and
+ * enter a three-state flow surfaced by the persistent banner:
+ *   - Restore original → revert to the pre-bot version ({@link rejectReview})
+ *   - Cancel → discard the user's edits, keep reviewing ({@link cancelEdit})
+ *   - Save → commit the user's edited version ({@link commitEdits})
+ *
+ * It does not fork the editor — the file is the same `.mmd`; only the banner
+ * changes to make the three choices unambiguous.
+ */
 export async function editReview(
     uri: vscode.Uri,
     info: BotEditInfo,
@@ -114,6 +164,12 @@ export async function editReview(
     });
 
     const doc = await vscode.workspace.openTextDocument(uri);
+
+    // Capture the bot draft before the user touches it, so Cancel restores the
+    // bot's regeneration rather than whatever happens to be on disk later.
+    botDraftSnapshot.set(uri.toString(), doc.getText());
+    enterEditMode(uri);
+
     const editor = await vscode.window.showTextDocument(doc, {
         preview: false,
         viewColumn: vscode.ViewColumn.One,
@@ -129,7 +185,65 @@ export async function editReview(
     editor.revealRange(new vscode.Range(eof, eof));
 
     vscode.window.showInformationMessage(
-        `Edit mode · ${pathBasename(uri)} — make your changes, then click "Commit edits" at the top of the file.`,
+        `Editing ${pathBasename(uri)} — use the banner at the top: ` +
+            `Save commits your edits · Cancel discards them · Restore original reverts to before ${info.shortSha}.`,
+    );
+}
+
+/**
+ * Cancel edit mode: discard the user's edits and return the file to the bot
+ * draft they started from, then drop back to the normal review banner. Nothing
+ * is committed. The pre-bot history is untouched — that's "Restore original".
+ */
+export async function cancelEdit(
+    uri: vscode.Uri,
+    info: BotEditInfo,
+): Promise<void> {
+    const snapshot = botDraftSnapshot.get(uri.toString());
+
+    const doc = await vscode.workspace.openTextDocument(uri);
+    const dirty = doc.isDirty;
+    const driftedFromSnapshot =
+        snapshot !== undefined && snapshot !== doc.getText();
+
+    if (dirty || driftedFromSnapshot) {
+        const confirm = await vscode.window.showWarningMessage(
+            `Discard your edits to ${pathBasename(uri)} and restore the synced draft (${info.shortSha})?`,
+            { modal: true },
+            "Discard edits",
+        );
+        if (confirm !== "Discard edits") {
+            return;
+        }
+    }
+
+    // Restore the bot draft we snapshotted on entering edit mode. If we have no
+    // snapshot (e.g. edit mode survived a reload) just revert unsaved changes.
+    if (snapshot !== undefined && driftedFromSnapshot) {
+        const editor = await vscode.window.showTextDocument(doc, {
+            preview: false,
+        });
+        await editor.edit((b) => {
+            const range = new vscode.Range(
+                doc.positionAt(0),
+                doc.positionAt(doc.getText().length),
+            );
+            b.replace(range, snapshot);
+        });
+        await doc.save();
+    } else if (dirty) {
+        await vscode.window.showTextDocument(doc, { preview: false });
+        await vscode.commands.executeCommand("workbench.action.files.revert");
+    }
+
+    analytics.sendEvent(
+        "VS Code PR Review Edit Cancelled",
+        "VS_CODE_PLUGIN_PR_REVIEW_EDIT_CANCELLED",
+    );
+    botDraftSnapshot.delete(uri.toString());
+    exitEditMode(uri);
+    vscode.window.showInformationMessage(
+        `Discarded edits — back to reviewing the synced draft ${info.shortSha}.`,
     );
 }
 
@@ -205,6 +319,8 @@ export async function commitEdits(
         "VS_CODE_PLUGIN_PR_REVIEW_COMMIT_EDITS",
     );
     await markReviewed(context, uri, info);
+    botDraftSnapshot.delete(uri.toString());
+    exitEditMode(uri);
 
     const choice = await vscode.window.showInformationMessage(
         `Committed your edits with trailer ${trailer}.`,

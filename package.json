@@ -44,7 +44,8 @@
     ]
   },
   "activationEvents": [
-    "onLanguage"
+    "onLanguage",
+    "onView:mermaidSyncPendingReview"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -664,6 +665,16 @@
           "default": "false",
           "description": "Automatic name suggestion for exported diagrams"
         },
+        "mermaidChart.prReview.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Surface bot-regenerated Mermaid diagrams (banner, tab indicator, review actions) when the configured commit trailer is present."
+        },
+        "mermaidChart.prReview.commitTrailer": {
+          "type": "string",
+          "default": "Mermaid-Sync: regenerated",
+          "description": "Commit-message trailer (Key: value) emitted by the Mermaid Sync GitHub App. Used to identify bot-authored edits on .mmd files."
+        },
         "mermaidChart.preCommitSync.enabled": {
           "type": "boolean",
           "default": true,
@@ -682,6 +693,11 @@
           "id": "mermaidActivityBar",
           "title": "Mermaid Chart",
           "icon": "images/mermaid-icon-32-preview.svg"
+        },
+        {
+          "id": "mermaidSync",
+          "title": "Mermaid Sync",
+          "icon": "$(sync)"
         }
       ]
     },
@@ -699,6 +715,13 @@
           "type": "webview",
           "contextualOnly": true,
           "when": "mermaid.showWebview"
+        }
+      ],
+      "mermaidSync": [
+        {
+          "id": "mermaidSyncPendingReview",
+          "name": "Review Mermaid Sync",
+          "when": "config.mermaidChart.prReview.enabled"
         }
       ]
     },
@@ -718,6 +741,11 @@
           "command": "mermaidChart.diagramHelp",
           "when": "view == mermaidWebview",
           "group": "navigation"
+        },
+        {
+          "command": "mermaidChart.prReview.acceptAll",
+          "group": "navigation",
+          "when": "view == mermaidSyncPendingReview && mermaidChart.prReview.canAcceptAll"
         }
       ],
       "view/item/context": [
@@ -778,6 +806,23 @@
           "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/",
           "group": "appReview"
         }
+      ],
+      "editor/title": [
+        {
+          "command": "mermaidChart.prReview.edit",
+          "when": "mermaidChart.prReview.hasBotEdit && resourceExtname =~ /^\\.(mmd|mermaid)$/",
+          "group": "navigation@8"
+        },
+        {
+          "command": "mermaidChart.prReview.reject",
+          "when": "mermaidChart.prReview.hasBotEdit && resourceExtname =~ /^\\.(mmd|mermaid)$/",
+          "group": "navigation@9"
+        },
+        {
+          "command": "mermaidChart.prReview.accept",
+          "when": "mermaidChart.prReview.hasBotEdit && resourceExtname =~ /^\\.(mmd|mermaid)$/",
+          "group": "navigation@10"
+        }
       ]
     },
     "keybindings": [
@@ -796,9 +841,68 @@
         "command": "mermaidChart.showCompletions",
         "key": "ctrl+shift+k",
         "when": "editorLangId =~ /^mermaid/"
+      },
+      {
+        "command": "mermaidChart.prReview.accept",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "mermaidChart.prReview.hasBotEdit && editorLangId =~ /^mermaid/"
+      },
+      {
+        "command": "mermaidChart.prReview.reject",
+        "key": "escape",
+        "when": "mermaidChart.prReview.hasBotEdit && editorLangId =~ /^mermaid/ && !suggestWidgetVisible && !findWidgetVisible"
+      },
+      {
+        "command": "mermaidChart.prReview.edit",
+        "key": "ctrl+e",
+        "mac": "cmd+e",
+        "when": "mermaidChart.prReview.hasBotEdit && editorLangId =~ /^mermaid/"
       }
     ],
     "commands": [
+      {
+        "command": "mermaidChart.prReview.openReview",
+        "title": "Mermaid (Test): Review Synced Diagram",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "mermaidChart.prReview.openDemo",
+        "title": "Mermaid (Test): Open PR Review Demo (Now/Before)"
+      },
+      {
+        "command": "mermaidChart.prReview.accept",
+        "title": "MermaidChart: Accept Synced Diagram",
+        "icon": "$(check)"
+      },
+      {
+        "command": "mermaidChart.prReview.reject",
+        "title": "MermaidChart: Reject Synced Diagram",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "mermaidChart.prReview.edit",
+        "title": "MermaidChart: Edit Synced Diagram",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "mermaidChart.prReview.commitEdits",
+        "title": "MermaidChart: Commit Edits to Synced Diagram",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "mermaidChart.prReview.showUpsell",
+        "title": "MermaidChart: Show Pro Feature Upsell"
+      },
+      {
+        "command": "mermaidChart.prReview.acceptAll",
+        "title": "MermaidChart: Accept All Synced Diagrams",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "mermaidChart.prReview.signIn",
+        "title": "MermaidChart: Sign In to Review Mermaid Sync"
+      },
       {
         "command": "mermaidChart.diagramHelp",
         "title": "Diagram help"

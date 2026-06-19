@@ -1,0 +1,74 @@
+flowchart TD
+    subgraph Client["Client layer"]
+        Web[Web app]
+        Mobile[Mobile app]
+        Admin[Admin console]
+        Partner[Partner portal]
+    end
+
+    subgraph Edge["Edge & gateway"]
+        CDN[CDN]
+        WAF[Web application firewall]
+        Gateway[API gateway v2]
+        LB[Load balancer]
+        RateLimit[Rate limiter]
+    end
+
+    subgraph Core["Core services"]
+        Auth[Authenticate with MFA]
+        Users[User directory]
+        Orders[Order service]
+        Catalog[Product catalog]
+        Inventory[Inventory service]
+        Payments[Payment processor]
+        Audit[Audit log]
+        Notify[Notification service]
+        Fraud[Fraud scoring]
+    end
+
+    subgraph Data["Data platform"]
+        PrimaryDB[(Primary database)]
+        ReadReplica[(Read replica)]
+        Search[Search index]
+        Events[Event bus]
+        Warehouse[(Analytics warehouse)]
+    end
+
+    subgraph Ops["Operations"]
+        Metrics[Metrics collector]
+        Logs[Log aggregator]
+        Alerts[Alerting]
+        Tracing[Distributed tracing]
+    end
+
+    Web --> CDN
+    Mobile --> CDN
+    Partner --> Gateway
+    Admin --> Gateway
+    CDN --> WAF
+    WAF --> RateLimit
+    RateLimit --> Gateway
+    Gateway --> LB
+    LB --> Auth
+    LB --> Orders
+    LB --> Catalog
+    Auth --> Users
+    Auth --> Audit
+    Auth --> Fraud
+    Orders --> Inventory
+    Orders --> Payments
+    Orders --> Notify
+    Catalog --> Search
+    Orders --> PrimaryDB
+    Inventory --> PrimaryDB
+    PrimaryDB --> ReadReplica
+    Orders --> Events
+    Inventory --> Events
+    Events --> Warehouse
+    Events --> Metrics
+    Metrics --> Logs
+    Logs --> Alerts
+    Metrics --> Tracing
+    Tracing --> Alerts
+    Fraud --> Audit
+    Notify --> Audit

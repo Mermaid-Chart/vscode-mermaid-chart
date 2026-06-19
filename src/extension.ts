@@ -57,6 +57,21 @@ import { extendMarkdownItWithMermaid } from "./previewmarkdown/shared-md-mermaid
 import * as packageJson from '../package.json'; 
 import { clearTmLanguageCache } from "./syntaxHighlighter";
 import { AppReviewFeature } from "./appReviewFeature";
+import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
+import { GitTrailerDetector } from "./commercial/prReview/gitTrailerDetector";
+import { BotEditCodeLensProvider, OPEN_REVIEW_COMMAND } from "./commercial/prReview/botEditCodeLensProvider";
+import { BotEditFileDecorationProvider } from "./commercial/prReview/botEditFileDecorationProvider";
+import { BotEditContentProvider } from "./commercial/prReview/botEditContentProvider";
+import { openReview, registerReviewCommands } from "./commercial/prReview/openReview";
+import {
+  PendingReviewTreeProvider,
+  registerPendingReviewCommands,
+} from "./commercial/prReview/pendingReviewTreeProvider";
+import { showUpsellModal } from "./commercial/prReview/proFeatureUpsell";
+import {
+  offerPrReviewDemoInDevHost,
+  registerPrReviewDemoCommand,
+} from "./commercial/prReview/openPrReviewDemo";
 
 
 const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
@@ -100,6 +115,98 @@ function registerAppReviewFeatureOnce(context: vscode.ExtensionContext): void {
 export async function activate(context: vscode.ExtensionContext) {
   console.log("Activating Mermaid Chart extension");
   setReviewDiagramExtensionPath(context.extensionUri.fsPath);
+
+  // PR Review (Slice 3) — register first so bot-edit detection works even if
+  // auth/API setup fails. Re-ported onto the post-restructure base.
+  try {
+    const botEditDetector = new GitTrailerDetector();
+    const botEditCodeLensProvider = new BotEditCodeLensProvider(botEditDetector);
+    const botEditFileDecorationProvider = new BotEditFileDecorationProvider(botEditDetector);
+    const botEditContentProvider = new BotEditContentProvider();
+    // Aggregated list + Accept all are login-gated; seed from the persisted
+    // login flag and keep it live via the auth-session listener below.
+    const initialSignedIn = context.globalState.get<boolean>("isUserLoggedIn", false);
+    const pendingReviewTreeProvider = new PendingReviewTreeProvider(
+      context,
+      botEditDetector,
+      initialSignedIn,
+    );
+
+    const refreshHasBotEditCtx = async () => {
+      const uri = vscode.window.activeTextEditor?.document.uri;
+      if (!uri || uri.scheme !== "file") {
+        await vscode.commands.executeCommand(
+          "setContext",
+          "mermaidChart.prReview.hasBotEdit",
+          false,
+        );
+        return;
+      }
+      const info = await botEditDetector.detect(uri);
+      await vscode.commands.executeCommand(
+        "setContext",
+        "mermaidChart.prReview.hasBotEdit",
+        Boolean(info),
+      );
+    };
+    context.subscriptions.push(
+      vscode.window.onDidChangeActiveTextEditor(() => refreshHasBotEditCtx()),
+      botEditDetector.onDidChange(() => refreshHasBotEditCtx()),
+    );
+    refreshHasBotEditCtx();
+
+    context.subscriptions.push(
+      botEditDetector,
+      botEditCodeLensProvider,
+      botEditFileDecorationProvider,
+      botEditContentProvider,
+      vscode.languages.registerCodeLensProvider(
+        [
+          { language: "mermaid" },
+          { pattern: "**/*.mmd" },
+          { pattern: "**/*.mermaid" },
+        ],
+        botEditCodeLensProvider,
+      ),
+      vscode.window.registerFileDecorationProvider(botEditFileDecorationProvider),
+      pendingReviewTreeProvider,
+      vscode.window.registerTreeDataProvider(
+        "mermaidSyncPendingReview",
+        pendingReviewTreeProvider,
+      ),
+      ...registerReviewCommands(context, botEditDetector, botEditContentProvider),
+      ...registerPendingReviewCommands(pendingReviewTreeProvider),
+      vscode.commands.registerCommand("mermaidChart.prReview.showUpsell", (featureId: string) => {
+        void showUpsellModal(featureId);
+      }),
+      // Keep the login-gated list/Accept all in sync with auth state without a
+      // reload — reuses the same Mermaid Chart auth session.
+      vscode.authentication.onDidChangeSessions(async (e) => {
+        if (e.provider.id !== MermaidChartAuthenticationProvider.id) {
+          return;
+        }
+        const session = await vscode.authentication.getSession(
+          MermaidChartAuthenticationProvider.id,
+          [],
+          { silent: true },
+        );
+        pendingReviewTreeProvider.setSignedIn(Boolean(session));
+      }),
+      vscode.commands.registerCommand(OPEN_REVIEW_COMMAND, async (uri?: vscode.Uri) => {
+        const target = uri ?? vscode.window.activeTextEditor?.document.uri;
+        if (!target) {
+          vscode.window.showWarningMessage("PR Review: no active editor — open a .mmd file first.");
+          return;
+        }
+        await openReview(context, botEditDetector, botEditContentProvider, target);
+      }),
+    );
+    registerPrReviewDemoCommand(context);
+    offerPrReviewDemoInDevHost(context);
+    console.log("[PR Review] registration complete");
+  } catch (err) {
+    console.error("[PR Review] FAILED to register providers:", err);
+  }
 
   initializePlugin(pluginID);
   console.log("[MermaidExtension] Registering AI tools...");

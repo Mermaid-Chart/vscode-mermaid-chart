@@ -72,6 +72,7 @@ import {
   offerPrReviewDemoInDevHost,
   registerPrReviewDemoCommand,
 } from "./commercial/prReview/openPrReviewDemo";
+import { registerSyncConfigPanel } from "./commercial/config/syncConfigPanel";
 
 
 const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
@@ -206,6 +207,13 @@ export async function activate(context: vscode.ExtensionContext) {
     console.log("[PR Review] registration complete");
   } catch (err) {
     console.error("[PR Review] FAILED to register providers:", err);
+  }
+
+  // Slice 6 — Mermaid Sync config UX (control plane for sync + create-on-commit).
+  try {
+    context.subscriptions.push(...registerSyncConfigPanel(context));
+  } catch (err) {
+    console.error("[Sync Config] FAILED to register config panel:", err);
   }
 
   initializePlugin(pluginID);

@@ -45,7 +45,8 @@
   },
   "activationEvents": [
     "onLanguage",
-    "onView:mermaidSyncPendingReview"
+    "onView:mermaidSyncPendingReview",
+    "onView:mermaidSyncConfig"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -722,6 +723,11 @@
           "id": "mermaidSyncPendingReview",
           "name": "Review Mermaid Sync",
           "when": "config.mermaidChart.prReview.enabled"
+        },
+        {
+          "id": "mermaidSyncConfig",
+          "name": "Sync Config",
+          "type": "webview"
         }
       ]
     },
@@ -861,6 +867,11 @@
       }
     ],
     "commands": [
+      {
+        "command": "mermaidChart.syncConfig.open",
+        "title": "MermaidChart: Open Mermaid Sync Config",
+        "icon": "$(settings-gear)"
+      },
       {
         "command": "mermaidChart.prReview.openReview",
         "title": "Mermaid (Test): Review Synced Diagram",

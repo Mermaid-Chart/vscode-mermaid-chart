@@ -73,6 +73,7 @@ import {
   registerPrReviewDemoCommand,
 } from "./commercial/prReview/openPrReviewDemo";
 import { registerSyncConfigPanel } from "./commercial/config/syncConfigPanel";
+import { registerCreateOnCommit } from "./commercial/createOnCommit/createOnCommitService";
 
 
 const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
@@ -214,6 +215,13 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(...registerSyncConfigPanel(context));
   } catch (err) {
     console.error("[Sync Config] FAILED to register config panel:", err);
+  }
+
+  // Step 3 — create-on-commit nudge (quiet, dismissible pull on new commits).
+  try {
+    context.subscriptions.push(...registerCreateOnCommit(context));
+  } catch (err) {
+    console.error("[Create On Commit] FAILED to register nudge:", err);
   }
 
   initializePlugin(pluginID);

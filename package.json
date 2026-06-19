@@ -681,6 +681,11 @@
           "default": true,
           "description": "Enable pre-commit Mermaid diagram sync. When enabled, you will be notified to regenerate diagrams when staged source files match diagram references."
         },
+        "mermaidChart.createOnCommit.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "After a commit touches code in a configured trigger-scope path that has no linked diagram, quietly offer to generate one. Stays silent until a trigger scope is set in the Mermaid Sync config."
+        },
         "mermaidChart.showGenerateDiagramCodeLens": {
           "type": "boolean",
           "default": true,
@@ -829,6 +834,16 @@
           "when": "mermaidChart.prReview.hasBotEdit && resourceExtname =~ /^\\.(mmd|mermaid)$/",
           "group": "navigation@10"
         }
+      ],
+      "commandPalette": [
+        {
+          "command": "mermaidChart.createOnCommit.generate",
+          "when": "false"
+        },
+        {
+          "command": "mermaidChart.createOnCommit.dismiss",
+          "when": "false"
+        }
       ]
     },
     "keybindings": [
@@ -871,6 +886,15 @@
         "command": "mermaidChart.syncConfig.open",
         "title": "MermaidChart: Open Mermaid Sync Config",
         "icon": "$(settings-gear)"
+      },
+      {
+        "command": "mermaidChart.createOnCommit.generate",
+        "title": "MermaidChart: Visualize Changes as a Diagram",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "mermaidChart.createOnCommit.dismiss",
+        "title": "MermaidChart: Dismiss Diagram Suggestion"
       },
       {
         "command": "mermaidChart.prReview.openReview",

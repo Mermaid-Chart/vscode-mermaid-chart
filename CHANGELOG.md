@@ -1,5 +1,8 @@
 # Change Log
 
+### 2.7.1 - 2026-06-18
+- Added **Mermaid Sync Review List** — sidebar listing all bot-updated diagrams with **M** / **A** / **R** badges, per-file accept/reject/close, and bulk **Accept All**, **Reject All**, **Close Review**, and **Open Changes** (login required for bulk actions).
+
 ### 2.7.0 - 2026-06-16
 - Added **Improve Diagram** — CodeLens commands at the top of .mmd / .mermaid files (**Preview Diagram**, **Save Diagram to Mermaid Chart**, **Repair Diagram**, **Improve Diagram**). 
 - **Improve Diagram** opens a sidebar view that generates two AI variants (layout/grouping and styling), with model selection, diff preview, and dual diagram previews before applying changes.

@@ -1,6 +1,6 @@
 # Change Log
 
-### 2.7.1 - 2026-06-18
+### 2.7.1 - 2026-06-22
 - Added **Mermaid Sync Review List** — sidebar listing all bot-updated diagrams with **M** / **A** / **R** badges, per-file accept/reject/close, and bulk **Accept All**, **Reject All**, **Close Review**, and **Open Changes** (login required for bulk actions).
 
 ### 2.7.0 - 2026-06-16

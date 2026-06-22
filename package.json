@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid",
   "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -704,6 +704,11 @@
           "id": "mermaidImproveDiagram",
           "name": "Improve diagram",
           "type": "webview"
+        },
+        {
+          "id": "mermaidReviewSync",
+          "name": "Review Mermaid Sync",
+          "when": "mermaid.hasAppReviewSync"
         }
       ]
     },
@@ -723,9 +728,44 @@
           "command": "mermaidChart.diagramHelp",
           "when": "view == mermaidWebview",
           "group": "navigation"
+        },
+        {
+          "command": "mermaidChart.reviewSyncOpenChanges",
+          "when": "view == mermaidReviewSync",
+          "group": "navigation@1"
+        },
+        {
+          "command": "mermaidChart.reviewSyncRejectAll",
+          "when": "view == mermaidReviewSync",
+          "group": "navigation@2"
+        },
+        {
+          "command": "mermaidChart.reviewSyncAcceptAll",
+          "when": "view == mermaidReviewSync",
+          "group": "navigation@3"
+        },
+        {
+          "command": "mermaidChart.reviewSyncCloseAll",
+          "when": "view == mermaidReviewSync",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
+        {
+          "command": "mermaidChart.appReviewAccept",
+          "when": "view == mermaidReviewSync && viewItem == mermaidReviewSyncFile",
+          "group": "inline@1"
+        },
+        {
+          "command": "mermaidChart.appReviewReject",
+          "when": "view == mermaidReviewSync && viewItem == mermaidReviewSyncFile",
+          "group": "inline@2"
+        },
+        {
+          "command": "mermaidChart.closeAppReview",
+          "when": "view == mermaidReviewSync && viewItem == mermaidReviewSyncFile",
+          "group": "inline@3"
+        },
         {
           "command": "mermaidChart.insertUuidIntoEditor",
           "when": "viewItem == document",
@@ -765,6 +805,23 @@
           "command": "mermaidChart.duplicateDiagram",
           "when": "viewItem == document",
           "group": "manage@03"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "mermaidChart.appReviewAccept",
+          "when": "scmProvider == mermaidSyncReview",
+          "group": "inline@1"
+        },
+        {
+          "command": "mermaidChart.appReviewReject",
+          "when": "scmProvider == mermaidSyncReview",
+          "group": "inline@2"
+        },
+        {
+          "command": "mermaidChart.closeAppReview",
+          "when": "scmProvider == mermaidSyncReview",
+          "group": "inline@3"
         }
       ],
       "editor/context": [
@@ -924,6 +981,26 @@
         "title": "MermaidChart: Review Mermaid Sync"
       },
       {
+        "command": "mermaidChart.reviewSyncOpenChanges",
+        "title": "Open Changes",
+        "icon": "$(diff-multiple)"
+      },
+      {
+        "command": "mermaidChart.reviewSyncAcceptAll",
+        "title": "Accept All Changes",
+        "icon": "$(add)"
+      },
+      {
+        "command": "mermaidChart.reviewSyncRejectAll",
+        "title": "Reject All Changes",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "mermaidChart.reviewSyncCloseAll",
+        "title": "Close Review",
+        "icon": "$(close)"
+      },
+      {
         "command": "mermaidChart.showAppSyncInfo",
         "title": "MermaidChart: Show App Sync Info"
       },
@@ -945,7 +1022,8 @@
       },
       {
         "command": "mermaidChart.closeAppReview",
-        "title": "MermaidChart: Close App Review (this file)"
+        "title": "Close Review",
+        "icon": "$(close)"
       },
       {
         "command": "mermaidChart.openAppReview",
@@ -957,11 +1035,13 @@
       },
       {
         "command": "mermaidChart.appReviewAccept",
-        "title": "MermaidChart: Accept App Review"
+        "title": "Accept",
+        "icon": "$(add)"
       },
       {
         "command": "mermaidChart.appReviewReject",
-        "title": "MermaidChart: Reject App Review"
+        "title": "Reject",
+        "icon": "$(discard)"
       },
       {
         "command": "mermaidChart.connectGitHub",
@@ -1204,6 +1284,7 @@
   },
   "packageManager": "pnpm@9.7.1+sha512.faf344af2d6ca65c4c5c8c2224ea77a81a5e8859cbc4e06b1511ddce2f0151512431dd19e6aff31f2c6a8f5f2aced9bd2273e1fed7dd4de1868984059d2c4247",
   "enabledApiProposals": [
-    "languageModelToolsForAgent"
+    "languageModelToolsForAgent",
+    "scmProviderOptions"
   ]
 }

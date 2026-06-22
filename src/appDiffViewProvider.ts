@@ -28,10 +28,27 @@ function fileUrisMatch(a: vscode.Uri, b: vscode.Uri, integration: AppReviewInteg
  */
 type AppCodeDiffSession = {
   originalTempUri: vscode.Uri;
-  incomingTempUri: vscode.Uri;
-  incomingKey: string;
+  /** Right side of the diff — the real workspace diagram file. */
+  modifiedUri: vscode.Uri;
+  sessionDirUri: vscode.Uri;
   saveDisposable: vscode.Disposable;
   tabCloseDisposable: vscode.Disposable;
+  cleaned: boolean;
+};
+
+type AppMultiDiffEntry = {
+  originalFilePath: string;
+  originalTempUri: vscode.Uri;
+  modifiedUri: vscode.Uri;
+};
+
+type AppMultiDiffSession = {
+  title: string;
+  sessionDirUri: vscode.Uri;
+  multiDiffSourceUri?: vscode.Uri;
+  entries: AppMultiDiffEntry[];
+  disposables: vscode.Disposable;
+  onClosed?: () => void;
   cleaned: boolean;
 };
 
@@ -52,6 +69,8 @@ type AppReviewPanelSession = {
  */
 export class AppDiffViewProvider {
   private readonly sessionsByOriginal = new Map<string, AppReviewPanelSession>();
+  private readonly diffSaveByPath = new Map<string, vscode.Disposable>();
+  private multiDiffSession: AppMultiDiffSession | null = null;
 
   constructor(
     private readonly appReviewIntegration: AppReviewIntegration,
@@ -198,6 +217,105 @@ export class AppDiffViewProvider {
   }
 
   /**
+   * Diff pair for {@link openCodeDiff} and {@link openAllReviewChanges}:
+   * left = PR-base snapshot (temp), right = live workspace file (same as Git Changes).
+   */
+  private reviewTempBaseName(relativePath: string): string {
+    const hash = crypto.createHash("sha256").update(relativePath).digest("hex").slice(0, 12);
+    const baseName = path.basename(relativePath).replace(/[^a-zA-Z0-9._-]/g, "_");
+    return `${hash}__${baseName}.base.mmd`;
+  }
+
+  private async prepareCodeDiffPair(
+    mapping: ReviewFileMapping,
+    sessionDir: string,
+  ): Promise<{ originalTempUri: vscode.Uri; modifiedUri: vscode.Uri }> {
+    const originalTempUri = vscode.Uri.file(
+      path.join(sessionDir, this.reviewTempBaseName(mapping.relativePath)),
+    );
+    const modifiedUri = vscode.Uri.file(mapping.originalFilePath);
+
+    await vscode.workspace.fs.writeFile(
+      originalTempUri,
+      Buffer.from(mapping.originalContent, "utf8"),
+    );
+
+    return { originalTempUri, modifiedUri };
+  }
+
+  private applyIncomingDiffSave(
+    originalFilePath: string,
+    text: string,
+    panelSession?: AppReviewPanelSession,
+  ): void {
+    const mapping = this.appReviewIntegration.getReviewMapping(originalFilePath);
+    if (!mapping) {
+      return;
+    }
+    void (async () => {
+      try {
+        await this.replaceOriginalFileContent(originalFilePath, text);
+        mapping.appContent = text;
+        mapping.status = "modified";
+        this.fileDecorationProvider.updateFileStatus(originalFilePath, "modified");
+        this.appReviewIntegration.notifyReviewMappingsChanged();
+        if (panelSession) {
+          void this.refreshReviewPanel(panelSession);
+        }
+      } catch (err) {
+        vscode.window.showErrorMessage(`Could not save to diagram file: ${err}`);
+      }
+    })();
+  }
+
+  private wireCodeDiffSave(
+    modifiedUri: vscode.Uri,
+    originalFilePath: string,
+    panelSession?: AppReviewPanelSession,
+  ): vscode.Disposable {
+    const key = path.normalize(originalFilePath);
+    this.diffSaveByPath.get(key)?.dispose();
+
+    const listener = vscode.workspace.onDidSaveTextDocument((saved) => {
+      if (!fileUrisMatch(saved.uri, modifiedUri, this.appReviewIntegration)) {
+        return;
+      }
+      this.applyIncomingDiffSave(originalFilePath, saved.getText(), panelSession);
+    });
+    this.diffSaveByPath.set(key, listener);
+
+    return new vscode.Disposable(() => {
+      listener.dispose();
+      if (this.diffSaveByPath.get(key) === listener) {
+        this.diffSaveByPath.delete(key);
+      }
+    });
+  }
+
+  private async buildReviewChangesResources(
+    mappings: ReviewFileMapping[],
+    sessionDir: string,
+  ): Promise<{
+    resources: [vscode.Uri, vscode.Uri, vscode.Uri][];
+    entries: AppMultiDiffEntry[];
+  }> {
+    const resources: [vscode.Uri, vscode.Uri, vscode.Uri][] = [];
+    const entries: AppMultiDiffEntry[] = [];
+
+    for (const mapping of mappings) {
+      const { originalTempUri, modifiedUri } = await this.prepareCodeDiffPair(mapping, sessionDir);
+      resources.push([modifiedUri, originalTempUri, modifiedUri]);
+      entries.push({
+        originalFilePath: mapping.originalFilePath,
+        originalTempUri,
+        modifiedUri,
+      });
+    }
+
+    return { resources, entries };
+  }
+
+  /**
    * Opens (or focuses) native vscode.diff for app review — PLUG-72 flow, on demand from Diff code.
    */
   async openCodeDiff(fileUri: vscode.Uri): Promise<void> {
@@ -208,25 +326,15 @@ export class AppDiffViewProvider {
     }
 
     const panelSession = this.sessionsByOriginal.get(path.normalize(mapping.originalFilePath));
-    const currentContent = await this.readCurrentWorkspaceContent(mapping.originalFilePath);
+    const modifiedUri = vscode.Uri.file(mapping.originalFilePath);
 
     if (panelSession?.codeDiff && !panelSession.codeDiff.cleaned) {
       const codeDiff = panelSession.codeDiff;
-      try {
-        await vscode.workspace.fs.writeFile(
-          codeDiff.incomingTempUri,
-          Buffer.from(currentContent, "utf8"),
-        );
-      } catch (e) {
-        vscode.window.showErrorMessage(`Could not refresh review diff: ${e}`);
-        return;
-      }
-
       const diffTitle = `App review: ${path.basename(mapping.originalFilePath)}`;
       await vscode.commands.executeCommand(
         "vscode.diff",
         codeDiff.originalTempUri,
-        codeDiff.incomingTempUri,
+        modifiedUri,
         diffTitle,
         { preview: false, viewColumn: vscode.ViewColumn.Beside },
       );
@@ -242,54 +350,26 @@ export class AppDiffViewProvider {
       /* exists */
     }
 
-    const safeBase = path.basename(mapping.originalFilePath).replace(/[^a-zA-Z0-9._-]/g, "_");
-    const originalTempUri = vscode.Uri.file(path.join(sessionDir, `${safeBase}.base.mmd`));
-    const incomingTempUri = vscode.Uri.file(path.join(sessionDir, `${safeBase}.incoming.mmd`));
-    const incomingKey = path.normalize(incomingTempUri.fsPath);
-
+    let originalTempUri: vscode.Uri;
     try {
-      await vscode.workspace.fs.writeFile(
-        originalTempUri,
-        Buffer.from(mapping.originalContent, "utf8"),
-      );
-      await vscode.workspace.fs.writeFile(
-        incomingTempUri,
-        Buffer.from(currentContent, "utf8"),
-      );
+      ({ originalTempUri } = await this.prepareCodeDiffPair(mapping, sessionDir));
     } catch (e) {
       vscode.window.showErrorMessage(`Could not create temp review files: ${e}`);
       return;
     }
 
     const diffTitle = `App review: ${path.basename(mapping.originalFilePath)}`;
-    await vscode.commands.executeCommand("vscode.diff", originalTempUri, incomingTempUri, diffTitle, {
+    await vscode.commands.executeCommand("vscode.diff", originalTempUri, modifiedUri, diffTitle, {
       preview: false,
       viewColumn: vscode.ViewColumn.Beside,
     });
 
-    const saveDisposable = vscode.workspace.onDidSaveTextDocument(async (saved) => {
-      if (!fileUrisMatch(saved.uri, incomingTempUri, this.appReviewIntegration)) {
-        return;
-      }
-      try {
-        const text = saved.getText();
-        await this.replaceOriginalFileContent(mapping.originalFilePath, text);
-        mapping.appContent = text;
-        mapping.status = "modified";
-        this.fileDecorationProvider.updateFileStatus(mapping.originalFilePath, "modified");
-        this.appReviewIntegration.notifyReviewMappingsChanged();
-        if (panelSession) {
-          void this.refreshReviewPanel(panelSession);
-        }
-      } catch (err) {
-        vscode.window.showErrorMessage(`Could not save to diagram file: ${err}`);
-      }
-    });
+    const saveDisposable = this.wireCodeDiffSave(modifiedUri, mapping.originalFilePath, panelSession);
 
     const codeDiffSession: AppCodeDiffSession = {
       originalTempUri,
-      incomingTempUri,
-      incomingKey,
+      modifiedUri,
+      sessionDirUri,
       saveDisposable,
       tabCloseDisposable: vscode.window.tabGroups.onDidChangeTabs(({ closed }) => {
         for (const tab of closed) {
@@ -297,7 +377,7 @@ export class AppDiffViewProvider {
             const { original, modified } = tab.input;
             if (
               fileUrisMatch(original, originalTempUri, this.appReviewIntegration) &&
-              fileUrisMatch(modified, incomingTempUri, this.appReviewIntegration)
+              fileUrisMatch(modified, modifiedUri, this.appReviewIntegration)
             ) {
               void this.cleanupCodeDiffSession(panelSession, codeDiffSession);
               return;
@@ -310,6 +390,137 @@ export class AppDiffViewProvider {
 
     if (panelSession) {
       panelSession.codeDiff = codeDiffSession;
+    }
+  }
+
+  /**
+   * Git-style unified changes editor — reuses {@link prepareCodeDiffPair} (same as Diff code).
+   */
+  async openAllReviewChanges(options: {
+    multiDiffSourceUri?: vscode.Uri;
+    onMultiDiffClosed?: () => void;
+  } = {}): Promise<void> {
+    const { multiDiffSourceUri, onMultiDiffClosed } = options;
+    const mappings = [...this.appReviewIntegration.getReviewMappings().values()].sort((a, b) =>
+      a.relativePath.localeCompare(b.relativePath),
+    );
+    if (mappings.length === 0) {
+      vscode.window.showInformationMessage("No diagrams in review.");
+      return;
+    }
+
+    await this.cleanupMultiDiffSession();
+
+    const id = crypto.randomBytes(8).toString("hex");
+    const sessionDir = path.join(os.tmpdir(), "vscode-mermaid-chart-app-review-multi", id);
+    const sessionDirUri = vscode.Uri.file(sessionDir);
+    try {
+      await vscode.workspace.fs.createDirectory(sessionDirUri);
+    } catch {
+      /* exists */
+    }
+
+    let resources: [vscode.Uri, vscode.Uri, vscode.Uri][];
+    let entries: AppMultiDiffEntry[];
+
+    try {
+      ({ resources, entries } = await this.buildReviewChangesResources(mappings, sessionDir));
+    } catch (e) {
+      vscode.window.showErrorMessage(`Could not prepare review changes: ${e}`);
+      onMultiDiffClosed?.();
+      try {
+        await vscode.workspace.fs.delete(sessionDirUri, { recursive: true });
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+
+    const title = `Mermaid Sync: Changes (${mappings.length} files)`;
+
+    const multiDiffResources = resources.map(([, originalUri, modifiedUri]) => ({
+      originalUri,
+      modifiedUri,
+    }));
+
+    try {
+      await vscode.commands.executeCommand("_workbench.openMultiDiffEditor", {
+        title,
+        multiDiffSourceUri,
+        resources: multiDiffResources,
+      });
+    } catch {
+      try {
+        await vscode.commands.executeCommand("vscode.changes", title, resources);
+      } catch (e) {
+        vscode.window.showErrorMessage(
+          `Could not open changes view. Update VS Code or open diffs from each file. ${e}`,
+        );
+        onMultiDiffClosed?.();
+        try {
+          await vscode.workspace.fs.delete(sessionDirUri, { recursive: true });
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+    }
+
+    const saveDisposables = entries.map((entry) => {
+      const panelSession = this.sessionsByOriginal.get(path.normalize(entry.originalFilePath));
+      return this.wireCodeDiffSave(entry.modifiedUri, entry.originalFilePath, panelSession);
+    });
+
+    const tabCloseDisposable = vscode.window.tabGroups.onDidChangeTabs(({ closed }) => {
+      for (const tab of closed) {
+        if (this.isOurMultiDiffTab(tab, multiDiffSourceUri, title)) {
+          void this.cleanupMultiDiffSession();
+          return;
+        }
+      }
+    });
+
+    this.multiDiffSession = {
+      title,
+      sessionDirUri,
+      multiDiffSourceUri,
+      entries,
+      disposables: vscode.Disposable.from(...saveDisposables, tabCloseDisposable),
+      onClosed: onMultiDiffClosed,
+      cleaned: false,
+    };
+  }
+
+  private isOurMultiDiffTab(
+    tab: vscode.Tab,
+    multiDiffSourceUri: vscode.Uri | undefined,
+    title: string,
+  ): boolean {
+    const input = tab.input as { multiDiffSource?: vscode.Uri } | undefined;
+    if (
+      multiDiffSourceUri &&
+      input &&
+      input.multiDiffSource instanceof vscode.Uri &&
+      input.multiDiffSource.toString() === multiDiffSourceUri.toString()
+    ) {
+      return true;
+    }
+    return tab.label === title || tab.label.startsWith("Mermaid Sync: Changes");
+  }
+
+  async cleanupMultiDiffSession(): Promise<void> {
+    const session = this.multiDiffSession;
+    if (!session || session.cleaned) {
+      return;
+    }
+    session.cleaned = true;
+    this.multiDiffSession = null;
+    session.disposables.dispose();
+    session.onClosed?.();
+    try {
+      await vscode.workspace.fs.delete(session.sessionDirUri, { recursive: true });
+    } catch {
+      /* ignore */
     }
   }
 
@@ -326,45 +537,12 @@ export class AppDiffViewProvider {
       panelSession.codeDiff = undefined;
     }
 
-    let contentToApply: string | undefined;
     try {
-      try {
-        await vscode.workspace.fs.stat(codeDiff.incomingTempUri);
-        const rightDoc = await vscode.workspace.openTextDocument(codeDiff.incomingTempUri);
-        if (rightDoc.isDirty) {
-          vscode.window.showInformationMessage(
-            "App review diff closed with unsaved changes on the right.",
-          );
-        } else {
-          contentToApply = rightDoc.getText();
-        }
-      } catch {
-        /* temp gone */
-      }
-    } finally {
       codeDiff.saveDisposable.dispose();
       codeDiff.tabCloseDisposable.dispose();
-      try {
-        await vscode.workspace.fs.delete(
-          vscode.Uri.file(path.dirname(codeDiff.incomingTempUri.fsPath)),
-          { recursive: true },
-        );
-      } catch {
-        /* ignore */
-      }
-    }
-
-    if (contentToApply !== undefined && panelSession) {
-      try {
-        await this.replaceOriginalFileContent(panelSession.mapping.originalFilePath, contentToApply);
-        panelSession.mapping.appContent = contentToApply;
-        panelSession.mapping.status = "modified";
-        this.fileDecorationProvider.updateFileStatus(panelSession.mapping.originalFilePath, "modified");
-        this.appReviewIntegration.notifyReviewMappingsChanged();
-        void this.refreshReviewPanel(panelSession);
-      } catch (err) {
-        vscode.window.showErrorMessage(`Failed to apply changes on diff close: ${err}`);
-      }
+      await vscode.workspace.fs.delete(codeDiff.sessionDirUri, { recursive: true });
+    } catch {
+      /* ignore */
     }
   }
 
@@ -410,49 +588,72 @@ export class AppDiffViewProvider {
     }
   }
 
-  async acceptAppChanges(fileUri: vscode.Uri): Promise<void> {
+  async acceptAppChanges(
+    fileUri: vscode.Uri,
+    options: { silent?: boolean; notify?: boolean } = {},
+  ): Promise<boolean> {
     const mapping = this.appReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
-      return;
+      return false;
     }
     try {
       await this.cancelSessionsForOriginal(mapping.originalFilePath);
       await this.replaceOriginalFileContent(mapping.originalFilePath, mapping.appContent);
       mapping.status = "accepted";
       this.fileDecorationProvider.updateFileStatus(mapping.originalFilePath, "accepted");
-      this.appReviewIntegration.notifyReviewMappingsChanged();
-      const doc = await vscode.workspace.openTextDocument(mapping.originalFilePath);
-      await vscode.window.showTextDocument(doc);
-      vscode.window.showInformationMessage(
-        `App changes applied to ${path.basename(mapping.originalFilePath)}`
-      );
+      if (options.notify !== false) {
+        this.appReviewIntegration.notifyReviewMappingsChanged();
+      }
+      if (!options.silent) {
+        const doc = await vscode.workspace.openTextDocument(mapping.originalFilePath);
+        await vscode.window.showTextDocument(doc);
+        vscode.window.showInformationMessage(
+          `App changes applied to ${path.basename(mapping.originalFilePath)}`
+        );
+      }
+      return true;
     } catch (error) {
-      vscode.window.showErrorMessage(`Error accepting app changes: ${error}`);
+      if (!options.silent) {
+        vscode.window.showErrorMessage(`Error accepting app changes: ${error}`);
+      }
+      return false;
     }
   }
 
-  async rejectAppChanges(fileUri: vscode.Uri): Promise<void> {
+  async rejectAppChanges(
+    fileUri: vscode.Uri,
+    options: { silent?: boolean; notify?: boolean } = {},
+  ): Promise<boolean> {
     const mapping = this.appReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
-      return;
+      return false;
     }
     try {
       await this.cancelSessionsForOriginal(mapping.originalFilePath);
       await this.replaceOriginalFileContent(mapping.originalFilePath, mapping.originalContent);
       mapping.status = "rejected";
       this.fileDecorationProvider.updateFileStatus(mapping.originalFilePath, "rejected");
-      this.appReviewIntegration.notifyReviewMappingsChanged();
-      const doc = await vscode.workspace.openTextDocument(mapping.originalFilePath);
-      await vscode.window.showTextDocument(doc);
-      vscode.window.showInformationMessage(
-        `${path.basename(mapping.originalFilePath)}: restored to the version from before the Mermaid Sync app update.`
-      );
+      if (options.notify !== false) {
+        this.appReviewIntegration.notifyReviewMappingsChanged();
+      }
+      if (!options.silent) {
+        const doc = await vscode.workspace.openTextDocument(mapping.originalFilePath);
+        await vscode.window.showTextDocument(doc);
+        vscode.window.showInformationMessage(
+          `${path.basename(mapping.originalFilePath)}: restored to the version from before the Mermaid Sync app update.`
+        );
+      }
+      return true;
     } catch (error) {
-      vscode.window.showErrorMessage(`Error rejecting app changes: ${error}`);
+      if (!options.silent) {
+        vscode.window.showErrorMessage(`Error rejecting app changes: ${error}`);
+      }
+      return false;
     }
   }
 
   dispose(): void {
+    void this.cleanupMultiDiffSession();
     for (const session of [...this.sessionsByOriginal.values()]) {
       if (session.codeDiff && !session.codeDiff.cleaned) {
         session.codeDiff.saveDisposable.dispose();

@@ -134,7 +134,8 @@
   async function validateDiagramOnly(content: string) {
     try {
       await initializeMermaid();
-      await mermaid.parse(content || 'info');
+      const normalizedContent = (content || '').replace(/\r\n/g, '\n');
+      await mermaid.parse(normalizedContent || 'info');
       vscode.postMessage({
         type: "validationResult",
         valid: true
@@ -717,7 +718,7 @@
         await validateDiagramOnly(content);
       } else if (content) {
         // Regular rendering flow
-        diagramContent = content;
+        diagramContent = content.replace(/\r\n/g, '\n');
         if (currentTheme) {
           const nextTheme = String(currentTheme).includes("%")
             ? decodeURIComponent(String(currentTheme))

@@ -21,7 +21,10 @@ export class AppReviewGitPullWatcher implements vscode.Disposable {
   private readonly debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly fsWatchers: FSWatcher[] = [];
 
-  constructor(private readonly integration: AppReviewIntegration) {}
+  constructor(
+    private readonly integration: AppReviewIntegration,
+    private readonly onFilesRegistered?: (count: number) => void | Promise<void>,
+  ) {}
 
   start(context: vscode.ExtensionContext): void {
     void this.setupFileWatchersForWorkspace();
@@ -90,7 +93,10 @@ export class AppReviewGitPullWatcher implements vscode.Disposable {
       return;
     }
     this.lastHeadByRepo.set(repoKey, headSha);
-    await this.integration.reviewAppCommits({ trigger: "git-update", fromSHA: previous });
+    const count = await this.integration.reviewAppCommits({ trigger: "git-update", fromSHA: previous });
+    if (count > 0) {
+      await this.onFilesRegistered?.(count);
+    }
   }
 
   private async readHeadSha(cwd: string): Promise<string | null> {

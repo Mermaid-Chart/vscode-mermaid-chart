@@ -112,7 +112,7 @@ export class PreviewPanel {
     
     console.log('Theme colors:', vscodeThemeColors);
 
-      this.lastContent = this.document.getText() || " ";
+      this.lastContent = (this.document.getText() || " ").replace(/\r\n/g, '\n');
   
     if (!this.panel.webview.html) {
       this.panel.webview.html = getWebviewHTML(this.panel, extensionPath, this.lastContent, currentTheme, false, {

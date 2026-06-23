@@ -70,7 +70,8 @@ export class AppReviewIntegration {
     this._onDidChangePendingReviews.fire();
   }
 
-  async reviewAppCommits(options: ReviewAppCommitsOptions = {}): Promise<void> {
+  /** Number of diagram files registered for review (0 if none or on failure). */
+  async reviewAppCommits(options: ReviewAppCommitsOptions = {}): Promise<number> {
     const trigger = options.trigger ?? "manual";
     const silent = trigger === "git-update";
 
@@ -80,12 +81,12 @@ export class AppReviewIntegration {
         if (!silent) {
           vscode.window.showErrorMessage("Open a folder workspace to review app sync commits.");
         }
-        return;
+        return 0;
       }
 
       const authed = await this.ensureGitHubAuthentication(silent);
       if (!authed) {
-        return;
+        return 0;
       }
 
       this.githubContext = null;
@@ -96,7 +97,7 @@ export class AppReviewIntegration {
             "No open GitHub pull request found for this branch. App review needs PR base content from GitHub."
           );
         }
-        return;
+        return 0;
       }
 
       const gitRoot =
@@ -110,7 +111,7 @@ export class AppReviewIntegration {
         if (!silent) {
           vscode.window.showErrorMessage("Could not read HEAD. Is this a git repository?");
         }
-        return;
+        return 0;
       }
 
       // Manual: entire PR (PR base → HEAD). Pull: only this pull (pre-pull HEAD → HEAD).
@@ -124,7 +125,7 @@ export class AppReviewIntegration {
             "No .mmd/.mermaid files touched by Mermaid Sync app commits in the selected range."
           );
         }
-        return;
+        return 0;
       }
 
       await this.registerPendingAppReviews(
@@ -138,19 +139,21 @@ export class AppReviewIntegration {
       );
       analytics.trackAppReviewTriggered();
 
-      const message = `Mermaid Sync app updated ${relPaths.length} diagram file(s). Open each file to Review / Accept / Reject from CodeLens.`;
+      const message = `Mermaid Sync app updated ${relPaths.length} diagram file(s). See Review Mermaid Sync in the sidebar.`;
       if (silent) {
         vscode.window.showInformationMessage(message);
       } else {
         vscode.window.showInformationMessage(
-          `Marked ${relPaths.length} diagram file(s) for Mermaid Sync app review. Open each file for Review / Accept / Reject / Submit.`,
+          `Marked ${relPaths.length} diagram file(s) for Mermaid Sync app review.`,
         );
       }
+      return this.reviewMappings.size;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (!silent) {
         vscode.window.showErrorMessage(`App review failed: ${msg}`);
       }
+      return 0;
     }
   }
 
@@ -337,6 +340,18 @@ export class AppReviewIntegration {
       return true;
     }
     return false;
+  }
+
+  /** End the review session and clear every mapped diagram (does not revert file content). */
+  clearAllReviews(): number {
+    const count = this.reviewMappings.size;
+    if (count === 0) {
+      return 0;
+    }
+    this.reviewMappings.clear();
+    this.activeGitRoot = null;
+    this.notifyReviewMappingsChanged();
+    return count;
   }
 
   private isSyncAppBotCommit(info: {

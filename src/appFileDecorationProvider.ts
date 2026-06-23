@@ -6,8 +6,9 @@ import {
   relativePathFromAbsolute,
   repoRelativeParentDir,
 } from "./appReviewPaths";
+import { reviewStatusDecoration, toReviewTreeUri, fsPathFromReviewUri } from "./appReviewStatus";
 
-/** Purple tint in the explorer for in-review files and their parent folders (no badge/icons on names). */
+/** Purple tint for parent folders that contain in-review diagram files. */
 const REVIEW_PURPLE = new vscode.ThemeColor("charts.purple");
 
 export class AppFileDecorationProvider implements vscode.FileDecorationProvider {
@@ -62,12 +63,28 @@ export class AppFileDecorationProvider implements vscode.FileDecorationProvider 
   }
 
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
+    const reviewTreePath = fsPathFromReviewUri(uri);
+    if (reviewTreePath) {
+      const mapping = this.appReviewIntegration.getReviewMapping(reviewTreePath);
+      if (mapping) {
+        const status = reviewStatusDecoration(mapping.status);
+        return {
+          badge: status.badge,
+          color: status.color,
+          tooltip: this.fileTooltip(mapping),
+          propagate: false,
+        };
+      }
+      return undefined;
+    }
+
     if (uri.scheme !== "file") {
       return undefined;
     }
 
     const mapping = this.appReviewIntegration.getReviewMapping(uri.fsPath);
     if (mapping) {
+      // Explorer: purple tint only — badges live on the Review Mermaid Sync tree (custom URI).
       return {
         color: REVIEW_PURPLE,
         tooltip: this.fileTooltip(mapping),
@@ -97,13 +114,14 @@ export class AppFileDecorationProvider implements vscode.FileDecorationProvider 
 
   refresh(): void {
     this.parentFolderToMappings = null;
-    const parentDirs = new Set<string>();
+    const uris: vscode.Uri[] = [];
     for (const mapping of this.appReviewIntegration.getReviewMappings().values()) {
-      this._onDidChangeFileDecorations.fire(vscode.Uri.file(mapping.originalFilePath));
-      parentDirs.add(path.dirname(mapping.originalFilePath));
+      uris.push(vscode.Uri.file(mapping.originalFilePath));
+      uris.push(toReviewTreeUri(mapping.originalFilePath));
+      uris.push(vscode.Uri.file(path.dirname(mapping.originalFilePath)));
     }
-    for (const parentDir of parentDirs) {
-      this._onDidChangeFileDecorations.fire(vscode.Uri.file(parentDir));
+    for (const uri of uris) {
+      this._onDidChangeFileDecorations.fire(uri);
     }
     this._onDidChangeFileDecorations.fire(undefined);
   }
@@ -118,6 +136,7 @@ export class AppFileDecorationProvider implements vscode.FileDecorationProvider 
       this.parentFolderToMappings = null;
       const uri = vscode.Uri.file(mapping.originalFilePath);
       this._onDidChangeFileDecorations.fire(uri);
+      this._onDidChangeFileDecorations.fire(toReviewTreeUri(mapping.originalFilePath));
       this._onDidChangeFileDecorations.fire(
         vscode.Uri.file(path.dirname(mapping.originalFilePath))
       );

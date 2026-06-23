@@ -451,6 +451,37 @@ The **Review Changes** experience has been upgraded with a refreshed diagram dif
 
 ![vscode-plugin-review-diagram-diff-ui](https://mermaid.ai/docs/img/plugins/vscode-plugin-review-diagram-diff-ui.gif)
 
+### Mermaid Sync Review List
+
+When review is triggered (manually or after a `git pull` with Mermaid Sync updates), a **Review Mermaid Sync** view appears in the Mermaid activity bar. It lists every affected `.mmd` and `.mermaid` file in one place—so you can review all bot-driven diagram changes without opening the Explorer file by file.
+
+Each file shows a Git-style status badge:
+
+- **M** — Pending review / modified during review
+- **A** — Accepted
+- **R** — Rejected
+
+#### Per-file actions (from the sidebar)
+
+For each diagram in the list, you can:
+
+- **Accept** — Apply the bot's proposed content to the workspace file
+- **Reject** — Restore the pre-sync version
+- **Close** — Remove that file from the review session (without reverting content)
+- **Open the file** — Jump into the editor for the full review flow (diagram preview, diff, CodeLens options, etc.)
+
+#### Bulk actions (login required)
+
+The following bulk actions are gated behind **Mermaid Chart login**:
+
+- **Accept All** — Accept bot changes across every file in the review list
+- **Reject All** — Reject and restore all files in one step
+- **Close Review** — End the entire review session and clear the list
+- **Open Changes** — A Git-style unified changes view showing all diagram diffs in a single editor, so you can scan and compare every file without opening them one by one. Per-row accept/reject actions are also available in this view.
+
+
+![vscode-plugin-review-mermaid-sync-list](https://mermaid.ai/docs/img/plugins/vscode-plugin-review-mermaid-sync-list.gif)
+
 ### Diagram Diff Highlighting
 - **Enhanced Visual Clarity**: Our diagram diff previews now include advanced change highlighting to make differences even more visible and understandable.<br>
 - **Color-Coded Changes**:
@@ -514,6 +545,9 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.7.1 - 2026-06-23
+- Added **Mermaid Sync Review List** — sidebar listing all bot-updated diagrams with **M** / **A** / **R** badges, per-file accept/reject/close, and bulk **Accept All**, **Reject All**, **Close Review**, and **Open Changes** (login required for bulk actions).
 
 ### 2.7.0 - 2026-06-16
 - Added **Improve Diagram** — CodeLens commands at the top of .mmd / .mermaid files (**Preview Diagram**, **Save Diagram to Mermaid Chart**, **Repair Diagram**, **Improve Diagram**). 

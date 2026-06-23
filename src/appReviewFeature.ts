@@ -9,6 +9,7 @@ import { AppReviewGitPullWatcher } from "./appReviewGitPullWatcher";
 import { ReviewMermaidSyncTreeProvider } from "./reviewMermaidSyncTreeProvider";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
 import { AppReviewScmSync, resolveReviewCommandTarget } from "./appReviewScmSync";
+import analytics from "./analytics";
 
 /**
  * Facade that owns all app review sub-components and wires them together.
@@ -123,6 +124,7 @@ export class AppReviewFeature implements vscode.Disposable {
 
     this.integration.notifyReviewMappingsChanged();
     if (accepted > 0) {
+      analytics.trackReviewSyncAcceptAll();
       vscode.window.showInformationMessage(
         `Accepted Mermaid Sync changes for ${accepted} diagram file(s).`,
       );
@@ -162,6 +164,7 @@ export class AppReviewFeature implements vscode.Disposable {
 
     this.integration.notifyReviewMappingsChanged();
     if (rejected > 0) {
+      analytics.trackReviewSyncRejectAll();
       vscode.window.showInformationMessage(
         `Rejected Mermaid Sync changes for ${rejected} diagram file(s).`,
       );
@@ -179,10 +182,16 @@ export class AppReviewFeature implements vscode.Disposable {
       return;
     }
 
+    if (this.integration.getReviewMappings().size === 0) {
+      vscode.window.showInformationMessage("No diagrams in review.");
+      return;
+    }
+
     await this.diffViewProvider.openAllReviewChanges({
       multiDiffSourceUri: this.reviewScmSync.ensureForMultiDiff(),
       onMultiDiffClosed: () => this.reviewScmSync.releaseMultiDiff(),
     });
+    analytics.trackReviewSyncOpenChanges();
   }
 
   private async closeAllInReview(): Promise<void> {

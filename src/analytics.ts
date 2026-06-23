@@ -68,6 +68,27 @@ class Analytics {
     );
   }
 
+  public trackReviewSyncOpenChanges() {
+    this.sendEvent(
+      "VS Code Mermaid Sync Review Open Changes",
+      "VS_CODE_PLUGIN_MERMAID_SYNC_REVIEW_OPEN_CHANGES",
+    );
+  }
+
+  public trackReviewSyncAcceptAll() {
+    this.sendEvent(
+      "VS Code Mermaid Sync Review Accept All",
+      "VS_CODE_PLUGIN_MERMAID_SYNC_REVIEW_ACCEPT_ALL",
+    );
+  }
+
+  public trackReviewSyncRejectAll() {
+    this.sendEvent(
+      "VS Code Mermaid Sync Review Reject All",
+      "VS_CODE_PLUGIN_MERMAID_SYNC_REVIEW_REJECT_ALL",
+    );
+  }
+
   // Generate diagram from code
   public trackOpenCopilotChat() {
     this.sendEvent(

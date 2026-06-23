@@ -17,12 +17,21 @@ import { v4 as uuid } from "uuid";
 import { PromiseAdapter, promiseFromEvent } from "./util";
 import { MermaidChartVSCode } from "./mermaidChartVSCode";
 import analytics from "./analytics";
+import { handleReviewDeepLink } from "./commercial/prReview/reviewDeepLink";
 
 const utmSource = 'mermaid_chart_vs_code';
 const utmCampaign = "VSCode extension";
 
 class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
   public handleUri(uri: Uri) {
+    // VS Code allows a single URI handler per extension. OAuth callbacks land on
+    // the root path; the PR-review deep link uses `/review`. Route the latter to
+    // the reviewer and leave the OAuth code-exchange flow (the fired event)
+    // untouched.
+    if (uri.path === "/review" || uri.path.startsWith("/review/")) {
+      void handleReviewDeepLink(uri);
+      return;
+    }
     this.fire(uri);
   }
 }

@@ -46,7 +46,8 @@
   "activationEvents": [
     "onLanguage",
     "onView:mermaidSyncPendingReview",
-    "onView:mermaidSyncConfig"
+    "onView:mermaidSyncConfig",
+    "onUri"
   ],
   "main": "./out/extension.js",
   "contributes": {

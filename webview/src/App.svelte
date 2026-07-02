@@ -164,16 +164,6 @@
         }
         errorMessage = "";
         
-        // Save current panzoom state before re-rendering
-        const currentScale = panzoomInstance?.getScale() || 1;
-        const currentPan = panzoomInstance?.getPan() || { x: 0, y: 0 };
-
-        // Destroy existing panzoom instance to prevent conflicts
-        if (panzoomInstance) {
-          panzoomInstance.destroy();
-          panzoomInstance = null;
-        }
-        
         const { svg } = await mermaid.render("diagram-graph", diagramContent);
         element.innerHTML = svg;
         if (theme?.includes("dark")) {
@@ -233,12 +223,17 @@
             element.removeEventListener("wheel", wheelHandler);
           }
 
-          // Always create a new panzoom instance after re-rendering
-          panzoomInstance = Panzoom(element, {
-            maxScale: maxZoomLevel,
-            minScale: 0.5,
-            contain: "outside",
-          });
+          if (!panzoomInstance) {
+            // First render — create the panzoom instance.
+            // On subsequent renders we intentionally reuse the existing instance so
+            // that the CSS transform on the container (which panzoom manages) is
+            // preserved through innerHTML updates, keeping the user's pan/zoom position.
+            panzoomInstance = Panzoom(element, {
+              maxScale: maxZoomLevel,
+              minScale: 0.5,
+              contain: "outside",
+            });
+          }
 
           wheelHandler = (event) => {
             panzoomInstance?.zoomWithWheel(event);
@@ -250,17 +245,6 @@
           panzoomInstance.setOptions({ maxScale: maxZoomLevel, disablePan: !panEnabled });
 
           updateZoomLevel();
-
-          // Restore zoom/pan state; clamp scale so a prior lower cap can't "stick"
-          const clampedScale = Math.min(Math.max(currentScale, 0.5), maxZoomLevel);
-          setTimeout(() => {
-            if (panzoomInstance) {
-              panzoomInstance.zoom(clampedScale, { animate: false });
-              panzoomInstance.pan(currentPan.x, currentPan.y, { animate: false });
-              updateZoomLevel();
-            }
-          }, 50);
-
           updateCursorStyle();
         }
         if(hasErrorOccured){

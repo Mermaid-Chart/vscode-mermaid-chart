@@ -4,6 +4,7 @@ import { MermaidChartProvider, MCTreeItem, Document, getDiagramFromCache, getPro
 import { createMermaidFile } from './commands/createFile';
 import { ensureIdField } from './frontmatter';
 import { getDiagramTemplates } from './util';
+import analytics from './analytics';
 
 /**
  * Handles diagram management operations like rename and delete
@@ -82,6 +83,7 @@ export class DiagramManager {
         // Refresh the tree view
         this.provider.refresh();
 
+        analytics.trackDiagramRenamed();
         vscode.window.showInformationMessage(`Diagram renamed to "${newTitle.trim()}" successfully.`);
       });
     } catch (error: any) {
@@ -129,6 +131,7 @@ export class DiagramManager {
         // This ensures consistency with the server state
         await this.provider.syncMermaidChart();
 
+        analytics.trackDiagramDeleted();
         vscode.window.showInformationMessage(`Diagram "${diagramTitle}" deleted successfully.`);
       });
     } catch (error: any) {
@@ -185,6 +188,7 @@ export class DiagramManager {
         // Refresh the tree view to show the new diagram
         await this.provider.syncMermaidChart();
 
+        analytics.trackDiagramDuplicated();
         vscode.window.showInformationMessage(`Diagram duplicated as "${duplicateTitle}" successfully.`);
       });
     } catch (error: any) {
@@ -308,7 +312,7 @@ export class DiagramManager {
         if (editor) {
           // Refresh the tree view to show the new diagram
           await this.provider.syncMermaidChart();
-          
+          analytics.trackDiagramAdded();
           vscode.window.showInformationMessage(
             `Diagram "${finalName}" created successfully. Edit and save to sync with Mermaid Chart.`
           );
@@ -366,6 +370,7 @@ export class DiagramManager {
     }
 
     try {
+      analytics.trackViewDiagram();
       await vscode.commands.executeCommand('mermaidChart.viewMermaidChart', item.uuid);
     } catch (error: any) {
       console.error('Error viewing diagram:', error);
@@ -400,6 +405,7 @@ export class DiagramManager {
     }
 
     try {
+      analytics.trackEditDiagramInMermaidChart();
       await vscode.commands.executeCommand('extension.editMermaidChart', item.uuid);
     } catch (error: any) {
       console.error('Error editing diagram in Mermaid Chart:', error);
@@ -417,6 +423,7 @@ export class DiagramManager {
     }
 
     try {
+      analytics.trackEditDiagramLocally();
       await vscode.commands.executeCommand('mermaidChart.editLocally', item.uuid);
     } catch (error: any) {
       console.error('Error editing diagram locally:', error);

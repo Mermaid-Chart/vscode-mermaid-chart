@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 import { MermaidChartVSCode } from "../mermaidChartVSCode";
+import analytics from "../analytics";
 
 export class RepairDiagram {
   private static mcAPI: MermaidChartVSCode;
@@ -29,6 +30,7 @@ export class RepairDiagram {
         title: "Repairing diagram with AI...",
         cancellable: false
       }, async () => {
+        analytics.trackRepairDiagramInvoked();
         // Call the AI repair API
         const response = await RepairDiagram.mcAPI!.repairDiagram({
           code: originalCode,

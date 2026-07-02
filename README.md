@@ -546,6 +546,9 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 2.7.2 - 2026-07-2
+- Resolved an issue where zoom reset after changing text.
+
 ### 2.7.1 - 2026-06-23
 - Added **Mermaid Sync Review List** — sidebar listing all bot-updated diagrams with **M** / **A** / **R** badges, per-file accept/reject/close, and bulk **Accept All**, **Reject All**, **Close Review**, and **Open Changes** (login required for bulk actions).
 

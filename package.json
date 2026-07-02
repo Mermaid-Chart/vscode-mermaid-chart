@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid",
   "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.7.1",
+  "version": "2.7.2",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -1276,7 +1276,7 @@
     "@octokit/rest": "^22.0.0",
     "axios": "^1.7.9",
     "markdown-it": "^14.1.0",
-    "@mermaid-chart/mermaid": "11.14.0-b.2",
+    "@mermaid-chart/mermaid": "11.16.0-b.1",
     "@mermaid-js/examples": "0.0.1-beta.1",
     "uuid": "^9.0.0",
     "yaml": "^2.7.0",

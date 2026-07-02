@@ -110,6 +110,71 @@ class Analytics {
       "VS_CODE_PLUGIN_IMPROVE_DIAGRAM",
     );
   }
+
+  public trackRepairDiagramInvoked() {
+    this.sendEvent(
+      "VS Code Repair Diagram Invoked",
+      "VS_CODE_PLUGIN_REPAIR_DIAGRAM",
+    );
+  }
+
+  // Diagram management
+  public trackDiagramRenamed() {
+    this.sendEvent(
+      "VS Code Diagram Renamed",
+      "VS_CODE_PLUGIN_DIAGRAM_RENAMED",
+    );
+  }
+
+  public trackDiagramDeleted() {
+    this.sendEvent(
+      "VS Code Diagram Deleted",
+      "VS_CODE_PLUGIN_DIAGRAM_DELETED",
+    );
+  }
+
+  public trackDiagramDuplicated() {
+    this.sendEvent(
+      "VS Code Diagram Duplicated",
+      "VS_CODE_PLUGIN_DIAGRAM_DUPLICATED",
+    );
+  }
+
+  public trackDiagramAdded() {
+    this.sendEvent(
+      "VS Code Diagram Added",
+      "VS_CODE_PLUGIN_DIAGRAM_ADDED",
+    );
+  }
+
+  public trackViewDiagram() {
+    this.sendEvent(
+      "VS Code View Diagram In Mermaid Chart",
+      "VS_CODE_PLUGIN_VIEW_DIAGRAM",
+    );
+  }
+
+  public trackEditDiagramInMermaidChart() {
+    this.sendEvent(
+      "VS Code Edit Diagram In Mermaid Chart",
+      "VS_CODE_PLUGIN_EDIT_DIAGRAM_IN_MERMAID_CHART",
+    );
+  }
+
+  public trackEditDiagramLocally() {
+    this.sendEvent(
+      "VS Code Edit Diagram Locally",
+      "VS_CODE_PLUGIN_EDIT_DIAGRAM_LOCALLY",
+    );
+  }
+
+  // File sync / connect
+  public trackConnectDiagramToMermaidChart() {
+    this.sendEvent(
+      "VS Code Connect Diagram To Mermaid Chart",
+      "VS_CODE_PLUGIN_CONNECT_DIAGRAM",
+    );
+  }
 }
 
 

@@ -460,6 +460,7 @@ context.subscriptions.push(
 
       if (editor) {
         syncAuxFile(editor.document.uri.toString(), uri, range);
+        analytics.trackConnectDiagramToMermaidChart();
       }
     } catch (error) {
       if (error instanceof Error ) {
@@ -684,6 +685,7 @@ context.subscriptions.push(
     });
 
     PreviewPanel.createOrShow(document);
+    analytics.trackConnectDiagramToMermaidChart();
     vscode.window.showInformationMessage(`Diagram connected successfully with Mermaid chart.`);
     }   catch(error) {
       if (error instanceof Error ) {

@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 import { MermaidChart } from "@mermaidchart/sdk";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
-import { defaultBaseURL, updateViewVisibility } from "./util";
+import { defaultBaseURL } from "./config";
+import { updateViewVisibility } from "./util";
 import { MermaidWebviewProvider } from "./panels/loginPanel";
 import { MermaidChartProvider } from "./mermaidChartProvider";
 

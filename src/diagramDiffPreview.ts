@@ -3,6 +3,8 @@ import * as packageJson from "../package.json";
 import { getThemeColors } from "../webview/src/themes/themeConfig";
 import { PreviewPanel } from "./panels/previewPanel";
 import { RepairDiagram } from "./panels/repairDiagram";
+import analytics from "./analytics";
+import { setPendingLoginTrigger } from "./loginTrigger";
 import { saveDiagramAsPng, saveDiagramAsSvg } from "./services/renderService";
 import { getWebviewHTML } from "./templates/previewTemplate";
 
@@ -90,7 +92,10 @@ function wireDiffPreviewMessages(
         postAuth(panel, await loadAuthForDiffPreview());
       } else if (message.type === "login") {
         try {
-          await vscode.commands.executeCommand("mermaidChart.login");
+          analytics.trackSignInPromptShown('preview-repair');
+          analytics.trackSignInPromptClicked('preview-repair');
+          setPendingLoginTrigger('preview-repair');
+          await vscode.commands.executeCommand("mermaidChart.login", 'preview-repair');
           setTimeout(() => {
             void loadAuthForDiffPreview().then((auth) => postAuth(panel, auth));
           }, 1000);

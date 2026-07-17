@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { defaultBaseURL } from './util';
+import { defaultBaseURL } from "./config";
 
 const httpClient: AxiosInstance = axios.create({
   baseURL: defaultBaseURL,

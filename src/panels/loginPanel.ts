@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import { generateWebviewContent } from "../templates/loginTemplate";
 import { generateAuthOptionsContent } from "../templates/authOptionsTemplate";
+import analytics from "../analytics";
+import { setPendingLoginTrigger } from "../loginTrigger";
 
 type ViewState = 'login' | 'authOptions';
 
@@ -27,14 +29,15 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.command) {
         case "signIn":
-          // Show auth options instead of directly logging in
+          analytics.trackSignInPromptShown('mermaid-sidebar');
           this.currentState = 'authOptions';
           this.updateWebviewContent();
           break;
-          
+
         case "startOAuthFlow":
-          // Start the existing OAuth flow
-          vscode.commands.executeCommand("mermaidChart.login");
+          analytics.trackSignInPromptClicked('mermaid-sidebar');
+          setPendingLoginTrigger('mermaid-sidebar');
+          vscode.commands.executeCommand("mermaidChart.login", 'mermaid-sidebar');
           break;
           
         case "validateManualToken":
@@ -93,7 +96,7 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
           cancellable: false,
         },
         async () => {
-          // Trigger manual token validation command
+          setPendingLoginTrigger('mermaid-sidebar');
           await vscode.commands.executeCommand("mermaidChart.validateManualToken", token.trim());
         }
       );

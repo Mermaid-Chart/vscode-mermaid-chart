@@ -5,6 +5,7 @@ import { createMermaidFile } from './commands/createFile';
 import { ensureIdField } from './frontmatter';
 import { getDiagramTemplates } from './util';
 import analytics from './analytics';
+import { showUpgradePrompt } from './upgradePricing';
 
 /**
  * Handles diagram management operations like rename and delete
@@ -196,14 +197,10 @@ export class DiagramManager {
       
       // Check if this is a 402 Payment Required error (free account limit exceeded)
       if (error?.status === 402 || error?.response?.status === 402) {
-        vscode.window.showErrorMessage(
+        await showUpgradePrompt(
+          'duplicate_diagram',
           'Unable to create duplicate diagram. You have reached the diagram limit for your free account. Please upgrade your Mermaid Chart subscription to create more diagrams.',
-          'Upgrade Subscription'
-        ).then(selection => {
-          if (selection === 'Upgrade Subscription') {
-            vscode.env.openExternal(vscode.Uri.parse('https://www.mermaidchart.com/pricing'));
-          }
-        });
+        );
       } else {
         // Show generic error message for other errors
         vscode.window.showErrorMessage(`Failed to duplicate diagram: ${error.message || error}`);
@@ -325,14 +322,10 @@ export class DiagramManager {
       
       // Check if this is a 402 Payment Required error (free account limit exceeded)
       if (error?.status === 402 || error?.response?.status === 402) {
-        vscode.window.showErrorMessage(
+        await showUpgradePrompt(
+          'add_diagram',
           'Unable to create diagram. You have reached the diagram limit for your free account. Please upgrade your Mermaid Chart subscription to create more diagrams.',
-          'Upgrade Subscription'
-        ).then(selection => {
-          if (selection === 'Upgrade Subscription') {
-            vscode.env.openExternal(vscode.Uri.parse('https://www.mermaidchart.com/pricing'));
-          }
-        });
+        );
       } else {
         // Show generic error message for other errors
         vscode.window.showErrorMessage(`Failed to create diagram: ${error.message || error}`);

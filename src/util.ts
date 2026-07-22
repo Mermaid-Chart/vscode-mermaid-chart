@@ -16,8 +16,8 @@ const activeListeners = new Map<string, vscode.Disposable>();
 const REOPEN_CHECK_DELAY_MS = 500; // Delay before checking if temp file is reopened
 import { MermaidWebviewProvider } from "./panels/loginPanel";
 import { getSampleDiagrams } from "./constants/diagramTemplates";
-const config = vscode.workspace.getConfiguration();
-export const defaultBaseURL = config.get<string>('mermaidChart.baseUrl', 'https://mermaid.ai');
+import type { LoginTrigger } from "./analytics";
+import { promptForLogin } from "./loginTrigger";
 const DARK_BACKGROUND = "rgba(176, 19, 74, 0.5)"; // #B0134A with 50% opacity
 const LIGHT_BACKGROUND = "#FDE0EE";
 const DARK_COLOR = "#FFFFFF";
@@ -261,24 +261,11 @@ export function getImageDataURL(svgXml: string) {
 }
 
 
-export async function ensureAuthenticated(): Promise<boolean> {
-  const session = await vscode.authentication.getSession(
-    MermaidChartAuthenticationProvider.id,
-    [],
-    { silent: true }
+export async function ensureAuthenticated(trigger: LoginTrigger = 'connect-diagram'): Promise<boolean> {
+  return promptForLogin(
+    trigger,
+    "You need to be logged in to perform this action.",
   );
-
-  if (!session) {
-    const selection = await vscode.window.showInformationMessage(
-      "You need to be logged in to perform this action.",
-      "Login"
-    );
-    if (selection === "Login") {
-      vscode.commands.executeCommand("mermaidChart.login");
-    }
-    return false;
-  }
-  return true;
 }
 
 export async function viewMermaidChart(

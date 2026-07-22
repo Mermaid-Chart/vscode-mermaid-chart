@@ -7,7 +7,7 @@ import { AppReviewCodeLensProvider } from "./appReviewCodeLensProvider";
 import { AppCommitWorkflow } from "./appCommitWorkflow";
 import { AppReviewGitPullWatcher } from "./appReviewGitPullWatcher";
 import { ReviewMermaidSyncTreeProvider } from "./reviewMermaidSyncTreeProvider";
-import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
+import { promptForLogin } from "./loginTrigger";
 import { AppReviewScmSync, resolveReviewCommandTarget } from "./appReviewScmSync";
 import analytics from "./analytics";
 
@@ -70,31 +70,11 @@ export class AppReviewFeature implements vscode.Disposable {
   }
 
   private async ensureMermaidLogin(): Promise<boolean> {
-    const session = await vscode.authentication.getSession(
-      MermaidChartAuthenticationProvider.id,
-      [],
-      { silent: true },
-    );
-    if (session) {
-      return true;
-    }
-
-    const pick = await vscode.window.showInformationMessage(
+    return promptForLogin(
+      'review-bulk-action',
       "Sign in to Mermaid Chart to use Review Mermaid Sync actions.",
-      { modal: true },
       "Sign in",
     );
-    if (pick !== "Sign in") {
-      return false;
-    }
-
-    await vscode.commands.executeCommand("mermaidChart.login");
-    const afterLogin = await vscode.authentication.getSession(
-      MermaidChartAuthenticationProvider.id,
-      [],
-      { silent: true },
-    );
-    return !!afterLogin;
   }
 
   private async acceptAllInReview(): Promise<void> {

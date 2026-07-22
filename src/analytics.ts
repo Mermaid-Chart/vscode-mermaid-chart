@@ -1,21 +1,34 @@
 import httpClient from './httpClient';
 import * as vscode from "vscode";
 import * as packageJson from '../package.json';
+
+export type LoginTrigger = 'mermaid-sidebar' | 'preview-repair' | 'pre-commit' | 'review-bulk-action' | 'connect-diagram';
+export type UpgradeFeature = 'repair' | 'regenerate' | 'add_diagram' | 'duplicate_diagram' | 'connect_diagram';
+
+export interface PulseEventOptions {
+  errorMessage?: string;
+  diagramType?: string;
+  status?: 'ok' | 'failed';
+  trigger?: LoginTrigger;
+  feature?: UpgradeFeature;
+  pluginSource?: 'vsCode';
+  source?: 'login' | 'signup';
+}
+
 class Analytics {
 
-  public sendEvent(eventName: string, eventID:string, errorMessage?: string, diagramType?:string) {
+  public sendEvent(eventName: string, eventID: string, options?: PulseEventOptions) {
     if (!vscode.env.isTelemetryEnabled) {
       return;
     }
     const analyticsID = vscode.env.machineId;
-    const pluginID= packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
+    const pluginID = packageJson.name === "vscode-mermaid-chart" ? "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
     const payload = {
       analyticsID,
       pluginID,
       eventName,
       eventID,
-      errorMessage,
-      diagramType
+      ...options,
     };
 
     httpClient.post('/rest-api/plugins/pulse', payload).catch(error => {
@@ -23,12 +36,11 @@ class Analytics {
     });
   }
 
-
-  public trackException(error: any) {
+  public trackException(error: unknown) {
     if (error instanceof Error) {
-      this.sendEvent('VS Code Extension Exception', 'VS_CODE_PLUGIN_EXCEPTION', error.message);
+      this.sendEvent('VS Code Extension Exception', 'VS_CODE_PLUGIN_EXCEPTION', { errorMessage: error.message });
     } else {
-      this.sendEvent('VS Code Extension Exception','VS_CODE_PLUGIN_EXCEPTION', "Unknown error occurred");
+      this.sendEvent('VS Code Extension Exception','VS_CODE_PLUGIN_EXCEPTION', { errorMessage: "Unknown error occurred" });
     }
   }
 
@@ -40,12 +52,58 @@ class Analytics {
     this.sendEvent('VS Code User Logged Out','VS_CODE_PLUGIN_LOGOUT');
   }
 
+  // Login funnel — recorded here :
+  //   Shown / Clicked / Completed, each with `trigger` (e.g. preview-repair, mermaid-sidebar).
+  // Collab records new sign-ups only: event `SIGN_UP` when user creates an account via OAuth.
+  //   OAuth URL carries utm_source=mermaid_chart_vs_code, utm_campaign=<trigger>.
+  //   SIGN_UP includes pluginSource=vsCode, trigger, origin. Not fired for returning logins.
+  public trackSignInPromptShown(trigger: LoginTrigger) {
+    this.sendEvent('VS Code Sign-In Prompt Shown', 'VS_CODE_PLUGIN_SIGN_IN_PROMPT_SHOWN', {
+      trigger,
+      pluginSource: 'vsCode',
+    });
+  }
+
+  public trackSignInPromptClicked(trigger: LoginTrigger) {
+    this.sendEvent('VS Code Sign-In Prompt Clicked', 'VS_CODE_PLUGIN_SIGN_IN_PROMPT_CLICKED', {
+      trigger,
+      pluginSource: 'vsCode',
+    });
+  }
+
+  public trackSignInCompleted(trigger: LoginTrigger) {
+    this.sendEvent('VS Code Sign-In Completed', 'VS_CODE_PLUGIN_SIGN_IN_COMPLETED', {
+      trigger,
+      pluginSource: 'vsCode',
+      source: 'login',
+    });
+  }
+
+  // Upgrade funnel —  Prompt Shown and Prompt Clicked, each with `feature` (e.g. repair, regenerate).
+  // Click opens /app/user/billing with utm_source=mermaid_chart_vs_code, utm_medium=vscode_upgrade,
+  //   utm_campaign=<feature>.
+  // Collab records actual conversion: event `PAID_CONVERSION` after Stripe payment succeeds.
+  //   Fires when campaignSrc=mermaid_chart_vs_code; includes `feature` from utm_campaign above.
+  public trackUpgradePromptShown(feature: UpgradeFeature) {
+    this.sendEvent('VS Code Upgrade Prompt Shown', 'VS_CODE_PLUGIN_UPGRADE_PROMPT_SHOWN', {
+      feature,
+      pluginSource: 'vsCode',
+    });
+  }
+
+  public trackUpgradePromptClicked(feature: UpgradeFeature) {
+    this.sendEvent('VS Code Upgrade Prompt Clicked', 'VS_CODE_PLUGIN_UPGRADE_PROMPT_CLICKED', {
+      feature,
+      pluginSource: 'vsCode',
+    });
+  }
+
   public trackAIChatInvocation() {
     this.sendEvent('VS Code AI Chat Participant Invoked','VS_CODE_PLUGIN_AI_CHAT_INVOCATION');
   }
   
   public trackAIGeneratedDiagram(diagramType: string) {
-    this.sendEvent(`VS Code AI Chat Generated Diagram`, 'VS_CODE_PLUGIN_AI_CHAT_GENERATE_DIAGRAM', undefined, diagramType);
+    this.sendEvent('VS Code AI Chat Generated Diagram','VS_CODE_PLUGIN_AI_CHAT_GENERATE_DIAGRAM', { diagramType });
   }
   
   public trackRegenerateCommandInvoked() {
@@ -111,11 +169,8 @@ class Analytics {
     );
   }
 
-  public trackRepairDiagramInvoked() {
-    this.sendEvent(
-      "VS Code Repair Diagram Invoked",
-      "VS_CODE_PLUGIN_REPAIR_DIAGRAM",
-    );
+  public trackRepairDiagram(status: 'ok' | 'failed') {
+    this.sendEvent('VS Code Repair Diagram', 'VS_CODE_PLUGIN_REPAIR_DIAGRAM', { status });
   }
 
   // Diagram management
@@ -177,5 +232,4 @@ class Analytics {
   }
 }
 
-
-export default new Analytics(); 
+export default new Analytics();

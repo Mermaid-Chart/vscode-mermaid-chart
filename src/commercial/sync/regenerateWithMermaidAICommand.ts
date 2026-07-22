@@ -3,6 +3,7 @@ import * as path from 'path';
 import { addMetadataToFrontmatter, splitFrontMatter, extractMetadataFromCode } from '../../frontmatter';
 import { MermaidChartAuthenticationProvider } from '../../mermaidChartAuthenticationProvider';
 import type { MermaidChartVSCode } from '../../mermaidChartVSCode';
+import { showUpgradePrompt } from '../../upgradePricing';
 
 /** Extracts clean Mermaid code from a markdown response that may contain a ```mermaid block. */
 function extractMermaidCode(markdownText: string): string {
@@ -89,8 +90,10 @@ export function registerRegenerateWithMermaidAICommand(
               const isCreditsError =
                 error instanceof Error && error.name === 'AICreditsLimitExceededError';
               if (isCreditsError) {
-                vscode.window.showErrorMessage(
+                await showUpgradePrompt(
+                  'regenerate',
                   'Mermaid AI credits limit exceeded. Please check your account at mermaid.ai.',
+                  'Upgrade Subscription',
                 );
               } else {
                 vscode.window.showErrorMessage(

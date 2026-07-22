@@ -5,6 +5,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { extractMetadataFromCode } from '../../frontmatter';
 import { MermaidChartAuthenticationProvider } from '../../mermaidChartAuthenticationProvider';
+import { setPendingLoginTrigger } from '../../loginTrigger';
 import type { MermaidChartVSCode } from '../../mermaidChartVSCode';
 import analytics from '../../analytics';
 
@@ -432,6 +433,7 @@ export class PreCommitSyncService {
       .join('\n');
 
     if (!session) {
+      analytics.trackSignInPromptShown('pre-commit');
       const pick = await vscode.window.showInformationMessage(
         `Pre-commit Mermaid Diagram Sync: Staged changes may affect diagrams\n\n${fileLines}\n\nYou are not signed in to Mermaid Chart. Sign in to regenerate diagrams using Mermaid AI.\n\nTo disable this check: Settings → Mermaid Chart: Pre Commit Sync Enabled`,
         { modal: false },
@@ -439,7 +441,9 @@ export class PreCommitSyncService {
         'Discard',
       );
       if (pick === 'Login to Mermaid Chart') {
-        await mcAPI.login();
+        analytics.trackSignInPromptClicked('pre-commit');
+        setPendingLoginTrigger('pre-commit');
+        await vscode.commands.executeCommand('mermaidChart.login', 'pre-commit');
       }
       return;
     }

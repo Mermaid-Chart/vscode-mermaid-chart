@@ -17,9 +17,9 @@ import { v4 as uuid } from "uuid";
 import { PromiseAdapter, promiseFromEvent } from "./util";
 import { MermaidChartVSCode } from "./mermaidChartVSCode";
 import analytics from "./analytics";
+import { consumePendingLoginTrigger, getPendingLoginTrigger } from "./loginTrigger";
 
 const utmSource = 'mermaid_chart_vs_code';
-const utmCampaign = "VSCode extension";
 
 class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
   public handleUri(uri: Uri) {
@@ -149,6 +149,9 @@ export class MermaidChartAuthenticationProvider
       });
 
       window.showInformationMessage(`Signed in with ${session.account.id}`);
+      const trigger = consumePendingLoginTrigger();
+      analytics.trackSignInCompleted(trigger);
+      analytics.trackLogin();
       return session;
     } catch (e) {
       window.showErrorMessage(`Sign in failed: ${e}`);
@@ -203,12 +206,15 @@ export class MermaidChartAuthenticationProvider
         cancellable: true,
       },
       async (_, token) => {
+        const loginTrigger = getPendingLoginTrigger();
         const authData = await this.mcAPI.getAuthorizationData({
           scope: scopes,
           trackingParams: {
             utm_source: utmSource,
             utm_medium: env.uriScheme,
-            utm_campaign: utmCampaign,
+            utm_campaign: loginTrigger,
+            // utm_campaign carries the login trigger (mermaid-sidebar, preview-repair, pre-commit, etc.) for collab
+            // SIGN_UP attribution — not a marketing campaign name.
           },
         });
         const uri = Uri.parse(authData.url);

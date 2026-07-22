@@ -3,6 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { MermaidChartVSCode } from "../mermaidChartVSCode";
 import analytics from "../analytics";
+import { showUpgradePrompt } from "../upgradePricing";
 
 export class RepairDiagram {
   private static mcAPI: MermaidChartVSCode;
@@ -30,7 +31,6 @@ export class RepairDiagram {
         title: "Repairing diagram with AI...",
         cancellable: false
       }, async () => {
-        analytics.trackRepairDiagramInvoked();
         // Call the AI repair API
         const response = await RepairDiagram.mcAPI!.repairDiagram({
           code: originalCode,
@@ -38,6 +38,7 @@ export class RepairDiagram {
         });
 
         if (response && response.result === 'ok' && response.code) {
+          analytics.trackRepairDiagram('ok');
           // Extract clean mermaid code from markdown response
           const cleanedCode = RepairDiagram.extractMermaidCode(response.code);
           
@@ -61,17 +62,25 @@ export class RepairDiagram {
             await RepairDiagram.showDiffView(originalCode, cleanedCode, document);
           }
         } else if (response && response.result === 'fail') {
+          analytics.trackRepairDiagram('failed');
           vscode.window.showErrorMessage("AI could not generate a valid repair for this diagram. Please try fixing it manually.");
         } else {
+          analytics.trackRepairDiagram('failed');
           vscode.window.showErrorMessage("Failed to repair diagram. Please try again.");
         }
       });
     } catch (error: any) {
+      analytics.trackRepairDiagram('failed');
       console.error("Error repairing diagram:", error);
       let errorMsg = "Failed to repair diagram.";
       
       if (error.message?.includes("402")) {
         errorMsg = "AI credits limit exceeded. Please check your Mermaid Chart subscription.";
+        await showUpgradePrompt(
+          'repair',
+          errorMsg,
+        );
+        return;
       } else if (error.message?.includes("401") || error.message?.includes("403")) {
         errorMsg = "Please log in to Mermaid Chart to use AI repair feature.";
       } else if (error.message) {

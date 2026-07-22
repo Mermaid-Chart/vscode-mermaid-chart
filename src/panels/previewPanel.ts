@@ -6,6 +6,8 @@ import * as packageJson from "../../package.json";
 import { saveDiagramAsPng, saveDiagramAsSvg } from "../services/renderService";
 import { MermaidChartVSCode } from "../mermaidChartVSCode";
 import { RepairDiagram } from "./repairDiagram";
+import analytics from "../analytics";
+import { setPendingLoginTrigger } from "../loginTrigger";
 import { MermaidChartAuthenticationProvider } from "../mermaidChartAuthenticationProvider";
 import { getThemeColors } from "../../webview/src/themes/themeConfig";
 const DARK_THEME_KEY = "mermaid.vscode.dark";
@@ -242,9 +244,11 @@ export class PreviewPanel {
         await this.handleRepairDiagram(message.code, message.errorMessage);
       } else if (message.type === "requestAICredits") {
         await this.fetchAndSendCredits();      } else if (message.type === "login") {
-        // Trigger OAuth login flow
         try {
-          await vscode.commands.executeCommand('mermaidChart.login');
+          analytics.trackSignInPromptShown('preview-repair');
+          analytics.trackSignInPromptClicked('preview-repair');
+          setPendingLoginTrigger('preview-repair');
+          await vscode.commands.executeCommand('mermaidChart.login', 'preview-repair');
           // Refresh authentication status and credits after login attempt
           setTimeout(async () => {
             await this.refreshAICredits();

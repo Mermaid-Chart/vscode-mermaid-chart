@@ -35,7 +35,7 @@ export async function repairActiveDiagram(): Promise<void> {
     );
     return;
   } catch (err) {
-    if (!(await ensureAuthenticated())) {
+    if (!(await ensureAuthenticated('preview-repair'))) {
       return;
     }
     const errorText = err instanceof Error ? err.message : String(err);

@@ -38,7 +38,9 @@ import { getSnippetsBasedOnDiagram } from "./constants/condSnippets";
 import { ensureIdField, extractIdFromCode, getFirstWordFromDiagram, normalizeMermaidText } from "./frontmatter";
 import { customErrorMessage } from "./constants/errorMessages";
 import { MermaidWebviewProvider } from "./panels/loginPanel";
-import analytics from "./analytics";
+import analytics, { type LoginTrigger } from "./analytics";
+import { setPendingLoginTrigger } from "./loginTrigger";
+import { showUpgradePrompt } from "./upgradePricing";
 import { RemoteSyncHandler } from "./remoteSyncHandler";
 import { registerRegenerateCommand } from './commercial/sync/regenerateCommand';
 import { registerRegenerateWithMermaidAICommand } from './commercial/sync/regenerateWithMermaidAICommand';
@@ -134,17 +136,19 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   
   context.subscriptions.push(
-    vscode.commands.registerCommand('mermaidChart.login', async () => {
+    vscode.commands.registerCommand('mermaidChart.login', async (trigger?: LoginTrigger) => {
+      if (trigger) {
+        setPendingLoginTrigger(trigger);
+      }
       await mcAPI.login();
-      analytics.trackLogin();
     })
   );
 
   // Add manual token validation command
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.validateManualToken', async (token: string) => {
+      setPendingLoginTrigger('mermaid-sidebar');
       await mcAPI.loginWithToken(token);
-      analytics.trackLogin();
     })
   );
 
@@ -410,7 +414,7 @@ context.subscriptions.push(
  
 context.subscriptions.push(
   vscode.commands.registerCommand('mermaid.connectDiagram', async (uri: vscode.Uri, range: vscode.Range) => {
-    if (!(await ensureAuthenticated())) {
+    if (!(await ensureAuthenticated('connect-diagram'))) {
       return;
     }
     const document = await vscode.workspace.openTextDocument(uri);
@@ -467,7 +471,14 @@ context.subscriptions.push(
       if (error instanceof Error ) {
         const errMessage = error.message; 
         const matchedError = Object.keys(customErrorMessage).find((key) =>errMessage.includes(key));
-        vscode.window.showErrorMessage(matchedError ? customErrorMessage[matchedError] : `Error: ${errMessage}`);
+        if (errMessage.includes('402')) {
+          await showUpgradePrompt(
+            'connect_diagram',
+            matchedError ? customErrorMessage[matchedError] : errMessage,
+          );
+        } else {
+          vscode.window.showErrorMessage(matchedError ? customErrorMessage[matchedError] : `Error: ${errMessage}`);
+        }
         } else {
         vscode.window.showErrorMessage("Unknown error occurred.");
         }
@@ -614,7 +625,7 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
 
 context.subscriptions.push(
   vscode.commands.registerCommand('mermaidChart.connectDiagramToMermaidChart', async () => {
-    if (!(await ensureAuthenticated())) {
+    if (!(await ensureAuthenticated('connect-diagram'))) {
       return;
     }
 
@@ -692,7 +703,14 @@ context.subscriptions.push(
       if (error instanceof Error ) {
         const errMessage = error.message;
         const matchedError = Object.keys(customErrorMessage).find((key) =>errMessage.includes(key));
-        vscode.window.showErrorMessage(matchedError ? customErrorMessage[matchedError] : `Error: ${errMessage}`);
+        if (errMessage.includes('402')) {
+          await showUpgradePrompt(
+            'connect_diagram',
+            matchedError ? customErrorMessage[matchedError] : errMessage,
+          );
+        } else {
+          vscode.window.showErrorMessage(matchedError ? customErrorMessage[matchedError] : `Error: ${errMessage}`);
+        }
         } else {
         vscode.window.showErrorMessage("Unknown error occurred.");
         }

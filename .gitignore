@@ -8,3 +8,4 @@ node_modules
 webview/.npmrc
 dist-preview
 dist-sidebar
+.github

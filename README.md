@@ -23,6 +23,7 @@ Transform ideas into diagrams instantly with our AI integration! Our extension n
 - **AI-Powered Sequence Diagrams**: Generate execution sequence diagrams from your modular code, showing interactions between components, classes, and methods
 - **AI-Powered C4 Architecture Diagrams**: Generate top-down C4 architecture diagrams from your codebase, visualizing system components and their relationships
 - **AI-Powered Generate Diagram from Code**: Generate flowcharts, class diagrams, sequence diagrams, and more directly from your source code files
+- **Mermaid AI Skills for GitHub Copilot**: Install workspace instructions so Copilot can call Mermaid extension commands (preview, repair, generate, sync, and more) when you need them
 
 > **Note**<br/>
 > To use the AI diagramming feature, you must have the [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) extension installed.
@@ -513,6 +514,30 @@ To get the latest changes of diagrams from Mermaid Chart, click on the button na
 Users now have the option to open and edit diagrams in the web view on https://mermaid.ai in the browser. This will enable them to use the best-in-class Visual Editor with drag and drop interface to modify the diagram, Mermaid AI, use diagrams in Presentations etc
 ![Open in Web View](https://mermaid.ai/docs/img/plugins/vscode-plugin-mermaidchart.png)
 
+### Mermaid AI Skills for GitHub Copilot
+
+Teach [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) how to use this extension’s tools and commands automatically — so when you ask for a diagram in Copilot Chat, Copilot can decide which Mermaid Chart command to run (preview, repair, generate, connect to Mermaid Chart, and more) instead of you hunting the Command Palette.
+
+**How to install**
+
+1. Make sure [GitHub Copilot Chat](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat) is installed in VS Code.
+2. Run **MermaidChart: Install AI Skills for GitHub Copilot** from the Command Palette, or choose **Add Mermaid Skills** when the extension prompts you.
+3. The extension writes Copilot instruction files into your workspace under `.github/` (full guide + a short pointer in `copilot-instructions.md`).
+
+**What Copilot can do after install**
+
+Once the skills are in your repo, Copilot can use Mermaid extension capabilities when your prompt needs them, for example:
+
+- **Preview** a diagram after writing a `.mmd` file
+- **Repair** broken Mermaid syntax with Mermaid AI
+- **Improve** layout and styling of the current diagram
+- **Generate** diagrams from code (cloud, ER, Docker, from-code, and `@mermaid-chart` slash commands)
+- **Login / connect / sync** diagrams with Mermaid Chart when cloud linking is needed
+- **Review Mermaid Sync** / **Regenerate** when diagrams stay in sync with code changes
+
+> **Note**<br/>
+> Mermaid AI Skills are for **GitHub Copilot in VS Code** only. They rely on VS Code commands and Copilot LM tools, which other AI IDEs cannot invoke the same way.
+
 ### Commands
 
 | Command | Description |
@@ -530,6 +555,7 @@ Users now have the option to open and edit diagrams in the web view on https://m
 | **MermaidChart: Commit App Review** | Commits reviewed diagram changes for the active file; optionally adds paths to `.mermaidignore`. |
 | **MermaidChart: Accept App Review** / **Reject App Review** | Accept or reject the app proposal for the file under review (also available via CodeLens). |
 | **MermaidChart: Generate Diagram from Code** | Opens GitHub Copilot Chat and runs `@mermaid-chart /generate_diagram_from_code` to generate a Mermaid diagram from the active code file. |
+| **MermaidChart: Install AI Skills for GitHub Copilot** | Adds Mermaid AI Skills to the workspace so GitHub Copilot can use extension commands and LM tools for diagram workflows. |
 
 
 ### Extension Settings
@@ -537,6 +563,8 @@ Users now have the option to open and edit diagrams in the web view on https://m
 This extension contributes the following settings:
 - `mermaidChart.baseUrl`: This points to the instance of the mermaid chart you are running, for the public service this is `https://mermaid.ai/`.
 - `mermaidChart.showGenerateDiagramCodeLens`: Show "Generate Mermaid Diagram" and "Open Chat @mermaid-chart" CodeLens at the bottom of supported code files (default: `true`). Set to `false` to hide CodeLens
+- `mermaidChart.aiSkills.enabled`: Enable the Mermaid AI Skills Pack for GitHub Copilot (default: `true`)
+- `mermaidChart.aiSkills.promptOnDetect`: Prompt to install Mermaid AI Skills for GitHub Copilot (monthly until you add the skills)
 - `mermaid.vscode.dark`: Defines the theme used for Mermaid diagrams when VS Code is in dark mode.
 - `mermaid.vscode.light`: Defines the theme used for Mermaid diagrams when VS Code is in light mode.
 - `mermaid.vscode.maxZoom`: Sets the maximum zoom level for diagram preview (default: 10).

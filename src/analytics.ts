@@ -175,6 +175,14 @@ class Analytics {
       "VS_CODE_PLUGIN_CONNECT_DIAGRAM",
     );
   }
+
+  // AI Skills Pack — fired once when Copilot skill files are written to the repo
+  public trackAiSkillsInstalled() {
+    this.sendEvent(
+      "VS Code AI Skills Pack Installed",
+      "VS_CODE_PLUGIN_AI_SKILLS_INSTALLED",
+    );
+  }
 }
 
 

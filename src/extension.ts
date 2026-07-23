@@ -1065,7 +1065,7 @@ PreCommitSyncService.register(context, mcAPI);
 // ── AI Skills Pack (GitHub Copilot only) ────────────────────────────────────
 
 /** Set to false before release — when true, toast shows on every activate (no globalState). */
-const aiSkillsToastAlwaysShowForTesting = true;
+const aiSkillsToastAlwaysShowForTesting = false;
 
 const aiSkillsToastLastShownKey = "mermaidAiSkills.toastLastShownAt";
 const oneMonthMs = 30 * 24 * 60 * 60 * 1000;

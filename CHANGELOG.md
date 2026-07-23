@@ -1,5 +1,8 @@
 # Change Log
 
+### 2.7.3 - 2026-07-23
+- Added **Mermaid AI Skills for GitHub Copilot** — install workspace instructions so Copilot can use Mermaid extension commands and LM tools (preview, repair, improve, generate, sync, and more).
+
 ### 2.7.2 - 2026-07-2
 - Resolved an issue where zoom reset after changing text.
 

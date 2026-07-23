@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid",
   "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.7.2",
+  "version": "2.7.4",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -673,6 +673,16 @@
           "type": "boolean",
           "default": true,
           "description": "Show 'Generate Mermaid Diagram' and 'Open Chat @mermaid-chart' CodeLens at the bottom of supported code files"
+        },
+        "mermaidChart.aiSkills.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the Mermaid AI Skills Pack for GitHub Copilot (writes instruction files under .github)"
+        },
+        "mermaidChart.aiSkills.promptOnDetect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prompt to install Mermaid AI Skills for GitHub Copilot (monthly until the user adds the skills)"
         }
       }
     },
@@ -951,6 +961,10 @@
       {
         "command": "mermaidChart.openCopilotChat",
         "title": "MermaidChart: Open AI Chat"
+      },
+      {
+        "command": "mermaidChart.installAiSkills",
+        "title": "MermaidChart: Install AI Skills for GitHub Copilot"
       },
       {
         "command": "mermaidChart.generateCloudDiagram",

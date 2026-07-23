@@ -64,6 +64,7 @@ import { extendMarkdownItWithMermaid } from "./previewmarkdown/shared-md-mermaid
 import * as packageJson from '../package.json'; 
 import { clearTmLanguageCache } from "./syntaxHighlighter";
 import { AppReviewFeature } from "./appReviewFeature";
+import { getWorkspaceRoot, installSkillPack, isInstalled } from "./services/aiSkillsInstaller";
 
 
 const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
@@ -1060,6 +1061,90 @@ context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
 registerRegenerateCommand(context, mcAPI);
 registerRegenerateWithMermaidAICommand(context, mcAPI);
 PreCommitSyncService.register(context, mcAPI);
+
+// ── AI Skills Pack (GitHub Copilot only) ────────────────────────────────────
+
+/** Set to false before release — when true, toast shows on every activate (no globalState). */
+const aiSkillsToastAlwaysShowForTesting = false;
+
+const aiSkillsToastLastShownKey = "mermaidAiSkills.toastLastShownAt";
+const oneMonthMs = 30 * 24 * 60 * 60 * 1000;
+
+async function showAiSkillsToast(): Promise<void> {
+  const config = vscode.workspace.getConfiguration("mermaidChart");
+  if (!config.get<boolean>("aiSkills.enabled", true)) { return; }
+  if (!config.get<boolean>("aiSkills.promptOnDetect", true)) { return; }
+
+  const root = getWorkspaceRoot();
+  // Stop prompting once skills are actually installed in the workspace
+  if (root && isInstalled(root)) { return; }
+
+  if (!aiSkillsToastAlwaysShowForTesting) {
+    // Re-prompt at most once per month until the user adds skills
+    const lastShownAt = context.globalState.get<number>(aiSkillsToastLastShownKey, 0);
+    if (lastShownAt > 0 && Date.now() - lastShownAt < oneMonthMs) { return; }
+  }
+
+  const choice = await vscode.window.showInformationMessage(
+    "Mermaid Extension has an AI Skills Pack for GitHub Copilot — teach Copilot to use Mermaid tools and commands to generate and preview diagrams correctly.",
+    "Add Mermaid Skills",
+    "Ignore"
+  );
+
+  if (!aiSkillsToastAlwaysShowForTesting) {
+    // Ignore / dismiss only delays the next prompt by one month — does not stop forever
+    context.globalState.update(aiSkillsToastLastShownKey, Date.now());
+  }
+
+  if (choice === "Add Mermaid Skills") {
+    vscode.commands.executeCommand("mermaidChart.installAiSkills");
+  }
+}
+
+// Palette command: MermaidChart: Install AI Skills… (Copilot / .github only)
+context.subscriptions.push(
+  vscode.commands.registerCommand("mermaidChart.installAiSkills", async () => {
+    const config = vscode.workspace.getConfiguration("mermaidChart");
+    if (!config.get<boolean>("aiSkills.enabled", true)) {
+      vscode.window.showWarningMessage("Mermaid AI Skills is disabled. Enable mermaidChart.aiSkills.enabled to use this feature.");
+      return;
+    }
+
+    const copilotChat = vscode.extensions.getExtension("GitHub.copilot-chat");
+    if (!copilotChat) {
+      const installOption = "Install GitHub Copilot Chat";
+      const selection = await vscode.window.showErrorMessage(
+        "Mermaid AI Skills only works with GitHub Copilot in VS Code — not with Cursor, Windsurf, or other AI assistants. Install GitHub Copilot Chat to continue.",
+        installOption
+      );
+      if (selection === installOption) {
+        await vscode.commands.executeCommand("extension.open", "GitHub.copilot-chat");
+      }
+      return;
+    }
+
+    const root = getWorkspaceRoot();
+    if (!root) {
+      vscode.window.showWarningMessage("No workspace folder open.");
+      return;
+    }
+
+    const result = installSkillPack(root);
+    analytics.trackAiSkillsInstalled();
+
+    const fileLines = result.filesWritten
+      .map((f) => `${f.created ? "Created" : "Updated"}: ${f.path.slice(root.length + 1)}`)
+      .join("\n");
+    vscode.window.showInformationMessage(
+      `Mermaid AI Skills installed for GitHub Copilot.\n${fileLines}`
+    );
+  })
+);
+
+// Toast — runs off the hot path 3 s after activation
+setTimeout(() => { showAiSkillsToast().catch(console.error); }, 3000);
+
+// ── End AI Skills Pack ──────────────────────────────────────────────────────
 
 context.subscriptions.push(
   vscode.commands.registerCommand(

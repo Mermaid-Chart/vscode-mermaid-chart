@@ -5,6 +5,8 @@ import * as packageJson from '../package.json';
 export type LoginTrigger = 'mermaid-sidebar' | 'preview-repair' | 'pre-commit' | 'review-bulk-action' | 'connect-diagram';
 export type UpgradeFeature = 'repair' | 'regenerate' | 'add_diagram' | 'duplicate_diagram' | 'connect_diagram';
 
+export type OnCommitGenerateDecision = 'accepted' | 'dismissed';
+
 export interface PulseEventOptions {
   errorMessage?: string;
   diagramType?: string;
@@ -13,6 +15,7 @@ export interface PulseEventOptions {
   feature?: UpgradeFeature;
   pluginSource?: 'vsCode';
   source?: 'login' | 'signup';
+  decision?: OnCommitGenerateDecision;
 }
 
 class Analytics {
@@ -115,6 +118,22 @@ class Analytics {
     this.sendEvent(
       "VS Code Pre-Commit Diagram Regenerate",
       "VS_CODE_PLUGIN_PRE_COMMIT_DIAGRAM_REGENERATE",
+    );
+  }
+
+  // On-commit generate (create diagram from unlinked staged files)
+  public trackOnCommitDiagramGenerateShown() {
+    this.sendEvent(
+      "VS Code On-Commit Diagram Generate Show",
+      "VS_CODE_PLUGIN_ON_COMMIT_DIAGRAM_GENERATE_SHOW",
+    );
+  }
+
+  public trackOnCommitDiagramGenerationDecision(decision: OnCommitGenerateDecision) {
+    this.sendEvent(
+      "VS Code On-Commit Diagram Generation Decision",
+      "VS_CODE_PLUGIN_ON_COMMIT_DIAGRAM_GENERATION_DECISION",
+      { decision },
     );
   }
 

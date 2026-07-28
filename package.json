@@ -669,6 +669,11 @@
           "default": true,
           "description": "Enable pre-commit Mermaid diagram sync. When enabled, you will be notified to regenerate diagrams when staged source files match diagram references."
         },
+        "mermaidChart.createDiagramFromStage.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "When staging coding files that have no linked Mermaid diagram, offer to generate one with Generate Diagram From Code. Soft notification only — never blocks commit."
+        },
         "mermaidChart.showGenerateDiagramCodeLens": {
           "type": "boolean",
           "default": true,
@@ -990,7 +995,7 @@
         "command": "mermaidChart.regenerateDiagramWithMermaidAI",
         "title": "MermaidChart: Regenerate with Mermaid AI"
       },
-      {        
+      {
         "command": "mermaidChart.reviewAppCommits",
         "title": "MermaidChart: Review Mermaid Sync"
       },

@@ -1,96 +1,19 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
 import { extractMetadataFromCode } from '../../frontmatter';
 import { MermaidChartAuthenticationProvider } from '../../mermaidChartAuthenticationProvider';
 import { setPendingLoginTrigger } from '../../loginTrigger';
 import type { MermaidChartVSCode } from '../../mermaidChartVSCode';
 import analytics from '../../analytics';
-
-const execFileAsync = promisify(execFile);
-const GIT_TIMEOUT_MS = 5000;
-
-/** Maps a unified diff (+/-/ ) into the [ADDED]/[REMOVED]/[CONTEXT] format. */
-function buildSourceFileContext(filePath: string, unifiedDiff: string): string {
-  const lines: string[] = [];
-  lines.push('=== DETAILED CHANGE SUMMARY ===');
-  lines.push('Source File Changes:');
-  lines.push(`MODIFIED: ${filePath} (changes detected)`);
-  lines.push('');
-
-  for (const line of unifiedDiff.replace(/\r\n?/g, '\n').split('\n')) {
-    // Skip file header lines (--- a/... +++ b/...) and hunk headers (@@ ... @@)
-    if (
-      line.startsWith('--- ') ||
-      line.startsWith('+++ ') ||
-      line.startsWith('diff ') ||
-      line.startsWith('index ') ||
-      line.startsWith('@@')
-    ) {
-      continue;
-    }
-    if (line.startsWith('+')) {
-      lines.push(`[ADDED]   ${line.slice(1)}`);
-    } else if (line.startsWith('-')) {
-      lines.push(`[REMOVED] ${line.slice(1)}`);
-    } else if (line.startsWith(' ')) {
-      lines.push(`[CONTEXT] ${line.slice(1)}`);
-    }
-    // empty lines at end of diff — skip
-  }
-
-  return lines.join('\n');
-}
-
-/**
- * Extract the resolved absolute file path from a reference string like "File: /src/auth.ts".
- *
- * Convention: a leading "/" in a reference means workspace-relative (not POSIX root).
- * Only Windows drive paths (e.g. C:\...) are treated as truly absolute and used as-is.
- * On POSIX, path.isAbsolute('/src/auth.ts') returns true but that path is still
- * workspace-relative by this codebase's convention, so we must not use path.isAbsolute.
- */
-function resolveReferencePath(reference: string, workspacePath: string): string | undefined {
-  const match = reference.match(/File: (.*?)(\s|$|\()/);
-  if (!match) return undefined;
-
-  const filePath = match[1].trim();
-  if (!filePath.includes('/') && !filePath.includes('\\')) return undefined;
-
-  // Windows absolute path (e.g. C:\proj\src\auth.ts) — use as-is.
-  if (/^[a-zA-Z]:[\\/]/.test(filePath)) {
-    return path.normalize(filePath);
-  }
-
-  if (workspacePath) {
-    // Strip any leading slashes/backslashes (workspace-relative convention).
-    const relative = filePath.replace(/^[/\\]+/, '');
-    return path.normalize(path.join(workspacePath, relative));
-  }
-
-  return path.normalize(filePath);
-}
-
-/** Run a git command asynchronously. Returns stdout/stderr or null on failure. */
-async function runGit(
-  args: string[],
-  cwd: string,
-): Promise<{ stdout: string; stderr: string } | null> {
-  try {
-    const { stdout, stderr } = await execFileAsync('git', args, {
-      cwd,
-      encoding: 'utf-8',
-      timeout: GIT_TIMEOUT_MS,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    return { stdout, stderr };
-  } catch (error) {
-    console.error({ cwd, args, error }, 'PreCommitSync: git command failed');
-    return null;
-  }
-}
+import { CreateDiagramFromStageService } from './createDiagramFromStage';
+import {
+  buildSourceFileContext,
+  getStagedSourcePaths,
+  readFileAsAddedContext,
+  resolveReferencePath,
+  runGit,
+} from './gitStageHelpers';
 
 /** Result of a single diagram's staged-change analysis. */
 interface AffectedDiagram {
@@ -99,12 +22,19 @@ interface AffectedDiagram {
   stagedSourceFiles: string[]; // absolute paths of the matched staged files
 }
 
-export class PreCommitSyncService {
+/**
+ * Watches git staging and offers:
+ * 1. Regenerate — staged sources already linked to diagrams
+ * 2. Create diagram from stage — staged coding sources with no linked diagram
+ */
+export class StagingSyncService {
   private static debounceTimers = new Map<string, NodeJS.Timeout>();
   private static folderWatchers = new Map<string, fs.FSWatcher>();
   private static retryIntervals = new Map<string, NodeJS.Timeout>();
 
   static register(context: vscode.ExtensionContext, mcAPI: MermaidChartVSCode): void {
+    CreateDiagramFromStageService.register(context);
+
     // vscode.workspace.createFileSystemWatcher excludes .git/** by default, so
     // we use Node's fs.watch() directly.
     // IMPORTANT: git never modifies .git/index in place — it writes to
@@ -119,20 +49,20 @@ export class PreCommitSyncService {
         // .git doesn't exist yet (folder opened before git init).
         // Poll every 5s; once it appears, set up the real watcher.
         const retryInterval = setInterval(() => {
-          if (fs.existsSync(gitDir) && !PreCommitSyncService.folderWatchers.has(folderPath)) {
+          if (fs.existsSync(gitDir) && !StagingSyncService.folderWatchers.has(folderPath)) {
             clearInterval(retryInterval);
-            PreCommitSyncService.retryIntervals.delete(folderPath);
+            StagingSyncService.retryIntervals.delete(folderPath);
             setupWatcher(workspaceFolder);
           }
         }, 5000);
-        PreCommitSyncService.retryIntervals.set(folderPath, retryInterval);
+        StagingSyncService.retryIntervals.set(folderPath, retryInterval);
 
         context.subscriptions.push({
           dispose: () => {
-            const interval = PreCommitSyncService.retryIntervals.get(folderPath);
+            const interval = StagingSyncService.retryIntervals.get(folderPath);
             if (interval) {
               clearInterval(interval);
-              PreCommitSyncService.retryIntervals.delete(folderPath);
+              StagingSyncService.retryIntervals.delete(folderPath);
             }
           },
         });
@@ -141,26 +71,26 @@ export class PreCommitSyncService {
 
       const nodeWatcher = fs.watch(gitDir, (_eventType, filename) => {
         if (filename === 'index') {
-          PreCommitSyncService.onIndexChanged(workspaceFolder, mcAPI);
+          StagingSyncService.onIndexChanged(workspaceFolder, mcAPI);
         }
       });
 
-      PreCommitSyncService.folderWatchers.set(folderPath, nodeWatcher);
+      StagingSyncService.folderWatchers.set(folderPath, nodeWatcher);
 
       // Look up the watcher from the map at dispose time so teardownWatcher
       // (folder removal) and subscription dispose (extension deactivate) don't
       // double-close the same watcher instance.
       context.subscriptions.push({
         dispose: () => {
-          const watcher = PreCommitSyncService.folderWatchers.get(folderPath);
+          const watcher = StagingSyncService.folderWatchers.get(folderPath);
           if (watcher) {
             watcher.close();
-            PreCommitSyncService.folderWatchers.delete(folderPath);
+            StagingSyncService.folderWatchers.delete(folderPath);
           }
-          const timer = PreCommitSyncService.debounceTimers.get(folderPath);
+          const timer = StagingSyncService.debounceTimers.get(folderPath);
           if (timer) {
             clearTimeout(timer);
-            PreCommitSyncService.debounceTimers.delete(folderPath);
+            StagingSyncService.debounceTimers.delete(folderPath);
           }
         },
       });
@@ -168,20 +98,20 @@ export class PreCommitSyncService {
 
     const teardownWatcher = (workspaceFolder: vscode.WorkspaceFolder) => {
       const folderPath = workspaceFolder.uri.fsPath;
-      const watcher = PreCommitSyncService.folderWatchers.get(folderPath);
+      const watcher = StagingSyncService.folderWatchers.get(folderPath);
       if (watcher) {
         watcher.close();
-        PreCommitSyncService.folderWatchers.delete(folderPath);
+        StagingSyncService.folderWatchers.delete(folderPath);
       }
-      const timer = PreCommitSyncService.debounceTimers.get(folderPath);
+      const timer = StagingSyncService.debounceTimers.get(folderPath);
       if (timer) {
         clearTimeout(timer);
-        PreCommitSyncService.debounceTimers.delete(folderPath);
+        StagingSyncService.debounceTimers.delete(folderPath);
       }
-      const retryInterval = PreCommitSyncService.retryIntervals.get(folderPath);
+      const retryInterval = StagingSyncService.retryIntervals.get(folderPath);
       if (retryInterval) {
         clearInterval(retryInterval);
-        PreCommitSyncService.retryIntervals.delete(folderPath);
+        StagingSyncService.retryIntervals.delete(folderPath);
       }
     };
 
@@ -199,14 +129,14 @@ export class PreCommitSyncService {
     mcAPI: MermaidChartVSCode,
   ): void {
     const key = workspaceFolder.uri.fsPath;
-    const existing = PreCommitSyncService.debounceTimers.get(key);
+    const existing = StagingSyncService.debounceTimers.get(key);
     if (existing) clearTimeout(existing);
 
     const timer = setTimeout(
-      () => PreCommitSyncService.handleStagingChange(workspaceFolder, mcAPI),
+      () => StagingSyncService.handleStagingChange(workspaceFolder, mcAPI),
       300,
     );
-    PreCommitSyncService.debounceTimers.set(key, timer);
+    StagingSyncService.debounceTimers.set(key, timer);
   }
 
   private static async handleStagingChange(
@@ -215,42 +145,52 @@ export class PreCommitSyncService {
   ): Promise<void> {
     const repoRoot = workspaceFolder.uri.fsPath;
 
-    // Check if feature is enabled in settings
-    const enabled = vscode.workspace
-      .getConfiguration('mermaidChart')
-      .get<boolean>('preCommitSync.enabled', true);
-    if (!enabled) return;
-
-    // Get staged file paths via git directly — no VSCode Git API dependency.
-    // --diff-filter=ACMR: only Added, Copied, Modified, Renamed files.
-    // Excludes Deleted (D) so unstaging/discarding changes doesn't trigger the popup.
-    const stagedResult = await runGit(
-      ['diff', '--cached', '--name-only', '--diff-filter=ACMR'],
-      repoRoot,
-    );
-    if (!stagedResult) {
-      console.error({ repoRoot }, 'PreCommitSync: failed to get staged files');
+    const sourceStagedPaths = await getStagedSourcePaths(repoRoot);
+    if (sourceStagedPaths === null) {
+      console.error({ repoRoot }, 'StagingSync: failed to get staged files');
       return;
     }
-    const stagedOutput = stagedResult.stdout.trim();
-    if (!stagedOutput) return;
-    const allStagedPaths = stagedOutput
-      .split('\n')
-      .filter(Boolean)
-      .map((p) => path.join(repoRoot, p));
+    if (sourceStagedPaths.length === 0) {
+      return;
+    }
 
-    // Ignore staging events that only contain .mmd/.mermaid files themselves —
-    // those aren't source files that drive diagram regeneration.
-    const sourceStagedPaths = allStagedPaths.filter(
-      (p) => !p.endsWith('.mmd') && !p.endsWith('.mermaid'),
-    );
-    if (sourceStagedPaths.length === 0) return;
+    // Path 1 — regenerate existing linked diagrams (preCommitSync.enabled)
+    const regenerateEnabled = vscode.workspace
+      .getConfiguration('mermaidChart')
+      .get<boolean>('preCommitSync.enabled', true);
+    if (regenerateEnabled) {
+      await StagingSyncService.handleRegeneratePath(
+        workspaceFolder,
+        sourceStagedPaths,
+        mcAPI,
+      );
+    }
+
+    // Path 2 — create diagram from stage for unlinked staged coding files
+    await CreateDiagramFromStageService.maybeOffer(workspaceFolder, sourceStagedPaths);
+  }
+
+  private static async handleRegeneratePath(
+    workspaceFolder: vscode.WorkspaceFolder,
+    sourceStagedPaths: string[],
+    mcAPI: MermaidChartVSCode,
+  ): Promise<void> {
+    const repoRoot = workspaceFolder.uri.fsPath;
 
     // Build a set of .mmd/.mermaid paths that should be skipped:
     //   1. Already staged — regenerated and added by the user.
     //   2. Has unstaged modifications — regenerated but not yet staged, OR was
     //      staged then unstaged (git restore --staged). In both cases the
     //      regenerated content is already on disk; no popup needed.
+    const allStagedResult = await runGit(
+      ['diff', '--cached', '--name-only', '--diff-filter=ACMR'],
+      repoRoot,
+    );
+    const allStagedPaths = (allStagedResult?.stdout.trim() ?? '')
+      .split('\n')
+      .filter(Boolean)
+      .map((p) => path.join(repoRoot, p));
+
     const stagedMmdPaths = new Set(
       allStagedPaths.filter((p) => p.endsWith('.mmd') || p.endsWith('.mermaid')),
     );
@@ -276,14 +216,14 @@ export class PreCommitSyncService {
         cancellable: false,
       },
       async () => {
-        affected = await PreCommitSyncService.findAffectedDiagrams(
+        affected = await StagingSyncService.findAffectedDiagrams(
           workspaceFolder,
           sourceStagedPaths,
           stagedMmdPaths,
         );
         if (affected.length === 0) return;
 
-        sourceFilesContext = await PreCommitSyncService.buildSourceFilesContext(
+        sourceFilesContext = await StagingSyncService.buildSourceFilesContext(
           repoRoot,
           affected,
         );
@@ -292,7 +232,7 @@ export class PreCommitSyncService {
 
     // Phase 2: show the info toast only after the scanning notification is gone.
     if (affected.length > 0) {
-      await PreCommitSyncService.showSyncPopup(affected, sourceFilesContext, mcAPI);
+      await StagingSyncService.showSyncPopup(affected, sourceFilesContext, mcAPI);
     }
   }
 
@@ -347,7 +287,7 @@ export class PreCommitSyncService {
       } catch (error) {
         console.error(
           { mmdUri: mmdUri.fsPath, error },
-          'PreCommitSync: failed to read diagram file',
+          'StagingSync: failed to read diagram file',
         );
       }
     }
@@ -398,15 +338,9 @@ export class PreCommitSyncService {
         contextMap.set(absPath, buildSourceFileContext(relPath, diff));
       } else {
         // New file — no HEAD version, send full content as [ADDED]
-        try {
-          const content = (await fs.promises.readFile(absPath, 'utf-8')).replace(/\r\n?/g, '\n');
-          const lines = content.split('\n').map((l) => `[ADDED]   ${l}`).join('\n');
-          contextMap.set(
-            absPath,
-            `=== DETAILED CHANGE SUMMARY ===\nSource File Changes:\nADDED: ${relPath} (new file)\n\n${lines}`,
-          );
-        } catch (error) {
-          console.error({ absPath, error }, 'PreCommitSync: failed to read source file');
+        const added = await readFileAsAddedContext(absPath, relPath);
+        if (added) {
+          contextMap.set(absPath, added);
         }
       }
     }

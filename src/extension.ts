@@ -44,7 +44,7 @@ import { showUpgradePrompt } from "./upgradePricing";
 import { RemoteSyncHandler } from "./remoteSyncHandler";
 import { registerRegenerateCommand } from './commercial/sync/regenerateCommand';
 import { registerRegenerateWithMermaidAICommand } from './commercial/sync/regenerateWithMermaidAICommand';
-import { PreCommitSyncService } from './commercial/sync/preCommitSyncService';
+import { StagingSyncService } from './commercial/sync/stagingSyncService';
 import { initializeAIChatParticipant } from "./commercial/ai/chatParticipant";
 import {
   setPreviewBridge,
@@ -52,6 +52,7 @@ import {
   setValidationBridge,
   setDiagramDiffBridge,
   initializePlugin,
+  setGenerateFromCodeFileRefs,
 } from "@mermaid-chart/vscode-utils";;
 import { PreviewBridgeImpl } from "./commercial/ai/tools/previewTool";
 import { ValidationBridgeImpl } from "./commercial/ai/tools/validationTool";
@@ -65,6 +66,10 @@ import * as packageJson from '../package.json';
 import { clearTmLanguageCache } from "./syntaxHighlighter";
 import { AppReviewFeature } from "./appReviewFeature";
 import { getWorkspaceRoot, installSkillPack, isInstalled } from "./services/aiSkillsInstaller";
+import {
+  recordInteraction,
+  shouldShowPrompt,
+} from "./commercial/sync/interactionCooldown";
 
 
 const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
@@ -958,10 +963,12 @@ context.subscriptions.push(
 );
 
 // Register the generate diagram from code command
+// Optional fileUris: set by on-commit generate popup to seed Copilot references.
+// CodeLens / palette call with no args — existing behavior unchanged.
 context.subscriptions.push(
   vscode.commands.registerCommand(
     "mermaidChart.generateDiagramFromCode",
-    async () => {
+    async (fileUris?: vscode.Uri[] | string[]) => {
       try {
         // Check if Copilot Chat is available
         const copilotExtension = vscode.extensions.getExtension("GitHub.copilot-chat");
@@ -976,6 +983,13 @@ context.subscriptions.push(
             await vscode.commands.executeCommand("extension.open", "GitHub.copilot-chat");
           }
           return;
+        }
+
+        if (fileUris && fileUris.length > 0) {
+          const uris = fileUris.map((u) =>
+            typeof u === "string" ? vscode.Uri.file(u) : u,
+          );
+          setGenerateFromCodeFileRefs(uris);
         }
         
         await vscode.commands.executeCommand("workbench.action.chat.open", {
@@ -1060,15 +1074,14 @@ context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
 // Register the regenerate command from commercial directory
 registerRegenerateCommand(context, mcAPI);
 registerRegenerateWithMermaidAICommand(context, mcAPI);
-PreCommitSyncService.register(context, mcAPI);
+StagingSyncService.register(context, mcAPI);
 
 // ── AI Skills Pack (GitHub Copilot only) ────────────────────────────────────
 
 /** Set to false before release — when true, toast shows on every activate (no globalState). */
 const aiSkillsToastAlwaysShowForTesting = false;
 
-const aiSkillsToastLastShownKey = "mermaidAiSkills.toastLastShownAt";
-const oneMonthMs = 30 * 24 * 60 * 60 * 1000;
+const aiSkillsToastStateKey = "mermaidAiSkills.toast";
 
 async function showAiSkillsToast(): Promise<void> {
   const config = vscode.workspace.getConfiguration("mermaidChart");
@@ -1079,11 +1092,14 @@ async function showAiSkillsToast(): Promise<void> {
   // Stop prompting once skills are actually installed in the workspace
   if (root && isInstalled(root)) { return; }
 
-  if (!aiSkillsToastAlwaysShowForTesting) {
-    // Re-prompt at most once per month until the user adds skills
-    const lastShownAt = context.globalState.get<number>(aiSkillsToastLastShownKey, 0);
-    if (lastShownAt > 0 && Date.now() - lastShownAt < oneMonthMs) { return; }
-  }
+  const cooldownOpts = {
+    globalState: context.globalState,
+    stateKeyPrefix: aiSkillsToastStateKey,
+    alwaysShow: aiSkillsToastAlwaysShowForTesting,
+    maxInteractionsBeforeCooldown: 1,
+  };
+
+  if (!shouldShowPrompt(cooldownOpts)) { return; }
 
   const choice = await vscode.window.showInformationMessage(
     "Mermaid Extension has an AI Skills Pack for GitHub Copilot — teach Copilot to use Mermaid tools and commands to generate and preview diagrams correctly.",
@@ -1091,10 +1107,8 @@ async function showAiSkillsToast(): Promise<void> {
     "Ignore"
   );
 
-  if (!aiSkillsToastAlwaysShowForTesting) {
-    // Ignore / dismiss only delays the next prompt by one month — does not stop forever
-    context.globalState.update(aiSkillsToastLastShownKey, Date.now());
-  }
+  // Count this show toward the monthly cooldown (Ignore / dismiss / accept alike)
+  await recordInteraction(cooldownOpts);
 
   if (choice === "Add Mermaid Skills") {
     vscode.commands.executeCommand("mermaidChart.installAiSkills");

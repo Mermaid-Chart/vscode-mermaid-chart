@@ -269,32 +269,40 @@ export class AppReviewFeature implements vscode.Disposable {
           vscode.window.showWarningMessage("Open a diagram file (.mmd) to review changes.");
           return;
         }
+        analytics.trackOpenReviewUI();
         await this.diffViewProvider.showAppDiff(target);
       }),
       vscode.commands.registerCommand("mermaidChart.appReviewAccept", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (target) {
-          await this.diffViewProvider.acceptAppChanges(target);
+          if (await this.diffViewProvider.acceptAppChanges(target)) {
+            analytics.trackAppReviewAccept();
+          }
           await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
       vscode.commands.registerCommand("mermaidChart.appReviewReject", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (target) {
-          await this.diffViewProvider.rejectAppChanges(target);
+          if (await this.diffViewProvider.rejectAppChanges(target)) {
+            analytics.trackAppReviewReject();
+          }
           await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
       vscode.commands.registerCommand("mermaidChart.appReviewBackToPending", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (target) {
-          await this.diffViewProvider.restoreAppProposalAndPending(target);
+          if (await this.diffViewProvider.restoreAppProposalAndPending(target)) {
+            analytics.trackAppReviewReturnedToReview();
+          }
           await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
-      vscode.commands.registerCommand("mermaidChart.commitAppReview", (uri: vscode.Uri) =>
-        this.commitWorkflow.commitAppReview(uri)
-      ),
+      vscode.commands.registerCommand("mermaidChart.commitAppReview", (uri: vscode.Uri) => {
+        analytics.trackAppReviewCommit();
+        return this.commitWorkflow.commitAppReview(uri);
+      }),
       vscode.commands.registerCommand("mermaidChart.closeAppReview", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (!target) {

@@ -242,11 +242,82 @@ class Analytics {
     );
   }
 
-  // File sync / connect
+  // File sync / connect — fired when a connected diagram has remote changes and the
+  // pull / force-push prompt is shown, not on every save of a Mermaid file.
+  public trackRemoteSync() {
+    this.sendEvent(
+      "VS Code Remote Sync",
+      "VS_CODE_PLUGIN_REMOTE_SYNC",
+    );
+  }
+
   public trackConnectDiagramToMermaidChart() {
     this.sendEvent(
       "VS Code Connect Diagram To Mermaid Chart",
       "VS_CODE_PLUGIN_CONNECT_DIAGRAM",
+    );
+  }
+
+  public trackConnectGitHub() {
+    this.sendEvent(
+      "VS Code Connect GitHub",
+      "VS_CODE_PLUGIN_CONNECT_GITHUB",
+    );
+  }
+
+  public trackDisconnectGitHub() {
+    this.sendEvent(
+      "VS Code Disconnect GitHub",
+      "VS_CODE_PLUGIN_DISCONNECT_GITHUB",
+    );
+  }
+
+  public trackAppReviewAccept() {
+    this.sendEvent(
+      "VS Code App Review Accept",
+      "VS_CODE_PLUGIN_APP_REVIEW_ACCEPT",
+    );
+  }
+
+  public trackAppReviewReject() {
+    this.sendEvent(
+      "VS Code App Review Reject",
+      "VS_CODE_PLUGIN_APP_REVIEW_REJECT",
+    );
+  }
+
+  public trackAppReviewReturnedToReview() {
+    this.sendEvent(
+      "VS Code App Review Returned To Review State",
+      "VS_CODE_PLUGIN_APP_REVIEW_RETURNED_TO_REVIEW",
+    );
+  }
+
+  public trackAppReviewCommit() {
+    this.sendEvent(
+      "VS Code App Review Commit",
+      "VS_CODE_PLUGIN_APP_REVIEW_COMMIT",
+    );
+  }
+
+  public trackOpenReviewUI() {
+    this.sendEvent(
+      "VS Code Open Review UI",
+      "VS_CODE_PLUGIN_OPEN_REVIEW_UI",
+    );
+  }
+
+  public trackOpenCodeDiff() {
+    this.sendEvent(
+      "VS Code Open Code Diff",
+      "VS_CODE_PLUGIN_OPEN_CODE_DIFF",
+    );
+  }
+
+  public trackOpenDiagramDiff() {
+    this.sendEvent(
+      "VS Code Open Diagram Diff",
+      "VS_CODE_PLUGIN_OPEN_DIAGRAM_DIFF",
     );
   }
 

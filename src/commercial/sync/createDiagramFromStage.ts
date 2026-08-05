@@ -1,18 +1,15 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { extractMetadataFromCode } from '../../frontmatter';
+import { extractMetadataFromCode, resolveReferencePath } from '../../frontmatter';
 import analytics from '../../analytics';
 import {
   recordInteraction,
   shouldShowPrompt,
 } from './interactionCooldown';
-import {
-  isCodingSourceFile,
-  resolveReferencePath,
-} from './gitStageHelpers';
+import { isCodingSourceFile } from './gitStageHelpers';
 
 /** Set to false before release — when true, toast shows every time (no globalState). */
-const createDiagramFromStageAlwaysShowForTesting = true;
+const createDiagramFromStageAlwaysShowForTesting = false;
 
 const PROMPT_STATE_KEY = 'createDiagramFromStage.prompt';
 

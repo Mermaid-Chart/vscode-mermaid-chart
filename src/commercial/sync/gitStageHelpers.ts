@@ -4,7 +4,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 
 const execFileAsync = promisify(execFile);
-export const GIT_TIMEOUT_MS = 5000;
+const GIT_TIMEOUT_MS = 5000;
 
 /** Coding extensions eligible for generate-from-code / create-from-stage. */
 export const CODING_FILE_EXTENSIONS = new Set([
@@ -29,6 +29,10 @@ export function isCodingSourceFile(filePath: string): boolean {
   return ext !== '' && CODING_FILE_EXTENSIONS.has(ext);
 }
 
+export function isMermaidFile(filePath: string): boolean {
+  return filePath.endsWith('.mmd') || filePath.endsWith('.mermaid');
+}
+
 /** Run a git command asynchronously. Returns stdout/stderr or null on failure. */
 export async function runGit(
   args: string[],
@@ -49,10 +53,14 @@ export async function runGit(
 }
 
 /**
- * Staged source file absolute paths (ACMR only), excluding .mmd/.mermaid.
+ * All staged file absolute paths (ACMR only — Added, Copied, Modified, Renamed).
+ * Deleted files are excluded so unstaging/discarding changes doesn't trigger a popup.
  * Returns null if git failed; empty array if nothing staged.
+ *
+ * Callers split this into source vs .mmd/.mermaid themselves, so a single git
+ * invocation backs every consumer of one staging event.
  */
-export async function getStagedSourcePaths(
+export async function getStagedPaths(
   repoRoot: string,
 ): Promise<string[] | null> {
   const stagedResult = await runGit(
@@ -69,36 +77,7 @@ export async function getStagedSourcePaths(
   return stagedOutput
     .split('\n')
     .filter(Boolean)
-    .map((p) => path.join(repoRoot, p))
-    .filter((p) => !p.endsWith('.mmd') && !p.endsWith('.mermaid'));
-}
-
-/**
- * Extract the resolved absolute file path from a reference string like "File: /src/auth.ts".
- *
- * Convention: a leading "/" in a reference means workspace-relative (not POSIX root).
- * Only Windows drive paths (e.g. C:\...) are treated as truly absolute and used as-is.
- */
-export function resolveReferencePath(
-  reference: string,
-  workspacePath: string,
-): string | undefined {
-  const match = reference.match(/File: (.*?)(\s|$|\()/);
-  if (!match) return undefined;
-
-  const filePath = match[1].trim();
-  if (!filePath.includes('/') && !filePath.includes('\\')) return undefined;
-
-  if (/^[a-zA-Z]:[\\/]/.test(filePath)) {
-    return path.normalize(filePath);
-  }
-
-  if (workspacePath) {
-    const relative = filePath.replace(/^[/\\]+/, '');
-    return path.normalize(path.join(workspacePath, relative));
-  }
-
-  return path.normalize(filePath);
+    .map((p) => path.join(repoRoot, p));
 }
 
 /** Maps a unified diff (+/-/ ) into the [ADDED]/[REMOVED]/[CONTEXT] format. */

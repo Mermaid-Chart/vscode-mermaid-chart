@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { extractMetadataFromCode } from '../../frontmatter';
+import { extractMetadataFromCode, resolveReferencePath } from '../../frontmatter';
 import { MermaidChartAuthenticationProvider } from '../../mermaidChartAuthenticationProvider';
 import { setPendingLoginTrigger } from '../../loginTrigger';
 import type { MermaidChartVSCode } from '../../mermaidChartVSCode';
@@ -9,9 +9,9 @@ import analytics from '../../analytics';
 import { CreateDiagramFromStageService } from './createDiagramFromStage';
 import {
   buildSourceFileContext,
-  getStagedSourcePaths,
+  getStagedPaths,
+  isMermaidFile,
   readFileAsAddedContext,
-  resolveReferencePath,
   runGit,
 } from './gitStageHelpers';
 
@@ -145,11 +145,15 @@ export class StagingSyncService {
   ): Promise<void> {
     const repoRoot = workspaceFolder.uri.fsPath;
 
-    const sourceStagedPaths = await getStagedSourcePaths(repoRoot);
-    if (sourceStagedPaths === null) {
+    const stagedPaths = await getStagedPaths(repoRoot);
+    if (stagedPaths === null) {
       console.error({ repoRoot }, 'StagingSync: failed to get staged files');
       return;
     }
+
+    // Staging events that only contain .mmd/.mermaid files aren't source changes
+    // that drive diagram work.
+    const sourceStagedPaths = stagedPaths.filter((p) => !isMermaidFile(p));
     if (sourceStagedPaths.length === 0) {
       return;
     }
@@ -162,6 +166,7 @@ export class StagingSyncService {
       await StagingSyncService.handleRegeneratePath(
         workspaceFolder,
         sourceStagedPaths,
+        stagedPaths.filter(isMermaidFile),
         mcAPI,
       );
     }
@@ -173,6 +178,7 @@ export class StagingSyncService {
   private static async handleRegeneratePath(
     workspaceFolder: vscode.WorkspaceFolder,
     sourceStagedPaths: string[],
+    stagedMmdFiles: string[],
     mcAPI: MermaidChartVSCode,
   ): Promise<void> {
     const repoRoot = workspaceFolder.uri.fsPath;
@@ -182,23 +188,12 @@ export class StagingSyncService {
     //   2. Has unstaged modifications — regenerated but not yet staged, OR was
     //      staged then unstaged (git restore --staged). In both cases the
     //      regenerated content is already on disk; no popup needed.
-    const allStagedResult = await runGit(
-      ['diff', '--cached', '--name-only', '--diff-filter=ACMR'],
-      repoRoot,
-    );
-    const allStagedPaths = (allStagedResult?.stdout.trim() ?? '')
-      .split('\n')
-      .filter(Boolean)
-      .map((p) => path.join(repoRoot, p));
-
-    const stagedMmdPaths = new Set(
-      allStagedPaths.filter((p) => p.endsWith('.mmd') || p.endsWith('.mermaid')),
-    );
+    const stagedMmdPaths = new Set(stagedMmdFiles);
 
     const unstagedResult = await runGit(['diff', '--name-only'], repoRoot);
     if (unstagedResult?.stdout) {
       for (const rel of unstagedResult.stdout.split('\n').filter(Boolean)) {
-        if (rel.endsWith('.mmd') || rel.endsWith('.mermaid')) {
+        if (isMermaidFile(rel)) {
           stagedMmdPaths.add(path.join(repoRoot, rel));
         }
       }

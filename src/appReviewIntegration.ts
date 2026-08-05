@@ -372,6 +372,7 @@ export class AppReviewIntegration {
       if (!authed) {
         throw new Error("GitHub sign-in was cancelled.");
       }
+      analytics.trackConnectGitHub();
       vscode.window.showInformationMessage("Connected to GitHub successfully.");
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -390,6 +391,7 @@ export class AppReviewIntegration {
     } catch {
       /* ignore — preference may not be set */
     }
+    analytics.trackDisconnectGitHub();
     vscode.window.showInformationMessage(
       "Disconnected from GitHub. Run \"MermaidChart: Connect GitHub\" to reconnect."
     );

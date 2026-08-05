@@ -17,6 +17,7 @@ import {
 } from "./diagramDiffHighlighter";
 import { getThemeColors } from "../../../webview/src/themes/themeConfig";
 import { saveDiagramAsPng, saveDiagramAsSvg } from "../../services/renderService";
+import analytics from "../../analytics";
 
 const EXTENSION_ID = `${packageJson.publisher}.${packageJson.name}`;
 
@@ -235,6 +236,7 @@ export function openDiagramDiffWebviews(
   newContent: string,
   options?: DiagramDiffWebviewOptions,
 ): () => void {
+  analytics.trackOpenDiagramDiff();
   let panelCurrent: vscode.WebviewPanel | undefined;
   let panelUpdated: vscode.WebviewPanel | undefined;
   const disposables: vscode.Disposable[] = [];

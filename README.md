@@ -398,7 +398,19 @@ Keep your Mermaid diagrams in sync with your code — automatically, before ever
 > **This is a focused, local version of Mermaid diagram sync.** It regenerates diagrams based on your current staged changes only.
 > For full pull-request-level diagram synchronization across your entire repository use the [**Mermaid Diagram Sync GitHub App**](https://github.com/marketplace/mermaid-diagram-sync).
 
-![vscode-plugin-precommit-regenerate](https://mermaid.ai/docs/img/plugins/vscode-plugin-precommit-regenerate.gif)
+### Generate Diagram for New Staged Files
+Visualize code you're about to commit — even before a diagram exists for it.
+
+When you stage source files that are not yet referenced by any `.mmd` or `.mermaid` diagram in your workspace, the extension detects them and offers to generate a brand-new diagram using Generate Diagram From Code — without blocking your commit.
+
+- **Automatic Detection**: Every time you run `git add`, the extension checks your staged coding files (TypeScript, Python, Java, Go,....) against all Mermaid diagrams in the workspace. If any staged file has no linked diagram, a soft notification appears.<br>
+- **One-Click Generation**: Click **Generate** in the notification and the extension automatically opens the Copilot chat with `@mermaid-chart /generate_diagram_from_code`, pre-seeding all the unlinked staged file paths as references — no manual file selection needed.<br>
+- **Choose Your Diagram Type**: Once the chat opens, you can pick the diagram type (flowchart, class diagram, sequence diagram, and more) and the AI generates the appropriate Mermaid syntax instantly.<br>
+- **Smart Frequency Limit**: The popup shows up to 2 times across interactions. After that, it enters a quiet period of approximately one month — whether you clicked Generate or dismissed it — so it never becomes intrusive.<br>
+- **Opt-out Anytime**: Can be turned off permanently via Settings → **Mermaid Chart: Create Diagram From Stage Enabled**.<br>
+- **Never Blocks Commit**: This is a soft, non-modal notification only. Your staging and commit flow is never interrupted regardless of your choice.<br>
+
+![vscode-plugin-create-diagram-from-stage](https://mermaid.ai/docs/img/plugins/vscode-plugin-create-diagram-from-stage.gif)
 
 
 ### Regenerate Diagram with Diff Preview
@@ -538,6 +550,8 @@ Once the skills are in your repo, Copilot can use Mermaid extension capabilities
 > **Note**<br/>
 > Mermaid AI Skills are for **GitHub Copilot in VS Code** only. They rely on VS Code commands and Copilot LM tools, which other AI IDEs cannot invoke the same way.
 
+![vscode-plugin-ai-skills](https://mermaid.ai/docs/img/plugins/vscode-plugin-ai-skills.gif)
+
 ### Commands
 
 | Command | Description |
@@ -573,6 +587,9 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.7.5 - 2026-08-5
+- Added **Generate Diagram for New Staged Files** — When you stage source files that aren't yet linked to any Mermaid diagram, the extension offers to generate a new diagram via Generate Diagram From Code. Can be disabled via Settings → **Mermaid Chart: Create Diagram From Stage Enabled**
 
 ### 2.7.4 - 2026-07-23
 - Added **Mermaid AI Skills for GitHub Copilot** — install workspace instructions so Copilot can use Mermaid extension commands and LM tools (preview, repair, improve, generate, sync, and more).

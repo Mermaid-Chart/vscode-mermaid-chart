@@ -6,6 +6,7 @@ import { AppReviewIntegration, type ReviewFileMapping } from "./appReviewIntegra
 import { pathsEqualAbsolute } from "./appReviewPaths";
 import { AppFileDecorationProvider } from "./appFileDecorationProvider";
 import { openAppReviewDiagramSurface } from "./commercial/sync/diagramDiffView";
+import analytics from "./analytics";
 
 function fileUrisMatch(a: vscode.Uri, b: vscode.Uri, integration: AppReviewIntegration): boolean {
   if (a.scheme !== b.scheme) {
@@ -77,10 +78,10 @@ export class AppDiffViewProvider {
     private readonly fileDecorationProvider: AppFileDecorationProvider
   ) {}
 
-  async restoreAppProposalAndPending(fileUri: vscode.Uri): Promise<void> {
+  async restoreAppProposalAndPending(fileUri: vscode.Uri): Promise<boolean> {
     const mapping = this.appReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
-      return;
+      return false;
     }
     try {
       await this.cancelSessionsForOriginal(mapping.originalFilePath);
@@ -89,7 +90,7 @@ export class AppDiffViewProvider {
         vscode.window.showErrorMessage(
           `Could not load Mermaid Sync app proposal from GitHub for ${path.basename(mapping.originalFilePath)}.`
         );
-        return;
+        return false;
       }
       await this.replaceOriginalFileContent(mapping.originalFilePath, botContent);
       mapping.status = "pending";
@@ -98,8 +99,10 @@ export class AppDiffViewProvider {
       vscode.window.showInformationMessage(
         `Restored Mermaid Sync app proposal for ${path.basename(mapping.originalFilePath)}. Status: review pending.`
       );
+      return true;
     } catch (error) {
       vscode.window.showErrorMessage(`Error restoring Mermaid Sync app proposal: ${error}`);
+      return false;
     }
   }
 
@@ -324,6 +327,8 @@ export class AppDiffViewProvider {
       vscode.window.showErrorMessage("No active Mermaid Sync app review for this file.");
       return;
     }
+
+    analytics.trackOpenCodeDiff();
 
     const panelSession = this.sessionsByOriginal.get(path.normalize(mapping.originalFilePath));
     const modifiedUri = vscode.Uri.file(mapping.originalFilePath);

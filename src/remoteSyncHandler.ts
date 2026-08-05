@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { MermaidChartVSCode } from './mermaidChartVSCode';
 import { getDiagramFromCache, updateDiagramInCache } from './mermaidChartProvider';
 import { openDiagramDiffWebviews } from './commercial/sync/diagramDiffView';
+import analytics from './analytics';
 
 
 export class RemoteSyncHandler {
@@ -51,6 +52,8 @@ export class RemoteSyncHandler {
                 updateDiagramInCache(diagramId, remoteVersion.code);
                 return 'continue';
             }
+
+            analytics.trackRemoteSync();
 
             // Show non-modal notification at bottom right
             const result = await vscode.window.showInformationMessage(

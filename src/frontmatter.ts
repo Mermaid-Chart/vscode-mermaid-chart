@@ -235,6 +235,48 @@ function sanitizeQuery(query: string): string {
     .join("\n"); 
 }
 
+/** Path portion of a reference like "File: /src/auth.ts", before workspace resolution. */
+function extractReferencePath(reference: string): string | undefined {
+  // Stop at " (" so a trailing annotation is dropped, but keep spaces that are
+  // part of the path itself.
+  const match = reference.match(/File:\s*(.+?)(?:\s+\(|$)/);
+  return match ? match[1].trim() : undefined;
+}
+
+/** A bare filename carries no directory information, so it can't be resolved. */
+function hasDirectorySegment(filePath: string): boolean {
+  return filePath.includes('/') || filePath.includes('\\');
+}
+
+/**
+ * A leading "/" in a reference means workspace-relative (not POSIX root), so only
+ * Windows drive paths (e.g. C:\...) are treated as truly absolute and used as-is.
+ */
+function toWorkspaceAbsolutePath(filePath: string, workspacePath: string): string {
+  if (/^[a-zA-Z]:[\\/]/.test(filePath)) {
+    return path.normalize(filePath);
+  }
+  if (workspacePath) {
+    return path.normalize(path.join(workspacePath, filePath.replace(/^[/\\]+/, '')));
+  }
+  return path.normalize(filePath);
+}
+
+/**
+ * Resolve the absolute path a frontmatter reference points at.
+ * Returns undefined when the reference has no usable "File: <path>" entry.
+ */
+export function resolveReferencePath(
+  reference: string,
+  workspacePath: string,
+): string | undefined {
+  const filePath = extractReferencePath(reference);
+  if (filePath === undefined || !hasDirectorySegment(filePath)) {
+    return undefined;
+  }
+  return toWorkspaceAbsolutePath(filePath, workspacePath);
+}
+
 export function checkReferencedFiles(metadata: any, workspacePath: string = ''): string[] {
   const changedReferences: string[] = [];
 
@@ -252,28 +294,16 @@ export function checkReferencedFiles(metadata: any, workspacePath: string = ''):
   }
 
   for (const reference of metadata.references) {
-    // Extract file path from reference (assuming format "File: /path/to/file")
-    const match = reference.match(/File: (.*?)(\s|$|\()/);
-    if (!match) continue;
-
-    let filePath = match[1].trim();
+    const rawPath = extractReferencePath(reference);
+    if (rawPath === undefined) continue;
 
     // Early return if reference only contains a filename without a path
-    if (!filePath.includes('/') && !filePath.includes('\\')) {
-      console.log(`Skipping reference without path: ${filePath}`);
+    if (!hasDirectorySegment(rawPath)) {
+      console.log(`Skipping reference without path: ${rawPath}`);
       return [];
     }
 
-    // Windows absolute path (e.g. C:\proj\src\auth.ts) — use as-is.
-    // On POSIX, path.isAbsolute('/src/auth.ts') is true but that path is
-    // workspace-relative by convention, so we check for a drive letter explicitly.
-    if (/^[a-zA-Z]:[\\/]/.test(filePath)) {
-      filePath = path.normalize(filePath);
-    } else if (workspacePath) {
-      // Strip any leading slashes/backslashes (workspace-relative convention).
-      const relative = filePath.replace(/^[/\\]+/, '');
-      filePath = path.normalize(path.join(workspacePath, relative));
-    }
+    const filePath = toWorkspaceAbsolutePath(rawPath, workspacePath);
 
     if (!fs.existsSync(filePath)) {
       changedReferences.push(`${filePath} (deleted)`);

@@ -57,6 +57,7 @@ import {
 import { PreviewBridgeImpl } from "./commercial/ai/tools/previewTool";
 import { ValidationBridgeImpl } from "./commercial/ai/tools/validationTool";
 import {
+  openAppReviewDiagramSurface,
   openDiagramDiffWebviews,
   setReviewDiagramExtensionPath,
 } from "./commercial/sync/diagramDiffView";
@@ -121,7 +122,19 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize the bridge for commercial tools
   setPreviewBridge(new PreviewBridgeImpl());
   setValidationBridge(new ValidationBridgeImpl());
-  setDiagramDiffBridge({ openDiagramDiffWebviews });
+  setDiagramDiffBridge({
+    openDiagramDiffWebviews,
+    // Same review surface the GitHub App review list opens (PLUG-81 / pre-commit reuse).
+    openDiagramReviewSurface: async (options) => {
+      const result = await openAppReviewDiagramSurface(
+        options.fileUri,
+        options.oldContent,
+        options.newContent,
+        { reviewRef: options.reviewRef },
+      );
+      return { closePanels: result.closePanels, panel: result.panel };
+    },
+  });
   
   // Initialize AI chat participant after tools are registered
   initializeAIChatParticipant(context);

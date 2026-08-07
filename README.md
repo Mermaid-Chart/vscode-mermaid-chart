@@ -390,10 +390,19 @@ Keep your Mermaid diagrams in sync with your code — automatically, before ever
 
 - **Automatic Staging Detection**: Whenever you run `git add`, the extension watches for staged source files that are referenced by any `.mmd` or `.mermaid` diagram in your workspace. No manual trigger needed.<br>
 - **Smart Notification Popup**: As soon as relevant staged files are detected, a VS Code notification appears listing the affected diagrams and asking whether you want to regenerate them using Mermaid AI — right before you commit, so your diagrams never lag behind your code.<br>
-- **Powered by Mermaid AI**: Clicking **Regenerate** calls the Mermaid AI regeneration API. The updated diagram is written back to file automatically. AI credits are deducted the same way as in the [Mermaid Diagram Sync GitHub App](https://github.com/marketplace/mermaid-diagram-sync).<br>
-- **Intelligent Skip Logic**: If a diagram file is already staged (already regenerated and added) or has unstaged modifications, it is skipped automatically no duplicate work, no unwanted overwrites.<br>
+- **Powered by Mermaid AI**: Clicking **Regenerate** calls the Mermaid AI regeneration API. Updated diagrams are written to disk and opened in **Review Mermaid Sync** so you can Accept, Reject, or review each change before you commit. AI credits are deducted the same way as in the [Mermaid Diagram Sync GitHub App](https://github.com/marketplace/mermaid-diagram-sync).<br>
 - **Login Prompt**: If you are not signed in to Mermaid Chart, the popup offers a quick login link instead of regenerating.<br>
 - **Opt-out Anytime**: Can be turned off via Settings → **Mermaid Chart: Pre Commit Sync Enabled**.<br>
+
+#### Review regenerated diagrams
+After regenerate, each affected diagram appears in the **Review Mermaid Sync** sidebar (same list UI used for GitHub Sync review):
+
+- Click a diagram to open the review UI (diagram preview, change summary, Diff code).<br>
+- **Accept** keeps the regenerated content; **Reject** restores the file to how it was before regenerate.<br>
+- Use **Accept All**, **Reject All**, **Open Changes**, or **Close Review** from the list toolbar for bulk actions.<br>
+- Closing the review by mistake still leaves the regenerated files in your git changes, so nothing is lost.<br>
+
+![vscode-plugin-pre-commit-review](https://mermaid.ai/docs/img/plugins/vscode-plugin-pre-commit-review.gif)
 
 > **This is a focused, local version of Mermaid diagram sync.** It regenerates diagrams based on your current staged changes only.
 > For full pull-request-level diagram synchronization across your entire repository use the [**Mermaid Diagram Sync GitHub App**](https://github.com/marketplace/mermaid-diagram-sync).

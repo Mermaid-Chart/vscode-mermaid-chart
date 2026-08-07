@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { AppReviewIntegration } from "./appReviewIntegration";
+import { AppReviewIntegration, type ReviewFileMapping } from "./appReviewIntegration";
+import { reviewOriginWording } from "./appReviewStatus";
 import { AppReviewGitStatusTracker } from "./appReviewGitStatus";
 import { AppFileDecorationProvider } from "./appFileDecorationProvider";
 import { AppDiffViewProvider } from "./appDiffViewProvider";
@@ -69,6 +70,28 @@ export class AppReviewFeature implements vscode.Disposable {
     await this.reviewSyncTree.focusView();
   }
 
+  /** Pre-commit / local regen → same Review Mermaid Sync list as GitHub app review. */
+  async registerLocalProposalsAndFocus(
+    items: Array<{
+      relativePath: string;
+      originalFilePath: string;
+      originalContent: string;
+      proposedContent: string;
+    }>,
+    options?: { clearExisting?: boolean; gitRoot?: string },
+  ): Promise<number> {
+    const count = this.integration.registerLocalReviewProposals(items, options);
+    await this.focusReviewSyncPanel(count);
+    return count;
+  }
+
+  /** Bulk toasts: local wording only when every file in review came from local regenerate. */
+  private wordingFor(mappings: ReviewFileMapping[]): ReturnType<typeof reviewOriginWording> {
+    return reviewOriginWording(
+      mappings.every((m) => m.origin === "local") ? "local" : "app",
+    );
+  }
+
   private async ensureMermaidLogin(): Promise<boolean> {
     return promptForLogin(
       'review-bulk-action',
@@ -102,16 +125,17 @@ export class AppReviewFeature implements vscode.Disposable {
       }
     }
 
+    const wording = this.wordingFor(all);
     this.integration.notifyReviewMappingsChanged();
     if (accepted > 0) {
       analytics.trackReviewSyncAcceptAll();
       vscode.window.showInformationMessage(
-        `Accepted Mermaid Sync changes for ${accepted} diagram file(s).`,
+        `Accepted ${wording.source} changes for ${accepted} diagram file(s).`,
       );
     }
     if (failed > 0) {
       vscode.window.showErrorMessage(
-        `Could not accept Mermaid Sync changes for ${failed} diagram file(s).`,
+        `Could not accept ${wording.source} changes for ${failed} diagram file(s).`,
       );
     }
     this.reviewSyncTree.refresh();
@@ -142,16 +166,17 @@ export class AppReviewFeature implements vscode.Disposable {
       }
     }
 
+    const wording = this.wordingFor(all);
     this.integration.notifyReviewMappingsChanged();
     if (rejected > 0) {
       analytics.trackReviewSyncRejectAll();
       vscode.window.showInformationMessage(
-        `Rejected Mermaid Sync changes for ${rejected} diagram file(s).`,
+        `Rejected ${wording.source} changes for ${rejected} diagram file(s).`,
       );
     }
     if (failed > 0) {
       vscode.window.showErrorMessage(
-        `Could not reject Mermaid Sync changes for ${failed} diagram file(s).`,
+        `Could not reject ${wording.source} changes for ${failed} diagram file(s).`,
       );
     }
     this.reviewSyncTree.refresh();
@@ -199,7 +224,9 @@ export class AppReviewFeature implements vscode.Disposable {
     this.reviewSyncTree.refresh();
 
     if (count > 0) {
-      vscode.window.showInformationMessage(`Closed Mermaid Sync review for ${count} diagram file(s).`);
+      vscode.window.showInformationMessage(
+        `Closed ${this.wordingFor(mappings).source} review for ${count} diagram file(s).`,
+      );
     }
   }
 
@@ -233,6 +260,22 @@ export class AppReviewFeature implements vscode.Disposable {
         const count = await this.integration.reviewAppCommits();
         await this.focusReviewSyncPanel(count);
       }),
+      vscode.commands.registerCommand(
+        "mermaidChart.diagramReviewCount",
+        () => this.integration.getReviewMappings().size,
+      ),
+      vscode.commands.registerCommand(
+        "mermaidChart.registerLocalDiagramReviews",
+        (
+          items: Array<{
+            relativePath: string;
+            originalFilePath: string;
+            originalContent: string;
+            proposedContent: string;
+          }>,
+          options?: { clearExisting?: boolean; gitRoot?: string },
+        ) => this.registerLocalProposalsAndFocus(items, options),
+      ),
       vscode.commands.registerCommand("mermaidChart.reviewSyncOpenChanges", () =>
         this.openChangesInReview(),
       ),

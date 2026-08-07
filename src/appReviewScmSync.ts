@@ -28,13 +28,24 @@ export class AppReviewScmSync implements vscode.Disposable {
 
     const root = vscode.workspace.workspaceFolders?.[0]?.uri;
     if (!this.scm) {
-      this.scm = vscode.scm.createSourceControl(
-        MERMAID_SYNC_REVIEW_SCM_ID,
-        "Mermaid Sync Review",
-        root,
-        undefined,
-        true,
-      );
+      try {
+        this.scm = vscode.scm.createSourceControl(
+          MERMAID_SYNC_REVIEW_SCM_ID,
+          "Mermaid Sync Review",
+          root,
+          undefined,
+          true,
+        );
+      } catch (error) {
+        // `isHidden` needs the scmProviderOptions proposal; without it a visible provider
+        // would appear in Source Control, so skip SCM and open changes without row actions.
+        console.error(
+          { err: error },
+          "Mermaid Sync review SCM unavailable — opening changes without per-row actions",
+        );
+        this.disposeScm();
+        return undefined;
+      }
       this.scm.inputBox.visible = false;
       this.resourceGroup = this.scm.createResourceGroup("changes", "Changes");
       this.resourceGroup.hideWhenEmpty = true;
@@ -66,7 +77,7 @@ export class AppReviewScmSync implements vscode.Disposable {
 
   private applyResourceStates(mappings: ReviewFileMapping[]): void {
     this.resourceGroup!.resourceStates = mappings.map((mapping) => {
-      const status = reviewStatusDecoration(mapping.status);
+      const status = reviewStatusDecoration(mapping);
       return {
         resourceUri: vscode.Uri.file(mapping.originalFilePath),
         contextValue: "mermaidReviewSyncFile",

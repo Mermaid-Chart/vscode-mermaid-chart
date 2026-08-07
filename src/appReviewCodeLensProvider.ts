@@ -14,7 +14,8 @@ export class AppReviewCodeLensProvider implements vscode.CodeLensProvider {
 
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
     const mapping = this.appReviewIntegration.getReviewMapping(document.uri.fsPath);
-    if (!mapping) {
+    // Local regenerate reviews are driven from the Review Mermaid Sync list, not in-file CodeLens.
+    if (!mapping || mapping.origin === "local") {
       return [];
     }
     return this.buildCodeLenses(document.uri, mapping);

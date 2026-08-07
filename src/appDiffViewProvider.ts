@@ -4,6 +4,7 @@ import * as crypto from "crypto";
 import * as os from "node:os";
 import { AppReviewIntegration, type ReviewFileMapping } from "./appReviewIntegration";
 import { pathsEqualAbsolute } from "./appReviewPaths";
+import { reviewOriginWording } from "./appReviewStatus";
 import { AppFileDecorationProvider } from "./appFileDecorationProvider";
 import { openAppReviewDiagramSurface } from "./commercial/sync/diagramDiffView";
 import analytics from "./analytics";
@@ -83,25 +84,30 @@ export class AppDiffViewProvider {
     if (!mapping) {
       return false;
     }
+    const wording = reviewOriginWording(mapping.origin);
     try {
       await this.cancelSessionsForOriginal(mapping.originalFilePath);
-      const botContent = await this.appReviewIntegration.fetchAppContentAtHead(fileUri.fsPath);
-      if (botContent === null) {
+      // Local proposals are held in the mapping; app proposals live in the GitHub HEAD commit.
+      const proposalContent =
+        mapping.origin === "local"
+          ? mapping.appContent
+          : await this.appReviewIntegration.fetchAppContentAtHead(fileUri.fsPath);
+      if (proposalContent === null) {
         vscode.window.showErrorMessage(
-          `Could not load Mermaid Sync app proposal from GitHub for ${path.basename(mapping.originalFilePath)}.`
+          `Could not load ${wording.source} proposal for ${path.basename(mapping.originalFilePath)}.`
         );
         return false;
       }
-      await this.replaceOriginalFileContent(mapping.originalFilePath, botContent);
+      await this.replaceOriginalFileContent(mapping.originalFilePath, proposalContent);
       mapping.status = "pending";
       this.fileDecorationProvider.updateFileStatus(mapping.originalFilePath, "pending");
       this.appReviewIntegration.notifyReviewMappingsChanged();
       vscode.window.showInformationMessage(
-        `Restored Mermaid Sync app proposal for ${path.basename(mapping.originalFilePath)}. Status: review pending.`
+        `Restored ${wording.source} proposal for ${path.basename(mapping.originalFilePath)}. Status: review pending.`
       );
       return true;
     } catch (error) {
-      vscode.window.showErrorMessage(`Error restoring Mermaid Sync app proposal: ${error}`);
+      vscode.window.showErrorMessage(`Error restoring ${wording.source} proposal: ${error}`);
       return false;
     }
   }
@@ -613,7 +619,7 @@ export class AppDiffViewProvider {
         const doc = await vscode.workspace.openTextDocument(mapping.originalFilePath);
         await vscode.window.showTextDocument(doc);
         vscode.window.showInformationMessage(
-          `App changes applied to ${path.basename(mapping.originalFilePath)}`
+          `${reviewOriginWording(mapping.origin).source} changes applied to ${path.basename(mapping.originalFilePath)}`
         );
       }
       return true;
@@ -645,7 +651,7 @@ export class AppDiffViewProvider {
         const doc = await vscode.workspace.openTextDocument(mapping.originalFilePath);
         await vscode.window.showTextDocument(doc);
         vscode.window.showInformationMessage(
-          `${path.basename(mapping.originalFilePath)}: restored to the version from before the Mermaid Sync app update.`
+          `${path.basename(mapping.originalFilePath)}: restored to the version from before the ${reviewOriginWording(mapping.origin).event}.`
         );
       }
       return true;

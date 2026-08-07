@@ -40,6 +40,8 @@ export interface ReviewFileMapping {
   originalContent: string;
   appContent: string;
   status: "pending" | "accepted" | "rejected" | "modified";
+  /** "app" = GitHub Sync bot commit, "local" = local Mermaid AI regenerate (pre-commit). */
+  origin: "app" | "local";
 }
 
 /** How app review was started — controls notifications and auth prompts. */
@@ -233,6 +235,7 @@ export class AppReviewIntegration {
         originalContent,
         appContent,
         status: "pending",
+        origin: "app",
       });
     }
 
@@ -352,6 +355,53 @@ export class AppReviewIntegration {
     this.activeGitRoot = null;
     this.notifyReviewMappingsChanged();
     return count;
+  }
+
+  /**
+   * Register local AI proposals (e.g. pre-commit regenerate) into the same review list as GitHub Sync.
+   * `proposedContent` is already written to the file by the caller, so git shows it and
+   * closing the review keeps it; Reject restores `originalContent`.
+   */
+  registerLocalReviewProposals(
+    items: Array<{
+      relativePath: string;
+      originalFilePath: string;
+      originalContent: string;
+      proposedContent: string;
+    }>,
+    options?: { clearExisting?: boolean; gitRoot?: string },
+  ): number {
+    const clearExisting = options?.clearExisting !== false;
+    if (clearExisting) {
+      this.reviewMappings.clear();
+    }
+
+    const gitRoot =
+      options?.gitRoot ??
+      this.activeGitRoot ??
+      this.getWorkspaceRoot();
+    if (gitRoot) {
+      this.activeGitRoot = path.normalize(gitRoot);
+    }
+
+    for (const item of items) {
+      const relPosix = toPosixRepoPath(item.relativePath);
+      this.reviewMappings.set(relPosix, {
+        relativePath: relPosix,
+        originalFilePath: path.normalize(item.originalFilePath),
+        originalContent: item.originalContent,
+        appContent: item.proposedContent,
+        status: "pending",
+        origin: "local",
+      });
+    }
+
+    if (this.reviewMappings.size === 0) {
+      this.activeGitRoot = null;
+    }
+
+    this.notifyReviewMappingsChanged();
+    return items.length;
   }
 
   private isSyncAppBotCommit(info: {

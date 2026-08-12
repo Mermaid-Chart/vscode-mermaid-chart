@@ -10,10 +10,6 @@ const SAVE_ICON_SVG = /* svg */ `<svg class="mc-pill-icon" width="14" height="14
   <path d="M8 1.5v5h4.5" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
 </svg>`;
 
-const BRANCH_ICON_SVG = /* svg */ `<svg class="mc-pill-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-  <path d="M4.5 3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM6 5v2.2c0 .8.5 1.5 1.2 1.8L10 10v1.5H6V14h4.5a1 1 0 0 0 1-1V9.8L8.2 8.2A1.5 1.5 0 0 1 7.5 6.5V5H6z"/>
-</svg>`;
-
 /** Shared chrome — dark rounded pills matching product toolbar reference. */
 export function reviewChromeStyles(): string {
     return /* css */ `
@@ -25,7 +21,6 @@ export function reviewChromeStyles(): string {
     --mc-dot-added: var(--vscode-gitDecoration-addedResourceForeground, #3fb950);
     --mc-dot-modified: var(--vscode-gitDecoration-modifiedResourceForeground, #d29922);
     --mc-dot-removed: var(--vscode-gitDecoration-deletedResourceForeground, #f85149);
-    --mc-dot-branch: var(--vscode-charts-teal, #2dd4bf);
     --mc-dot-now: var(--vscode-gitDecoration-addedResourceForeground, #3fb950);
     --mc-save-accent: #e879a8;
     font-family: var(--vscode-font-family);
@@ -87,7 +82,6 @@ export function reviewChromeStyles(): string {
   .mc-status-dot.added { background: var(--mc-dot-added); }
   .mc-status-dot.modified { background: var(--mc-dot-modified); }
   .mc-status-dot.removed { background: var(--mc-dot-removed); }
-  .mc-status-dot.branch { background: var(--mc-dot-branch); }
   .mc-status-dot.theme {
     background: conic-gradient(#ff6b6b, #feca57, #48dbfb, #ff9ff3, #ff6b6b);
   }
@@ -104,7 +98,6 @@ export function reviewChromeStyles(): string {
     flex-shrink: 0;
     opacity: 0.95;
   }
-  .mc-pill-branch .mc-pill-icon { color: var(--mc-dot-branch); }
   .mc-pill-action .mc-pill-icon { color: var(--mc-save-accent); }
 
   /* Theme pill trigger — original review chrome button */
@@ -480,18 +473,6 @@ export function renderHeaderActionButtons(): string {
         `${SAVE_ICON_SVG}<span class="mc-pill-label">Save diagram</span></button>` +
         `<button type="button" class="mc-pill mc-review-chrome" data-action="view-diff-code" title="Open source diff in editor">` +
         `<span class="mc-pill-label">Diff code</span></button>`
-    );
-}
-
-export function renderMetaChips(opts: { reviewRef?: string }): string {
-    if (!opts.reviewRef?.trim()) {
-        return "";
-    }
-    const ref = escapeHtml(opts.reviewRef.trim());
-    return (
-        `<span class="mc-pill mc-pill-branch mc-review-chrome" title="Review reference">` +
-        `${BRANCH_ICON_SVG}` +
-        `<span class="mc-pill-label">${ref}</span></span>`
     );
 }
 

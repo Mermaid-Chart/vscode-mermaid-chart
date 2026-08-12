@@ -129,10 +129,7 @@ export async function activate(context: vscode.ExtensionContext) {
         options.fileUri,
         options.oldContent,
         options.newContent,
-        {
-          reviewRef: options.reviewRef,
-          applyProposalOnDiffSave: options.applyProposalOnDiffSave,
-        },
+        { applyProposalOnDiffSave: options.applyProposalOnDiffSave },
       );
       return { closePanels: result.closePanels, panel: result.panel };
     },

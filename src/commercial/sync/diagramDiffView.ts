@@ -230,7 +230,6 @@ export interface ReviewDiagramPreviewOptions {
   oldContent: string;
   fileName: string;
   fileUri?: vscode.Uri;
-  reviewRef?: string;
   onCompareSideBySide?: () => void;
   onViewDiffCode?: () => void;
 }
@@ -471,7 +470,6 @@ export async function openReviewDiagramPreview(
       addedNodeIds: options.addedNodeIds,
       modifiedNodeIds: options.modifiedNodeIds,
       removedNodeIds: options.removedNodeIds,
-      reviewRef: options.reviewRef,
       currentTheme: theme,
       vscodeThemeName,
       fileName: options.fileName,
@@ -671,7 +669,6 @@ function wireReviewDiagramMessages(
 }
 
 export interface OpenAppReviewDiagramOptions {
-  reviewRef?: string;
   onViewDiffCode?: () => void;
   /**
    * When true, Diff code save writes the proposal into `fileUri`
@@ -792,7 +789,7 @@ export async function openTemporaryCodeDiff(
  * Entry point for Mermaid Sync app review ("Review changes"): opens the review
  * diagram webview with chrome, AST diff + review chrome highlights, and optional side-by-side diff.
  *
- * Also used by remote-sync + regenerate (PLUG-81) via the diagram-diff bridge.
+ * Also used by regenerate (PLUG-81) via the diagram-diff bridge.
  */
 export async function openAppReviewDiagramSurface(
   fileUri: vscode.Uri,
@@ -857,7 +854,6 @@ export async function openAppReviewDiagramSurface(
       oldContent,
       fileName,
       fileUri,
-      reviewRef: surfaceOptions.reviewRef,
       onCompareSideBySide: openSideBySide,
       onViewDiffCode: openDiffCode,
     },

@@ -7,7 +7,6 @@ import {
 import {
     renderChangesList,
     renderHeaderActionButtons,
-    renderMetaChips,
     renderNowBeforeToggle,
     renderSummaryChips,
     renderThemeSelect,
@@ -20,7 +19,6 @@ export interface ReviewDiagramPreviewContext {
     changes: DiagramChangeItem[];
     addedNodeIds: string[];
     modifiedNodeIds: string[];
-  reviewRef?: string;
   themeLabel?: string;
   /** Mermaid theme key passed to the webview renderer. */
   currentTheme?: string;
@@ -613,10 +611,9 @@ export function getWebviewHTML(
 
 function buildReviewDiagramHeader(ctx: ReviewDiagramPreviewContext): string {
     const summary = renderSummaryChips(ctx.counts);
-    const meta = renderMetaChips({ reviewRef: ctx.reviewRef });
     const theme = renderThemeSelect(ctx.currentTheme ?? "redux-dark", ctx.vscodeThemeName);
     const actions = renderHeaderActionButtons();
-    return `<header class="mc-review-header-bar mc-review-chrome"><div id="mc-review-summary-chips">${summary}</div><div class="mc-header-actions mc-review-chrome">${meta}${theme}${actions}</div></header>`;
+    return `<header class="mc-review-header-bar mc-review-chrome"><div id="mc-review-summary-chips">${summary}</div><div class="mc-header-actions mc-review-chrome">${theme}${actions}</div></header>`;
 }
 
 function buildReviewDiagramStage(ctx: ReviewDiagramPreviewContext): string {

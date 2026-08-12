@@ -475,14 +475,20 @@ export async function createHighlightInstructions(
     };
   };
 
-  // Process all node changes
+  // Process all node changes — role-aware: Before = removed+modified, After = added+modified
   diff.addedNodes.forEach(nodeId => newDiagramInstructions.push(createNodeInstruction(nodeId, newAST, 'added')));
-  diff.modifiedNodes.forEach(nodeId => newDiagramInstructions.push(createNodeInstruction(nodeId, newAST, 'modified')));
+  diff.modifiedNodes.forEach(nodeId => {
+    newDiagramInstructions.push(createNodeInstruction(nodeId, newAST, 'modified'));
+    oldDiagramInstructions.push(createNodeInstruction(nodeId, oldAST, 'modified'));
+  });
   diff.removedNodes.forEach(nodeId => oldDiagramInstructions.push(createNodeInstruction(nodeId, oldAST, 'removed')));
 
-  // Process all edge changes
+  // Process all edge changes — same role split as nodes
   diff.addedEdges.forEach(edgeId => newDiagramInstructions.push(createEdgeInstruction(edgeId, newAST, 'added')));
-  diff.modifiedEdges.forEach(edgeId => newDiagramInstructions.push(createEdgeInstruction(edgeId, newAST, 'modified')));
+  diff.modifiedEdges.forEach(edgeId => {
+    newDiagramInstructions.push(createEdgeInstruction(edgeId, newAST, 'modified'));
+    oldDiagramInstructions.push(createEdgeInstruction(edgeId, oldAST, 'modified'));
+  });
   diff.removedEdges.forEach(edgeId => oldDiagramInstructions.push(createEdgeInstruction(edgeId, oldAST, 'removed')));
 
   return { newDiagramInstructions, oldDiagramInstructions };

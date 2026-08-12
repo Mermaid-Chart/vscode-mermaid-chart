@@ -829,12 +829,13 @@
     cursor: grabbing;
   }
   
+  /* No gap: the sidebars are absolutely positioned, and any leftover height here
+     makes Panzoom's `contain: "outside"` raise minScale above 1 (zoom starts at 101–102%). */
   #app-container {
     display: flex;
     flex-direction: column;
     width: 100%;
     height: 100vh;
-    gap: 10px;
     overflow: hidden;
   }
   :global(#app[data-review-diagram="true"]) #app-container {

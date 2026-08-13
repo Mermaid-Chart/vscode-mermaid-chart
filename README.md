@@ -425,7 +425,7 @@ When you stage source files that are not yet referenced by any `.mmd` or `.merma
 ### Regenerate Diagram with Diff Preview
 - **Source File Integration**: When you create a .mmd file using any source file with our Mermaid handler, references get added to the front matter.<br>
 - **Smart Change Detection**: When you change your source file code, we provide a regenerate diagram option that reflects the same changes to the Mermaid diagram.<br>
-- **Diff Preview Visualization**: Includes diagram diff preview to help you understand exactly what changed before applying updates.<br>
+- **Review Diff Preview**: Opens the same review UI used for Mermaid Sync app review — summary of added/changed/removed elements, highlighted diagram preview, and optional Diff code / side-by-side compare before you apply updates.<br>
 - **Synchronized Updates**: Ensures your diagrams stay synchronized with your evolving codebase through intelligent change tracking.<br>
 
 ![vscode-plugin-regenerate-preview](https://mermaid.ai/docs/img/plugins/vscode-plugin-regenerate-preview.gif)

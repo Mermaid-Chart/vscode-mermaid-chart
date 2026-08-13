@@ -1,5 +1,7 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
+import { getFirstWordFromDiagram } from './frontmatter';
 
 // Function to map the first word to a diagram type
 export function getDiagramTypeFromWord(firstWord: string, diagramMappings: Record<string, string[]>): string | null {
@@ -48,6 +50,45 @@ export function applySyntaxHighlighting(document: vscode.TextDocument, tmLanguag
         console.error('Failed to apply syntax highlighting:', error);
       }
     );
+  }
+}
+
+/**
+ * Open temp/diff documents and set Mermaid language so vscode.diff shows syntax highlighting.
+ * Prefer type-specific grammar (mermaid.flowchart, …) when mappings are available.
+ */
+export async function prepareMermaidDiffDocuments(
+  uris: vscode.Uri[],
+  diagramMappings?: Record<string, string[]>,
+): Promise<void> {
+  for (const uri of uris) {
+    try {
+      const doc = await vscode.workspace.openTextDocument(uri);
+      let languageId = 'mermaid';
+
+      if (diagramMappings) {
+        const firstWord = getFirstWordFromDiagram(doc.getText());
+        const diagramType = firstWord
+          ? getDiagramTypeFromWord(firstWord, diagramMappings)
+          : null;
+        if (diagramType) {
+          const grammarPath = path.join(
+            __dirname,
+            '..',
+            'syntaxes',
+            `mermaid-${diagramType}.tmLanguage.json`,
+          );
+          const tmLanguage = loadTmLanguage(grammarPath);
+          if (tmLanguage?.name) {
+            languageId = `mermaid.${tmLanguage.name}`;
+          }
+        }
+      }
+
+      await vscode.languages.setTextDocumentLanguage(doc, languageId);
+    } catch (error) {
+      console.error({ err: error, uri: uri.toString() }, 'Failed to prepare Mermaid diff document language');
+    }
   }
 }
 

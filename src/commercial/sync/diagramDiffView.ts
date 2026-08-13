@@ -1,5 +1,7 @@
 import * as path from "path";
 import * as vscode from "vscode";
+import * as os from "node:os";
+import * as crypto from "crypto";
 import { splitFrontMatter } from "../../frontmatter";
 import { setupDiagramDiffPreview } from "../../diagramDiffPreview";
 import { debounce } from "../../utils/debounce";
@@ -18,7 +20,9 @@ import {
 import { getThemeColors } from "../../../webview/src/themes/themeConfig";
 import { saveDiagramAsPng, saveDiagramAsSvg } from "../../services/renderService";
 import analytics from "../../analytics";
+import { prepareMermaidDiffDocuments } from "../../syntaxHighlighter";
 
+const diagramTypeWords: Record<string, string[]> = require("../../diagramTypeWords.json");
 const EXTENSION_ID = `${packageJson.publisher}.${packageJson.name}`;
 
 let cachedExtensionPath: string | undefined;
@@ -92,24 +96,33 @@ function wirePreviewDocumentSync(
   );
 }
 
-function applyDiffHighlights(
-  panelCurrent: vscode.WebviewPanel | undefined,
-  panelUpdated: vscode.WebviewPanel | undefined,
-  newDiagramInstructions: HighlightInstruction[],
-  oldDiagramInstructions: HighlightInstruction[],
-): void {
-  if (newDiagramInstructions.length > 0) {
-    panelUpdated?.webview.postMessage({
-      type: "applyHighlights",
-      highlights: newDiagramInstructions,
-    });
-  }
-  if (oldDiagramInstructions.length > 0) {
-    panelCurrent?.webview.postMessage({
-      type: "applyHighlights",
-      highlights: oldDiagramInstructions,
-    });
-  }
+/** Post highlights after webview boots — early posts are dropped (18MB bundle). */
+function createHighlightSender(
+  panel: vscode.WebviewPanel,
+  getInstructions: () => HighlightInstruction[],
+  disposables: vscode.Disposable[],
+): () => void {
+  let rendered = false;
+
+  const post = (): void => {
+    const highlights = getInstructions();
+    if (!rendered || highlights.length === 0) {
+      return;
+    }
+    void panel.webview.postMessage({ type: "applyHighlights", highlights });
+  };
+
+  // App.svelte already re-applies stored highlights on each render; ack is enough.
+  disposables.push(
+    panel.webview.onDidReceiveMessage((message: { type?: string }) => {
+      if (message?.type === "diagramRendered") {
+        rendered = true;
+        post();
+      }
+    }),
+  );
+
+  return post;
 }
 
 /** Review chrome — green/amber/red CSS + stagger via previewTemplate inline script. */
@@ -217,7 +230,6 @@ export interface ReviewDiagramPreviewOptions {
   oldContent: string;
   fileName: string;
   fileUri?: vscode.Uri;
-  reviewRef?: string;
   onCompareSideBySide?: () => void;
   onViewDiffCode?: () => void;
 }
@@ -240,6 +252,10 @@ export function openDiagramDiffWebviews(
   let panelCurrent: vscode.WebviewPanel | undefined;
   let panelUpdated: vscode.WebviewPanel | undefined;
   const disposables: vscode.Disposable[] = [];
+  let newDiagramInstructions: HighlightInstruction[] = [];
+  let oldDiagramInstructions: HighlightInstruction[] = [];
+  let sendUpdatedHighlights: (() => void) | undefined;
+  let sendCurrentHighlights: (() => void) | undefined;
 
   const disposePanels = (): void => {
     for (const disposable of disposables) {
@@ -282,6 +298,17 @@ export function openDiagramDiffWebviews(
     wirePreviewDocumentSync(panelCurrent, options?.currentRepairDocumentUri, disposables);
     wirePreviewDocumentSync(panelUpdated, options?.incomingRepairDocumentUri, disposables);
 
+    sendCurrentHighlights = createHighlightSender(
+      panelCurrent,
+      () => oldDiagramInstructions,
+      disposables,
+    );
+    sendUpdatedHighlights = createHighlightSender(
+      panelUpdated,
+      () => newDiagramInstructions,
+      disposables,
+    );
+
     void vscode.commands.executeCommand("vscode.setEditorLayout", {
       orientation: 0,
       groups: [
@@ -311,18 +338,12 @@ export function openDiagramDiffWebviews(
           oldDiagramInstructions: [] as HighlightInstruction[],
         };
       })
-      .then(({ newDiagramInstructions, oldDiagramInstructions }) => {
-        if (newDiagramInstructions.length === 0 && oldDiagramInstructions.length === 0) {
-          return;
-        }
-        setTimeout(() => {
-          applyDiffHighlights(
-            panelCurrent,
-            panelUpdated,
-            newDiagramInstructions,
-            oldDiagramInstructions
-          );
-        }, 400);
+      .then((instructions) => {
+        newDiagramInstructions = instructions.newDiagramInstructions;
+        oldDiagramInstructions = instructions.oldDiagramInstructions;
+        // Covers the case where the webview finished rendering before the diff resolved.
+        sendUpdatedHighlights?.();
+        sendCurrentHighlights?.();
       });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -449,7 +470,6 @@ export async function openReviewDiagramPreview(
       addedNodeIds: options.addedNodeIds,
       modifiedNodeIds: options.modifiedNodeIds,
       removedNodeIds: options.removedNodeIds,
-      reviewRef: options.reviewRef,
       currentTheme: theme,
       vscodeThemeName,
       fileName: options.fileName,
@@ -649,13 +669,127 @@ function wireReviewDiagramMessages(
 }
 
 export interface OpenAppReviewDiagramOptions {
-  reviewRef?: string;
   onViewDiffCode?: () => void;
+  /**
+   * When true, Diff code save writes the proposal into `fileUri`
+   * (regenerate — proposal is not in the file yet).
+   */
+  applyProposalOnDiffSave?: boolean;
+}
+
+export interface OpenTemporaryCodeDiffOptions {
+  /** When set, saving the after/right side applies that text into this document. */
+  applyToUri?: vscode.Uri;
+  /** Called after a successful apply-to-file from Diff code save. */
+  onApplied?: (text: string) => void;
+}
+
+/**
+ * Opens a disposable vscode.diff for old vs new content (line-diff / Diff code).
+ * Creates `.mmd` temps, applies Mermaid syntax highlighting, optional apply-on-save.
+ */
+export async function openTemporaryCodeDiff(
+  oldContent: string,
+  newContent: string,
+  title: string,
+  options?: OpenTemporaryCodeDiffOptions,
+): Promise<() => void> {
+  const id = crypto.randomBytes(6).toString("hex");
+  const sessionDir = path.join(os.tmpdir(), "vscode-mermaid-chart-diff", id);
+  const sessionDirUri = vscode.Uri.file(sessionDir);
+  const originalTempUri = vscode.Uri.file(path.join(sessionDir, "before.mmd"));
+  const updatedTempUri = vscode.Uri.file(path.join(sessionDir, "after.mmd"));
+
+  await vscode.workspace.fs.createDirectory(sessionDirUri);
+  await vscode.workspace.fs.writeFile(originalTempUri, Buffer.from(oldContent, "utf8"));
+  await vscode.workspace.fs.writeFile(updatedTempUri, Buffer.from(newContent, "utf8"));
+
+  // prepareMermaidDiffDocuments swallows per-uri errors; never throws to here.
+  await prepareMermaidDiffDocuments([originalTempUri, updatedTempUri], diagramTypeWords);
+
+  await vscode.commands.executeCommand("vscode.diff", originalTempUri, updatedTempUri, title, {
+    preview: false,
+    viewColumn: vscode.ViewColumn.Beside,
+  });
+
+  let cleaned = false;
+  const cleanup = (): void => {
+    if (cleaned) {
+      return;
+    }
+    cleaned = true;
+    saveDisposable?.dispose();
+    void vscode.workspace.fs.delete(sessionDirUri, { recursive: true }).then(undefined, () => undefined);
+  };
+
+  let saveDisposable: vscode.Disposable | undefined;
+  const applyToUri = options?.applyToUri;
+  const canApply =
+    !!applyToUri &&
+    (applyToUri.scheme === "file" || applyToUri.scheme === "untitled");
+
+  if (applyToUri && !canApply) {
+    console.error(
+      { scheme: applyToUri.scheme, uri: applyToUri.toString() },
+      "Refusing Diff code applyToUri — only file/untitled schemes are allowed",
+    );
+  }
+
+  if (canApply && applyToUri) {
+    const targetUri = applyToUri;
+    saveDisposable = vscode.workspace.onDidSaveTextDocument(async (saved) => {
+      if (saved.uri.toString() !== updatedTempUri.toString()) {
+        return;
+      }
+      try {
+        const text = saved.getText();
+        const targetDoc = await vscode.workspace.openTextDocument(targetUri);
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(
+          targetUri,
+          new vscode.Range(0, 0, targetDoc.lineCount, 0),
+          text,
+        );
+        await vscode.workspace.applyEdit(edit);
+        options?.onApplied?.(text);
+        vscode.window.showInformationMessage("Saved changes from Diff code applied successfully");
+      } catch (error) {
+        console.error({ err: error }, "Failed to apply Diff code save to diagram file");
+        vscode.window.showErrorMessage(
+          `Failed to apply changes: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    });
+  }
+
+  const tabWatcher = vscode.window.tabGroups.onDidChangeTabs(({ closed }) => {
+    for (const tab of closed) {
+      if (!(tab.input instanceof vscode.TabInputTextDiff)) {
+        continue;
+      }
+      const { original, modified } = tab.input;
+      if (
+        original.toString() === originalTempUri.toString() &&
+        modified.toString() === updatedTempUri.toString()
+      ) {
+        tabWatcher.dispose();
+        cleanup();
+        return;
+      }
+    }
+  });
+
+  return () => {
+    tabWatcher.dispose();
+    cleanup();
+  };
 }
 
 /**
  * Entry point for Mermaid Sync app review ("Review changes"): opens the review
  * diagram webview with chrome, AST diff + review chrome highlights, and optional side-by-side diff.
+ *
+ * Also used by regenerate (PLUG-81) via the diagram-diff bridge.
  */
 export async function openAppReviewDiagramSurface(
   fileUri: vscode.Uri,
@@ -672,16 +806,42 @@ export async function openAppReviewDiagramSurface(
 
   if (!surfaceDiff.astAvailable) {
     vscode.window.showWarningMessage(
-      "Diagram diff highlights are only available for flowchart and sequence diagrams.",
+      "Diagram element highlights aren't available for this diagram type. Use Diff code for a line-by-line comparison.",
     );
   }
 
   const contentRefs = { oldContent, newContent };
   let splitDispose: (() => void) | undefined;
+  let codeDiffDispose: (() => void) | undefined;
+  let panelAlreadyDisposed = false;
+  let previewRef: Awaited<ReturnType<typeof openReviewDiagramPreview>> | undefined;
+
   const openSideBySide = (): void => {
     splitDispose?.();
     splitDispose = openDiagramDiffWebviews(contentRefs.oldContent, contentRefs.newContent);
   };
+
+  const openDiffCode =
+    surfaceOptions.onViewDiffCode ??
+    (() => {
+      void openTemporaryCodeDiff(
+        contentRefs.oldContent,
+        contentRefs.newContent,
+        `Diagram Diff: ${fileName}`,
+        surfaceOptions.applyProposalOnDiffSave
+          ? {
+              applyToUri: fileUri,
+              onApplied: (text) => {
+                contentRefs.newContent = text;
+                void previewRef?.refreshFromContent(text);
+              },
+            }
+          : undefined,
+      ).then((dispose) => {
+        codeDiffDispose?.();
+        codeDiffDispose = dispose;
+      });
+    });
 
   const preview = await openReviewDiagramPreview(
     {
@@ -694,13 +854,18 @@ export async function openAppReviewDiagramSurface(
       oldContent,
       fileName,
       fileUri,
-      reviewRef: surfaceOptions.reviewRef,
       onCompareSideBySide: openSideBySide,
-      onViewDiffCode: surfaceOptions.onViewDiffCode,
+      onViewDiffCode: openDiffCode,
     },
     newContent,
     vscode.ViewColumn.Active,
   );
+  previewRef = preview;
+
+  preview.panel?.reveal(vscode.ViewColumn.Active, false);
+  preview.panel?.onDidDispose(() => {
+    panelAlreadyDisposed = true;
+  });
 
   if (!preview.panel) {
     vscode.window.showErrorMessage(
@@ -709,17 +874,26 @@ export async function openAppReviewDiagramSurface(
   }
 
   const closePanels = (): void => {
-    try {
-      preview.dispose();
-    } catch {
-      /* best-effort */
+    if (!panelAlreadyDisposed) {
+      try {
+        preview.dispose();
+      } catch {
+        /* best-effort */
+      }
+      panelAlreadyDisposed = true;
     }
     try {
       splitDispose?.();
     } catch {
       /* best-effort */
     }
+    try {
+      codeDiffDispose?.();
+    } catch {
+      /* best-effort */
+    }
     splitDispose = undefined;
+    codeDiffDispose = undefined;
   };
 
   const refreshFromContent = async (updatedContent: string): Promise<void> => {

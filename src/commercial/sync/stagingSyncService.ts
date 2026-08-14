@@ -14,6 +14,8 @@ import {
   readFileAsAddedContext,
   runGit,
 } from './gitStageHelpers';
+import { regenerateDiagramProposal } from './regenerateWithMermaidAICommand';
+import { showUpgradePrompt } from '../../upgradePricing';
 
 /** Result of a single diagram's staged-change analysis. */
 interface AffectedDiagram {
@@ -182,6 +184,15 @@ export class StagingSyncService {
     mcAPI: MermaidChartVSCode,
   ): Promise<void> {
     const repoRoot = workspaceFolder.uri.fsPath;
+
+    // A review session is already open — accepting/rejecting/reverting a diagram moves the
+    // git index, and re-prompting mid-review would regenerate on top of the open review.
+    const reviewCount = await vscode.commands.executeCommand<number>(
+      'mermaidChart.diagramReviewCount',
+    );
+    if (reviewCount) {
+      return;
+    }
 
     // Build a set of .mmd/.mermaid paths that should be skipped:
     //   1. Already staged — regenerated and added by the user.
@@ -387,16 +398,93 @@ export class StagingSyncService {
     if (pick !== 'Regenerate') return;
     analytics.trackPreCommitDiagramRegenerate();
 
-    for (const diagram of affected) {
-      const sourceFiles = diagram.stagedSourceFiles
-        .map((p) => sourceFilesContext.get(p))
-        .filter((s): s is string => s !== undefined);
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const proposals: Array<{
+      relativePath: string;
+      originalFilePath: string;
+      originalContent: string;
+      proposedContent: string;
+    }> = [];
 
-      await vscode.commands.executeCommand(
-        'mermaidChart.regenerateDiagramWithMermaidAI',
-        diagram.mmdUri,
-        sourceFiles,
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Regenerating diagrams with Mermaid AI…',
+        cancellable: false,
+      },
+      async () => {
+        for (const diagram of affected) {
+          const sourceFiles = diagram.stagedSourceFiles
+            .map((p) => sourceFilesContext.get(p))
+            .filter((s): s is string => s !== undefined);
+
+          try {
+            const proposal = await regenerateDiagramProposal(
+              mcAPI,
+              diagram.mmdUri,
+              sourceFiles,
+            );
+            if (!proposal) {
+              vscode.window.showWarningMessage(
+                `Mermaid AI could not regenerate ${diagram.mmdFileName}. Skipping.`,
+              );
+              continue;
+            }
+            if (proposal.originalContent.trim() === proposal.proposedContent.trim()) {
+              continue;
+            }
+
+            const relativePath = workspaceRoot
+              ? path.relative(workspaceRoot, diagram.mmdUri.fsPath).replace(/\\/g, '/')
+              : diagram.mmdFileName;
+
+            // Same shape as GitHub Sync review: proposal is on disk (so git shows it and
+            // closing the review keeps it); Reject restores originalContent.
+            await vscode.workspace.fs.writeFile(
+              diagram.mmdUri,
+              Buffer.from(proposal.proposedContent, 'utf-8'),
+            );
+
+            proposals.push({
+              relativePath,
+              originalFilePath: diagram.mmdUri.fsPath,
+              originalContent: proposal.originalContent,
+              proposedContent: proposal.proposedContent,
+            });
+          } catch (error: unknown) {
+            const isCreditsError =
+              error instanceof Error && error.name === 'AICreditsLimitExceededError';
+            if (isCreditsError) {
+              await showUpgradePrompt(
+                'regenerate',
+                'Mermaid AI credits limit exceeded. Please check your account at mermaid.ai.',
+                'Upgrade Subscription',
+              );
+              return;
+            }
+            vscode.window.showErrorMessage(
+              `Failed to regenerate ${diagram.mmdFileName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            );
+          }
+        }
+      },
+    );
+
+    if (proposals.length === 0) {
+      vscode.window.showInformationMessage(
+        'No diagram changes to review after regeneration.',
       );
+      return;
     }
+
+    const registered = await vscode.commands.executeCommand<number>(
+      'mermaidChart.registerLocalDiagramReviews',
+      proposals,
+      { clearExisting: true, gitRoot: workspaceRoot },
+    );
+
+    vscode.window.showInformationMessage(
+      `${registered ?? proposals.length} diagram(s) ready to review in Review Mermaid Sync.`,
+    );
   }
 }

@@ -40,6 +40,12 @@ export class AppFileDecorationProvider implements vscode.FileDecorationProvider 
   }
 
   private fileTooltip(mapping: ReviewFileMapping): string {
+    if (mapping.origin === "local") {
+      return mapping.status === "pending"
+        ? "Mermaid AI regenerated — review in Review Mermaid Sync"
+        : `Mermaid AI regenerated — ${mapping.status}`;
+    }
+
     switch (mapping.status) {
       case "pending":
         return "Mermaid Diagram Sync — app review pending (see CodeLens in editor)";
@@ -67,7 +73,7 @@ export class AppFileDecorationProvider implements vscode.FileDecorationProvider 
     if (reviewTreePath) {
       const mapping = this.appReviewIntegration.getReviewMapping(reviewTreePath);
       if (mapping) {
-        const status = reviewStatusDecoration(mapping.status);
+        const status = reviewStatusDecoration(mapping);
         return {
           badge: status.badge,
           color: status.color,

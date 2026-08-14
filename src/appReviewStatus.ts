@@ -24,13 +24,34 @@ export function resolveReviewDiagramUri(uri?: vscode.Uri): vscode.Uri | undefine
   return fsPath ? vscode.Uri.file(fsPath) : undefined;
 }
 
+/** Toast wording per review origin — "local" is a local Mermaid AI regenerate, not the GitHub app. */
+export function reviewOriginWording(origin: ReviewFileMapping["origin"]): {
+  /** Change source, as in "<source> changes applied to flow.mmd". */
+  source: string;
+  /** Undone event, as in "restored to the version from before the <event>". */
+  event: string;
+} {
+  return origin === "local"
+    ? { source: "Mermaid AI", event: "Mermaid AI regenerate" }
+    : { source: "Mermaid Sync app", event: "Mermaid Sync app update" };
+}
+
 /** Git-style letter + theme color for a review file status. */
-export function reviewStatusDecoration(status: ReviewFileMapping["status"]): {
+export function reviewStatusDecoration(mapping: Pick<ReviewFileMapping, "status" | "origin">): {
   badge: string;
   color: vscode.ThemeColor;
   label: string;
 } {
-  switch (status) {
+  // Local regenerate proposals are already written to the file, so pending reads as added.
+  if (mapping.origin === "local" && mapping.status === "pending") {
+    return {
+      badge: "A",
+      color: new vscode.ThemeColor("gitDecoration.addedResourceForeground"),
+      label: "Added",
+    };
+  }
+
+  switch (mapping.status) {
     case "accepted":
       return {
         badge: "A",

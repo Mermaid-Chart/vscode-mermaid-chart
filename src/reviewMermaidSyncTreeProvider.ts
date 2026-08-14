@@ -74,9 +74,9 @@ export class ReviewMermaidSyncTreeProvider
       item.resourceUri = toReviewTreeUri(mapping.originalFilePath);
       item.tooltip = mapping.relativePath;
       item.command = {
-        command: "vscode.open",
-        title: "Open Diagram",
-        arguments: [fileUri, { preview: false, viewColumn: vscode.ViewColumn.Active }],
+        command: "mermaidChart.openReviewFileDiff",
+        title: "Review Changes",
+        arguments: [fileUri],
       };
       item.contextValue = "mermaidReviewSyncFile";
       return item;

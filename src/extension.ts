@@ -124,6 +124,7 @@ export async function activate(context: vscode.ExtensionContext) {
   setValidationBridge(new ValidationBridgeImpl());
   setDiagramDiffBridge({
     openDiagramDiffWebviews,
+    // Same review surface the GitHub App review list opens (PLUG-81 / pre-commit reuse).
     openDiagramReviewSurface: async (options) => {
       const result = await openAppReviewDiagramSurface(
         options.fileUri,

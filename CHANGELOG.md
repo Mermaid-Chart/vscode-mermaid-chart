@@ -1,5 +1,9 @@
 # Change Log
 
+### 2.7.6 - 2026-08-14
+- Added **Review UI for Pre-Commit Mermaid Regeneration**.
+- **Regenerate Diagram copilote based** now opens the same review UI (summary chips, Now/Before, Diff code) instead of the older dual preview panels.
+
 ### 2.7.5 - 2026-08-5
 - Added **Generate Diagram for New Staged Files** — When you stage source files that aren't yet linked to any Mermaid diagram, the extension offers to generate a new diagram via Generate Diagram From Code. Can be disabled via Settings → **Mermaid Chart: Create Diagram From Stage Enabled**
 

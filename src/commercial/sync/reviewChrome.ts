@@ -511,7 +511,6 @@ export function renderChangesList(changes: DiagramChangeItem[]): string {
     }
 
     const sections: string[] = [];
-    let hiddenTotal = 0;
 
     for (const kind of GROUP_ORDER) {
         const items = byKind[kind];
@@ -520,7 +519,6 @@ export function renderChangesList(changes: DiagramChangeItem[]): string {
         }
         const visible = items.slice(0, VISIBLE_PER_GROUP);
         const hidden = items.length - visible.length;
-        hiddenTotal += hidden;
 
         const rows = visible.map((c) => changeRowHtml(c, false)).join("");
         const hiddenRows = items.slice(VISIBLE_PER_GROUP).map((c) => changeRowHtml(c, true)).join("");
@@ -537,13 +535,8 @@ export function renderChangesList(changes: DiagramChangeItem[]): string {
         );
     }
 
-    const expandAll =
-        hiddenTotal > 0
-            ? `<button type="button" class="mc-changes-more" data-action="expand-changes" style="margin-top:4px">Show all ${changes.length}</button>`
-            : "";
-
     return `<nav id="mc-review-changes-panel" class="mc-changes-panel mc-review-chrome collapsed" aria-label="Diagram changes">
-      <div class="mc-changes-scroll">${sections.join("")}${expandAll}</div>
+      <div class="mc-changes-scroll">${sections.join("")}</div>
     </nav>`;
 }
 
@@ -630,18 +623,6 @@ export function reviewChromeScript(_nonce: string): string {
             }
           });
         });
-        var expandAll = list.querySelector("[data-action=expand-changes]");
-        if (expandAll) {
-          expandAll.addEventListener("click", function () {
-            list.querySelectorAll(".mc-change-row-wrap.hidden").forEach(function (w) {
-              w.classList.remove("hidden");
-            });
-            list.querySelectorAll("[data-action=expand-group]").forEach(function (b) {
-              b.remove();
-            });
-            expandAll.remove();
-          });
-        }
       }
 
       bindFilterPills();

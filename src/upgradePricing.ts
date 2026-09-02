@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import analytics, { type UpgradeFeature } from './analytics';
 import { defaultBaseURL } from './config';
+import { utmSource } from './mermaidChartAuthenticationProvider';
 
 export function buildUpgradePricingUrl(feature: UpgradeFeature): string {
   const params = new URLSearchParams();
-  params.set('utm_source', 'mermaid_chart_vs_code');
+  params.set('utm_source', utmSource);
   params.set('utm_medium', 'vscode_upgrade');
   params.set('utm_campaign', feature);
   return `${defaultBaseURL}/app/user/billing?${params.toString()}`;

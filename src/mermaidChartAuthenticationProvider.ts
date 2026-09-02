@@ -19,7 +19,7 @@ import { MermaidChartVSCode } from "./mermaidChartVSCode";
 import analytics from "./analytics";
 import { consumePendingLoginTrigger, getPendingLoginTrigger } from "./loginTrigger";
 
-const utmSource = 'mermaid_chart_vs_code';
+export const utmSource = 'mermaid_chart_vs_code';
 
 class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
   public handleUri(uri: Uri) {

@@ -8,7 +8,7 @@ import { AppReviewCodeLensProvider } from "./appReviewCodeLensProvider";
 import { AppCommitWorkflow } from "./appCommitWorkflow";
 import { AppReviewGitPullWatcher } from "./appReviewGitPullWatcher";
 import { ReviewMermaidSyncTreeProvider } from "./reviewMermaidSyncTreeProvider";
-import { promptForLogin } from "./loginTrigger";
+import { registerAuthenticatedCommand } from "./loginTrigger";
 import { AppReviewScmSync, resolveReviewCommandTarget } from "./appReviewScmSync";
 import analytics from "./analytics";
 
@@ -92,19 +92,7 @@ export class AppReviewFeature implements vscode.Disposable {
     );
   }
 
-  private async ensureMermaidLogin(): Promise<boolean> {
-    return promptForLogin(
-      'review-bulk-action',
-      "Sign in to Mermaid Chart to use Review Mermaid Sync actions.",
-      "Sign in",
-    );
-  }
-
   private async acceptAllInReview(): Promise<void> {
-    if (!(await this.ensureMermaidLogin())) {
-      return;
-    }
-
     const all = [...this.integration.getReviewMappings().values()];
     if (all.length === 0) {
       vscode.window.showInformationMessage("No diagrams in review.");
@@ -142,10 +130,6 @@ export class AppReviewFeature implements vscode.Disposable {
   }
 
   private async rejectAllInReview(): Promise<void> {
-    if (!(await this.ensureMermaidLogin())) {
-      return;
-    }
-
     const all = [...this.integration.getReviewMappings().values()];
     if (all.length === 0) {
       vscode.window.showInformationMessage("No diagrams in review.");
@@ -183,10 +167,6 @@ export class AppReviewFeature implements vscode.Disposable {
   }
 
   private async openChangesInReview(): Promise<void> {
-    if (!(await this.ensureMermaidLogin())) {
-      return;
-    }
-
     if (this.integration.getReviewMappings().size === 0) {
       vscode.window.showInformationMessage("No diagrams in review.");
       return;
@@ -200,10 +180,6 @@ export class AppReviewFeature implements vscode.Disposable {
   }
 
   private async closeAllInReview(): Promise<void> {
-    if (!(await this.ensureMermaidLogin())) {
-      return;
-    }
-
     const mappings = [...this.integration.getReviewMappings().values()];
     if (mappings.length === 0) {
       vscode.window.showInformationMessage("No active review session.");
@@ -256,10 +232,11 @@ export class AppReviewFeature implements vscode.Disposable {
 
   private registerCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-      vscode.commands.registerCommand("mermaidChart.reviewAppCommits", async () => {
+      registerAuthenticatedCommand("mermaidChart.reviewAppCommits", async () => {
         const count = await this.integration.reviewAppCommits();
         await this.focusReviewSyncPanel(count);
       }),
+      // Internal plumbing, invoked by StagingSyncService — must never prompt.
       vscode.commands.registerCommand(
         "mermaidChart.diagramReviewCount",
         () => this.integration.getReviewMappings().size,
@@ -276,37 +253,37 @@ export class AppReviewFeature implements vscode.Disposable {
           options?: { clearExisting?: boolean; gitRoot?: string },
         ) => this.registerLocalProposalsAndFocus(items, options),
       ),
-      vscode.commands.registerCommand("mermaidChart.reviewSyncOpenChanges", () =>
+      registerAuthenticatedCommand("mermaidChart.reviewSyncOpenChanges", () =>
         this.openChangesInReview(),
       ),
-      vscode.commands.registerCommand("mermaidChart.reviewSyncAcceptAll", () =>
+      registerAuthenticatedCommand("mermaidChart.reviewSyncAcceptAll", () =>
         this.acceptAllInReview(),
       ),
-      vscode.commands.registerCommand("mermaidChart.reviewSyncRejectAll", () =>
+      registerAuthenticatedCommand("mermaidChart.reviewSyncRejectAll", () =>
         this.rejectAllInReview(),
       ),
-      vscode.commands.registerCommand("mermaidChart.reviewSyncCloseAll", () =>
+      registerAuthenticatedCommand("mermaidChart.reviewSyncCloseAll", () =>
         this.closeAllInReview(),
       ),
-      vscode.commands.registerCommand("mermaidChart.connectGitHub", () =>
+      registerAuthenticatedCommand("mermaidChart.connectGitHub", () =>
         this.integration.connectGitHub()
       ),
-      vscode.commands.registerCommand("mermaidChart.disconnectGitHub", () =>
+      registerAuthenticatedCommand("mermaidChart.disconnectGitHub", () =>
         this.integration.disconnectGitHub()
       ),
-      vscode.commands.registerCommand("mermaidChart.showAppSyncInfo", (uri: vscode.Uri) =>
+      registerAuthenticatedCommand("mermaidChart.showAppSyncInfo", (uri: vscode.Uri) =>
         this.codeLensProvider.showAppSyncInfo(uri)
       ),
-      vscode.commands.registerCommand("mermaidChart.showAppReviewStatus", (uri: vscode.Uri, status: string) =>
+      registerAuthenticatedCommand("mermaidChart.showAppReviewStatus", (uri: vscode.Uri, status: string) =>
         this.codeLensProvider.showAppReviewStatus(uri, status)
       ),
-      vscode.commands.registerCommand("mermaidChart.openAppReview", (uri: vscode.Uri) =>
+      registerAuthenticatedCommand("mermaidChart.openAppReview", (uri: vscode.Uri) =>
         this.codeLensProvider.openAppReview(uri)
       ),
-      vscode.commands.registerCommand("mermaidChart.acceptModifiedChanges", (uri: vscode.Uri) =>
+      registerAuthenticatedCommand("mermaidChart.acceptModifiedChanges", (uri: vscode.Uri) =>
         this.codeLensProvider.acceptModifiedChanges(uri)
       ),
-      vscode.commands.registerCommand("mermaidChart.openReviewFileDiff", async (arg) => {
+      registerAuthenticatedCommand("mermaidChart.openReviewFileDiff", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (!target) {
           vscode.window.showWarningMessage("Open a diagram file (.mmd) to review changes.");
@@ -315,7 +292,7 @@ export class AppReviewFeature implements vscode.Disposable {
         analytics.trackOpenReviewUI();
         await this.diffViewProvider.showAppDiff(target);
       }),
-      vscode.commands.registerCommand("mermaidChart.appReviewAccept", async (arg) => {
+      registerAuthenticatedCommand("mermaidChart.appReviewAccept", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (target) {
           if (await this.diffViewProvider.acceptAppChanges(target)) {
@@ -324,7 +301,7 @@ export class AppReviewFeature implements vscode.Disposable {
           await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
-      vscode.commands.registerCommand("mermaidChart.appReviewReject", async (arg) => {
+      registerAuthenticatedCommand("mermaidChart.appReviewReject", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (target) {
           if (await this.diffViewProvider.rejectAppChanges(target)) {
@@ -333,7 +310,7 @@ export class AppReviewFeature implements vscode.Disposable {
           await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
-      vscode.commands.registerCommand("mermaidChart.appReviewBackToPending", async (arg) => {
+      registerAuthenticatedCommand("mermaidChart.appReviewBackToPending", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (target) {
           if (await this.diffViewProvider.restoreAppProposalAndPending(target)) {
@@ -342,11 +319,11 @@ export class AppReviewFeature implements vscode.Disposable {
           await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
-      vscode.commands.registerCommand("mermaidChart.commitAppReview", (uri: vscode.Uri) => {
+      registerAuthenticatedCommand("mermaidChart.commitAppReview", (uri: vscode.Uri) => {
         analytics.trackAppReviewCommit();
         return this.commitWorkflow.commitAppReview(uri);
       }),
-      vscode.commands.registerCommand("mermaidChart.closeAppReview", async (arg) => {
+      registerAuthenticatedCommand("mermaidChart.closeAppReview", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (!target) {
           return;
@@ -365,7 +342,7 @@ export class AppReviewFeature implements vscode.Disposable {
           vscode.window.showWarningMessage("No active app review for this file.");
         }
       }),
-      vscode.commands.registerCommand("mermaidChart.focusReviewMermaidSync", async () => {
+      registerAuthenticatedCommand("mermaidChart.focusReviewMermaidSync", async () => {
         await this.reviewSyncTree.focusView();
       }),
     );

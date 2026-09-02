@@ -3,6 +3,8 @@ import { generateWebviewContent } from "../templates/loginTemplate";
 import { generateAuthOptionsContent } from "../templates/authOptionsTemplate";
 import analytics from "../analytics";
 import { setPendingLoginTrigger } from "../loginTrigger";
+import { getBaseUrl } from "../mermaidChartVSCode";
+import { utmSource } from "../mermaidChartAuthenticationProvider";
 
 type ViewState = 'login' | 'authOptions';
 
@@ -28,10 +30,21 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.command) {
+        case "createAccount":
+          void this.openSignupPage();
+          break;
+
         case "signIn":
           analytics.trackSignInPromptShown('mermaid-sidebar');
           this.currentState = 'authOptions';
           this.updateWebviewContent();
+          break;
+
+        case "getPreviewExtension":
+          vscode.commands.executeCommand(
+            "mermaidChart.getPreviewExtension",
+            "sidebar",
+          );
           break;
 
         case "startOAuthFlow":
@@ -103,5 +116,15 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
     } catch (error) {
       console.error("Manual token validation failed:", error);
     }
+  }
+
+  /** Opens Collab sign-up only (no OAuth redirect). User signs in from the extension after. */
+  private async openSignupPage(): Promise<void> {
+    const baseUrl = (getBaseUrl() ?? "https://mermaid.ai").replace(/\/$/, "");
+    const signupUrl = `${baseUrl}/app/sign-up?utm_source=${encodeURIComponent(utmSource)}`;
+    await vscode.env.openExternal(vscode.Uri.parse(signupUrl));
+    void vscode.window.showInformationMessage(
+      "Complete sign-up in your browser, then come back here and use Sign in.",
+    );
   }
 }

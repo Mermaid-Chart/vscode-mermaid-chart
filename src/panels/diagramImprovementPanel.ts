@@ -159,12 +159,29 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
   }
 
   /**
-   * CodeLens / command: focus sidebar, use cached cards for this file or generate new ones.
+   * Sidebar icon: show Improve panel with model + Generate button only (no auto-run).
+   */
+  async showImproveDiagram(uri?: vscode.Uri): Promise<void> {
+    await this.prepareImproveDiagram(uri, false);
+  }
+
+  /**
+   * CodeLens / command: focus sidebar and generate (or show cache) for this file.
    */
   async openImproveDiagram(uri?: vscode.Uri): Promise<void> {
+    await this.prepareImproveDiagram(uri, true);
+  }
+
+  private async prepareImproveDiagram(uri: vscode.Uri | undefined, generate: boolean): Promise<void> {
     const resolved = uri ?? getActiveOrOpenMermaidDocument()?.uri;
     if (!resolved) {
-      vscode.window.showInformationMessage("Open a .mmd or .mermaid file first.");
+      await this.refreshModels();
+      this.syncToActiveDiagram();
+      await vscode.commands.executeCommand(`${DiagramImprovementPanel.viewType}.focus`);
+      this.render();
+      if (generate) {
+        vscode.window.showInformationMessage("Open a .mmd or .mermaid file first.");
+      }
       return;
     }
 
@@ -185,8 +202,11 @@ export class DiagramImprovementPanel implements vscode.WebviewViewProvider {
     this.loadDocumentState(doc, false);
 
     await vscode.commands.executeCommand(`${DiagramImprovementPanel.viewType}.focus`);
+    this.render();
 
-    await this.runGeneration(true);
+    if (generate) {
+      await this.runGeneration(true);
+    }
   }
 
   private loadDocumentState(doc: vscode.TextDocument, keepLoading: boolean): void {

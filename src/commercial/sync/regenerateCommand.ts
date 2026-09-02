@@ -1,30 +1,17 @@
 import * as vscode from "vscode";
-import { MermaidChartVSCode } from "../../mermaidChartVSCode";
 import analytics from "../../analytics";
 import { DiagramRegenerator } from '@mermaid-chart/vscode-utils';
+import { registerAuthenticatedCommand } from "../../loginTrigger";
 
 
-export function registerRegenerateCommand(context: vscode.ExtensionContext, mcAPI: MermaidChartVSCode) {
+export function registerRegenerateCommand(context: vscode.ExtensionContext) {
   context.subscriptions.push(
-    vscode.commands.registerCommand('mermaidChart.regenerateDiagram', 
-      async (uri: vscode.Uri, originalQuery?: string, changedFiles?: string[], metadata?: any, isLoggedIn?: boolean) => {
+    registerAuthenticatedCommand('mermaidChart.regenerateDiagram',
+      async (uri: vscode.Uri, originalQuery?: string, changedFiles?: string[], metadata?: any) => {
         // Track regenerate command invocation
         analytics.trackRegenerateCommandInvoked();
-        
-        if (isLoggedIn) {
-          await DiagramRegenerator.regenerateDiagram(uri, originalQuery, changedFiles, metadata);
-        } else {
-          const result = await vscode.window.showInformationMessage(
-            'Please login to Mermaid Chart to regenerate diagrams.',
-            { modal: true }, 
-            'Login',
-          );
-          if (result === 'Login') {
-            await mcAPI.login();
-          } else {
-            console.log('Login cancelled');
-          }
-        }
+
+        await DiagramRegenerator.regenerateDiagram(uri, originalQuery, changedFiles, metadata);
       }
     )
   );

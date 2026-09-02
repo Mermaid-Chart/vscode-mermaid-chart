@@ -2,8 +2,9 @@ import httpClient from './httpClient';
 import * as vscode from "vscode";
 import * as packageJson from '../package.json';
 
-export type LoginTrigger = 'mermaid-sidebar' | 'preview-repair' | 'pre-commit' | 'review-bulk-action' | 'connect-diagram';
+export type LoginTrigger = 'mermaid-sidebar' | 'preview-repair' | 'pre-commit' | 'hard-login-gate';
 export type UpgradeFeature = 'repair' | 'regenerate' | 'add_diagram' | 'duplicate_diagram' | 'connect_diagram';
+export type EntryPoint = 'sidebar' | 'hardLoginPopup';
 
 export type OnCommitGenerateDecision = 'accepted' | 'dismissed';
 
@@ -16,6 +17,7 @@ export interface PulseEventOptions {
   pluginSource?: 'vsCode';
   source?: 'login' | 'signup';
   decision?: OnCommitGenerateDecision;
+  entryPoint?: EntryPoint;
 }
 
 class Analytics {
@@ -80,6 +82,31 @@ class Analytics {
       pluginSource: 'vsCode',
       source: 'login',
     });
+  }
+
+  public trackHardLoginPromptShown(trigger: LoginTrigger) {
+    this.sendEvent(
+      'VS Code Hard Login Prompt Shown',
+      'VS_CODE_PLUGIN_HARD_LOGIN_PROMPT_SHOWN',
+      { trigger },
+    );
+  }
+
+  /** A call to action that opens the Mermaid Preview extension in the Marketplace. */
+  public trackInstallationClick(entryPoint: EntryPoint) {
+    this.sendEvent(
+      'VS Code Installation Click',
+      'VS_CODE_PLUGIN_INSTALLATION_CLICK',
+      { entryPoint },
+    );
+  }
+
+  public trackShowMoreClick() {
+    this.sendEvent(
+      'VS Code Show More Click',
+      'VS_CODE_PLUGIN_SHOW_MORE_CLICK',
+      { entryPoint: 'hardLoginPopup' },
+    );
   }
 
   // Upgrade funnel —  Prompt Shown and Prompt Clicked, each with `feature` (e.g. repair, regenerate).

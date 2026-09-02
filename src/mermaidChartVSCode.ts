@@ -5,6 +5,8 @@ import { defaultBaseURL } from "./config";
 import { updateViewVisibility } from "./util";
 import { MermaidWebviewProvider } from "./panels/loginPanel";
 import { MermaidChartProvider } from "./mermaidChartProvider";
+import { setHttpClientBaseUrl } from "@mermaid-chart/vscode-utils";
+import httpClient from "./httpClient";
 
 export class MermaidChartVSCode extends MermaidChart {
   private context?: vscode.ExtensionContext;
@@ -250,6 +252,10 @@ export class MermaidChartVSCode extends MermaidChart {
   private async refreshBaseURL() {
     const baseURL = getBaseUrl();
     this.setBaseURL(baseURL);
+    if (baseURL) {
+      httpClient.defaults.baseURL = baseURL.replace(/\/$/, '');
+      setHttpClientBaseUrl(baseURL);
+    }
   }
 }
 

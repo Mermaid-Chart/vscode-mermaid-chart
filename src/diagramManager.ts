@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { MermaidChartVSCode } from './mermaidChartVSCode';
 import { MermaidChartProvider, MCTreeItem, Document, getDiagramFromCache, getProjectIdForDocument } from './mermaidChartProvider';
 import { createMermaidFile } from './commands/createFile';
-import { ensureIdField } from './frontmatter';
+import { ensureIdField, getFirstWordFromDiagram } from './frontmatter';
 import { getDiagramTemplates } from './util';
 import analytics from './analytics';
 import { showUpgradePrompt } from './upgradePricing';
@@ -310,7 +310,10 @@ export class DiagramManager {
         if (editor) {
           // Refresh the tree view to show the new diagram
           await this.provider.syncMermaidChart();
-          analytics.trackDiagramAdded();
+          analytics.trackDiagramAdded(
+            getFirstWordFromDiagram(initialContent) || undefined,
+            true,
+          );
           vscode.window.showInformationMessage(
             `Diagram "${finalName}" created successfully. Edit and save to sync with Mermaid Chart.`
           );

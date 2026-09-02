@@ -1,359 +1,601 @@
 import httpClient from './httpClient';
-import * as vscode from "vscode";
+import * as vscode from 'vscode';
 import * as packageJson from '../package.json';
 
 export type LoginTrigger = 'mermaid-sidebar' | 'preview-repair' | 'pre-commit' | 'hard-login-gate';
-export type UpgradeFeature = 'repair' | 'regenerate' | 'add_diagram' | 'duplicate_diagram' | 'connect_diagram';
-export type EntryPoint = 'sidebar' | 'hardLoginPopup';
+export type UpgradeFeature =
+  | 'repair'
+  | 'regenerate'
+  | 'add_diagram'
+  | 'duplicate_diagram'
+  | 'connect_diagram';
+export type EntryPoint =
+  | 'chatParticipant'
+  | 'codeLens'
+  | 'commandPalette'
+  | 'contextMenu'
+  | 'hardLoginPopup'
+  | 'markdownCodeBlock'
+  | 'markdownPreview'
+  | 'notification'
+  | 'previewPanel'
+  | 'sidebar'
+  | 'slashCommand';
 
+export type EventStatus = 'success' | 'error' | 'cancelled';
+export type AiAction = 'generate' | 'improve' | 'repair' | 'regenerate' | 'openChat';
+export type AiProvider = 'copilot' | 'mermaidAI';
 export type OnCommitGenerateDecision = 'accepted' | 'dismissed';
 
 export interface PulseEventOptions {
-  errorMessage?: string;
   diagramType?: string;
-  status?: 'ok' | 'failed';
-  trigger?: LoginTrigger;
-  feature?: UpgradeFeature;
-  pluginSource?: 'vsCode';
-  source?: 'login' | 'signup';
-  decision?: OnCommitGenerateDecision;
   entryPoint?: EntryPoint;
+  isLinked?: boolean;
+  status?: EventStatus;
+  errorMessage?: string;
+  errorType?: string;
+  command?: string; // also used for slash command name on AI Action
+  // Event 1
+  aiAction?: AiAction;
+  aiProvider?: AiProvider;
+  sourceFileLanguage?: string;
+  creditsRemaining?: number;
+  durationMs?: number;
+  // Event 2
+  creationMethod?: 'command' | 'sidebarAdd' | 'aiGenerated' | 'markdownCodeBlock';
+  // Event 3
+  renderStatus?: 'success' | 'error';
+  isFirstPreviewOfSession?: boolean;
+  // Event 5 / 8 / 10 / 11
+  action?: string;
+  // Event 6
+  syncAction?: 'connect' | 'push' | 'pull' | 'conflictShown' | 'conflictResolved';
+  trigger?: LoginTrigger | 'save' | 'manual' | 'remoteChange' | string;
+  conflictResolution?: 'keepLocal' | 'keepRemote' | 'cancelled';
+  // Event 7
+  reviewAction?:
+    | 'reviewShown'
+    | 'openReviewUI'
+    | 'openFileDiff'
+    | 'openChanges'
+    | 'accept'
+    | 'reject'
+    | 'commit'
+    | 'closeReview'
+    | 'returnToReview';
+  scope?: 'file' | 'all';
+  fileCount?: number;
+  // Event 8
+  promptType?: 'newDiagram' | 'regenerate';
+  linkedDiagramCount?: number;
+  stagedFileCount?: number;
+  // Event 9
+  setupAction?: 'connectGitHub' | 'disconnectGitHub' | 'installAISkills';
+  // Event 10
+  limitType?: 'connectedDiagrams' | 'aiCredits' | 'other';
+  blockedFeature?: string;
+  feature?: string;
+  source?: string;
+  pluginSource?: 'vsCode';
+  docsTopic?: string;
 }
 
 class Analytics {
-
   public sendEvent(eventName: string, eventID: string, options?: PulseEventOptions) {
     if (!vscode.env.isTelemetryEnabled) {
       return;
     }
     const analyticsID = vscode.env.machineId;
-    const pluginID = packageJson.name === "vscode-mermaid-chart" ? "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
+    const pluginID =
+      packageJson.name === 'vscode-mermaid-chart'
+        ? 'MERMAIDCHART_VS_CODE_PLUGIN'
+        : 'MERMAID_PREVIEW_VS_CODE_PLUGIN';
     const payload = {
       analyticsID,
       pluginID,
       eventName,
       eventID,
+      extensionVersion: packageJson.version,
+      vscodeVersion: vscode.version,
       ...options,
     };
 
-    httpClient.post('/rest-api/plugins/pulse', payload).catch(error => {
+    httpClient.post('/rest-api/plugins/pulse', payload).catch((error: unknown) => {
       console.error('Failed to send analytics event:', error);
     });
   }
 
-  public trackException(error: unknown) {
-    if (error instanceof Error) {
-      this.sendEvent('VS Code Extension Exception', 'VS_CODE_PLUGIN_EXCEPTION', { errorMessage: error.message });
-    } else {
-      this.sendEvent('VS Code Extension Exception','VS_CODE_PLUGIN_EXCEPTION', { errorMessage: "Unknown error occurred" });
+  public trackException(
+    error: unknown,
+    feature?: string,
+    command?: string,
+    errorType?: string,
+  ) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    this.sendEvent('VS Code Commercial Extension Exception', 'VS_CODE_COMMERCIAL_EXCEPTION', {
+      errorMessage,
+      errorType: errorType ?? this.classifyErrorType(error),
+      feature,
+      command,
+    });
+  }
+
+  /** Map thrown errors to short slugs for Extension Exception / status=error events. */
+  private classifyErrorType(error: unknown): string {
+    if (!(error instanceof Error)) {
+      return 'unknown';
     }
+    const message = error.message.toLowerCase();
+    const name = error.name.toLowerCase();
+    if (
+      name.includes('abort') ||
+      message.includes('abort') ||
+      message.includes('cancel')
+    ) {
+      return 'cancelled';
+    }
+    if (
+      message.includes('401') ||
+      message.includes('403') ||
+      message.includes('unauthorized') ||
+      message.includes('forbidden') ||
+      message.includes('auth')
+    ) {
+      return 'authError';
+    }
+    if (
+      message.includes('402') ||
+      message.includes('credit') ||
+      message.includes('quota') ||
+      message.includes('rate limit') ||
+      message.includes('limit exceeded')
+    ) {
+      return 'rateLimited';
+    }
+    if (
+      message.includes('network') ||
+      message.includes('fetch failed') ||
+      message.includes('econn') ||
+      message.includes('enotfound') ||
+      message.includes('timeout') ||
+      message.includes('socket')
+    ) {
+      return 'networkError';
+    }
+    if (name.includes('syntax') || message.includes('parse error')) {
+      return 'syntaxError';
+    }
+    if (name && name !== 'error') {
+      return name.replace(/error$/i, '') || 'unknown';
+    }
+    return 'unknown';
   }
 
-  public trackLogin() {
-    this.sendEvent('VS Code User Logged In','VS_CODE_PLUGIN_LOGIN');
+  // --- Event 1: AI Action ---
+  public trackAiAction(options: {
+    aiAction: AiAction;
+    aiProvider: AiProvider;
+    entryPoint?: EntryPoint;
+    diagramType?: string;
+    sourceFileLanguage?: string;
+    status?: EventStatus;
+    errorType?: string;
+    durationMs?: number;
+    creditsRemaining?: number;
+    isLinked?: boolean;
+    command?: string;
+  }) {
+    this.sendEvent('VS Code Commercial AI Action', 'VS_CODE_COMMERCIAL_AI_ACTION', options);
   }
 
-  public trackLogout() {
-    this.sendEvent('VS Code User Logged Out','VS_CODE_PLUGIN_LOGOUT');
-  }
-
-  // Login funnel — recorded here :
-  //   Shown / Clicked / Completed, each with `trigger` (e.g. preview-repair, mermaid-sidebar).
-  // Collab records new sign-ups only: event `SIGN_UP` when user creates an account via OAuth.
-  //   OAuth URL carries utm_source=mermaid_chart_vs_code, utm_campaign=<trigger>.
-  //   SIGN_UP includes pluginSource=vsCode, trigger, origin. Not fired for returning logins.
-  public trackSignInPromptShown(trigger: LoginTrigger) {
-    this.sendEvent('VS Code Sign-In Prompt Shown', 'VS_CODE_PLUGIN_SIGN_IN_PROMPT_SHOWN', {
-      trigger,
-      pluginSource: 'vsCode',
+  public trackRegenerateCommandInvoked() {
+    this.trackAiAction({
+      aiAction: 'regenerate',
+      aiProvider: 'mermaidAI',
+      entryPoint: 'commandPalette',
     });
   }
 
-  public trackSignInPromptClicked(trigger: LoginTrigger) {
-    this.sendEvent('VS Code Sign-In Prompt Clicked', 'VS_CODE_PLUGIN_SIGN_IN_PROMPT_CLICKED', {
-      trigger,
-      pluginSource: 'vsCode',
+  public trackPreCommitDiagramRegenerate() {
+    this.trackAiAction({
+      aiAction: 'regenerate',
+      aiProvider: 'mermaidAI',
+      entryPoint: 'notification',
     });
   }
 
-  public trackSignInCompleted(trigger: LoginTrigger) {
-    this.sendEvent('VS Code Sign-In Completed', 'VS_CODE_PLUGIN_SIGN_IN_COMPLETED', {
-      trigger,
-      pluginSource: 'vsCode',
-      source: 'login',
+  public trackOpenCopilotChat() {
+    this.trackAiAction({
+      aiAction: 'openChat',
+      aiProvider: 'copilot',
+      entryPoint: 'codeLens',
     });
   }
 
-  public trackHardLoginPromptShown(trigger: LoginTrigger) {
+  public trackImproveDiagramInvoked() {
+    this.trackAiAction({
+      aiAction: 'improve',
+      aiProvider: 'mermaidAI',
+      entryPoint: 'previewPanel',
+    });
+  }
+
+  public trackRepairDiagram(status: 'success' | 'error') {
+    this.trackAiAction({
+      aiAction: 'repair',
+      aiProvider: 'mermaidAI',
+      entryPoint: 'previewPanel',
+      status,
+      errorType: status === 'error' ? 'syntaxError' : undefined,
+    });
+  }
+
+  // --- Event 2: Diagram Created ---
+  public trackDiagramCreated(
+    creationMethod: 'command' | 'sidebarAdd' | 'aiGenerated' | 'markdownCodeBlock',
+    entryPoint?: EntryPoint,
+    extras: {
+      diagramType?: string;
+      isLinked?: boolean;
+      status?: EventStatus;
+      command?: string;
+    } = {},
+  ) {
+    this.sendEvent('VS Code Commercial Diagram Created', 'VS_CODE_COMMERCIAL_DIAGRAM_CREATED', {
+      creationMethod,
+      entryPoint,
+      diagramType: extras.diagramType || undefined,
+      isLinked: extras.isLinked,
+      status: extras.status ?? 'success',
+      command: extras.command,
+    });
+  }
+
+  public trackDiagramAdded(diagramType?: string, isLinked = true) {
+    this.trackDiagramCreated('sidebarAdd', 'sidebar', {
+      diagramType,
+      isLinked,
+      status: 'success',
+    });
+  }
+
+  // --- Event 3: Diagram Previewed (first open of a preview panel / markdown block only) ---
+  private hasPreviewedInSession = false;
+
+  public trackDiagramPreviewed(
+    entryPoint: 'codeLens' | 'commandPalette' | 'contextMenu' | 'markdownCodeBlock',
+    details: {
+      renderStatus?: 'success' | 'error';
+      diagramType?: string;
+      errorType?: string;
+      errorMessage?: string;
+      isLinked?: boolean;
+    } = {},
+  ) {
+    const isFirstPreviewOfSession = !this.hasPreviewedInSession;
+    this.hasPreviewedInSession = true;
+
+    this.sendEvent('VS Code Commercial Diagram Previewed', 'VS_CODE_COMMERCIAL_DIAGRAM_PREVIEWED', {
+      entryPoint,
+      isFirstPreviewOfSession,
+      ...details,
+    });
+  }
+
+  // --- Event 4: Preview Export Action ---
+  public trackPreviewExportAction(action: 'PNG' | 'SVG', diagramType?: string) {
+    this.sendEvent('VS Code Commercial Preview Export Action', 'VS_CODE_COMMERCIAL_PREVIEW_EXPORT_ACTION', {
+      action,
+      diagramType,
+    });
+  }
+
+  // --- Event 5: Diagram Managed ---
+  public trackDiagramManaged(
+    action:
+      | 'rename'
+      | 'delete'
+      | 'duplicate'
+      | 'link'
+      | 'view'
+      | 'editInMermaidChart'
+      | 'editLocally'
+      | 'refreshList',
+    entryPoint: EntryPoint = 'sidebar',
+    status: EventStatus = 'success',
+  ) {
+    this.sendEvent('VS Code Commercial Diagram Managed', 'VS_CODE_COMMERCIAL_DIAGRAM_MANAGED', {
+      action,
+      entryPoint,
+      status,
+    });
+  }
+
+  public trackDiagramRenamed() {
+    this.trackDiagramManaged('rename');
+  }
+
+  public trackDiagramDeleted() {
+    this.trackDiagramManaged('delete');
+  }
+
+  public trackDiagramDuplicated() {
+    this.trackDiagramManaged('duplicate');
+  }
+
+  public trackViewDiagram() {
+    this.trackDiagramManaged('view');
+  }
+
+  public trackEditDiagramInMermaidChart() {
+    this.trackDiagramManaged('editInMermaidChart');
+  }
+
+  public trackEditDiagramLocally() {
+    this.trackDiagramManaged('editLocally');
+  }
+
+  // --- Event 6: Diagram Synced ---
+  public trackDiagramSynced(options: {
+    syncAction: 'connect' | 'push' | 'pull' | 'conflictShown' | 'conflictResolved';
+    trigger?: 'save' | 'manual' | 'remoteChange';
+    conflictResolution?: 'keepLocal' | 'keepRemote' | 'cancelled';
+    diagramType?: string;
+    status?: EventStatus;
+    errorType?: string;
+  }) {
+    this.sendEvent('VS Code Commercial Diagram Synced', 'VS_CODE_COMMERCIAL_DIAGRAM_SYNCED', options);
+  }
+
+  public trackConnectDiagramToMermaidChart(diagramType?: string) {
+    this.trackDiagramSynced({
+      syncAction: 'connect',
+      trigger: 'manual',
+      status: 'success',
+      diagramType,
+    });
+  }
+
+  public trackRemoteSync(diagramType?: string) {
+    this.trackDiagramSynced({
+      syncAction: 'conflictShown',
+      trigger: 'remoteChange',
+      status: 'success',
+      diagramType,
+    });
+  }
+
+  public trackConflictResolved(options: {
+    conflictResolution: 'keepLocal' | 'keepRemote' | 'cancelled';
+    diagramType?: string;
+    status?: EventStatus;
+    errorType?: string;
+    trigger?: 'save' | 'manual' | 'remoteChange';
+  }) {
+    const payload = {
+      syncAction: 'conflictResolved' as const,
+      trigger: options.trigger ?? ('remoteChange' as const),
+      conflictResolution: options.conflictResolution,
+      diagramType: options.diagramType,
+      status: options.status ?? ('success' as const),
+      errorType: options.errorType,
+    };
+    // eslint-disable-next-line no-console -- verify conflictResolution in Extension Host while wiring PLUG-136
+    console.info(
+      {
+        syncAction: payload.syncAction,
+        conflictResolution: payload.conflictResolution,
+        diagramType: payload.diagramType,
+        status: payload.status,
+      },
+      '[Analytics] Diagram Synced conflictResolved',
+    );
+    this.trackDiagramSynced(payload);
+  }
+
+  public trackOpenDiagramDiff(diagramType?: string) {
+    this.trackDiagramSynced({
+      syncAction: 'conflictShown',
+      trigger: 'manual',
+      status: 'success',
+      diagramType,
+    });
+  }
+
+  public trackOpenCodeDiff(diagramType?: string) {
+    this.trackDiagramSynced({
+      syncAction: 'conflictShown',
+      trigger: 'manual',
+      status: 'success',
+      diagramType,
+    });
+  }
+
+  // --- Event 7: Mermaid Sync Review Action ---
+  public trackReviewAction(options: {
+    reviewAction:
+      | 'reviewShown'
+      | 'openReviewUI'
+      | 'openFileDiff'
+      | 'openChanges'
+      | 'accept'
+      | 'reject'
+      | 'commit'
+      | 'closeReview'
+      | 'returnToReview';
+    scope?: 'file' | 'all';
+    fileCount?: number;
+    status?: EventStatus;
+    errorType?: string;
+  }) {
     this.sendEvent(
-      'VS Code Hard Login Prompt Shown',
-      'VS_CODE_PLUGIN_HARD_LOGIN_PROMPT_SHOWN',
-      { trigger },
+      'VS Code Commercial Mermaid Sync Review Action',
+      'VS_CODE_COMMERCIAL_MERMAID_SYNC_REVIEW_ACTION',
+      options,
     );
   }
 
-  /** A call to action that opens the Mermaid Preview extension in the Marketplace. */
-  public trackInstallationClick(entryPoint: EntryPoint) {
+  // --- Event 8: Commit Prompt ---
+  public trackCommitPrompt(options: {
+    action: 'accepted' | 'dismissed' | 'shown';
+    promptType?: 'newDiagram' | 'regenerate';
+    linkedDiagramCount?: number;
+    stagedFileCount?: number;
+  }) {
+    this.sendEvent('VS Code Commercial Commit Prompt', 'VS_CODE_COMMERCIAL_COMMIT_PROMPT', options);
+  }
+
+  public trackOnCommitDiagramGenerateShown(options?: {
+    linkedDiagramCount?: number;
+    stagedFileCount?: number;
+  }) {
+    this.trackCommitPrompt({
+      action: 'shown',
+      promptType: 'newDiagram',
+      ...options,
+    });
+  }
+
+  public trackOnCommitDiagramGenerationDecision(
+    decision: OnCommitGenerateDecision,
+    options?: { linkedDiagramCount?: number; stagedFileCount?: number },
+  ) {
+    this.trackCommitPrompt({
+      action: decision,
+      promptType: 'newDiagram',
+      ...options,
+    });
+  }
+
+  public trackOnCommitDiagramRegenerateShown(options?: {
+    linkedDiagramCount?: number;
+    stagedFileCount?: number;
+  }) {
+    this.trackCommitPrompt({
+      action: 'shown',
+      promptType: 'regenerate',
+      ...options,
+    });
+  }
+
+  public trackOnCommitDiagramRegenerateDecision(
+    decision: OnCommitGenerateDecision,
+    options?: { linkedDiagramCount?: number; stagedFileCount?: number },
+  ) {
+    this.trackCommitPrompt({
+      action: decision,
+      promptType: 'regenerate',
+      ...options,
+    });
+  }
+
+  // --- Event 9: Setup Action ---
+  public trackSetupAction(
+    setupAction: 'connectGitHub' | 'disconnectGitHub' | 'installAISkills',
+    status: EventStatus = 'success',
+  ) {
+    this.sendEvent('VS Code Commercial Setup Action', 'VS_CODE_COMMERCIAL_SETUP_ACTION', {
+      setupAction,
+      status,
+    });
+  }
+
+  public trackConnectGitHub() {
+    this.trackSetupAction('connectGitHub');
+  }
+
+  public trackDisconnectGitHub() {
+    this.trackSetupAction('disconnectGitHub');
+  }
+
+  public trackAiSkillsInstalled() {
+    this.trackSetupAction('installAISkills');
+  }
+
+  // --- Event 10: Upgrade Prompt ---
+  public trackUpgradePrompt(options: {
+    action: 'shown' | 'clicked' | 'dismissed';
+    blockedFeature?: UpgradeFeature | string;
+    limitType?: 'connectedDiagrams' | 'aiCredits' | 'other';
+    creditsRemaining?: number;
+  }) {
+    this.sendEvent('VS Code Commercial Upgrade Prompt', 'VS_CODE_COMMERCIAL_UPGRADE_PROMPT', {
+      pluginSource: 'vsCode',
+      ...options,
+    });
+  }
+
+  public trackUpgradePromptShown(feature: UpgradeFeature) {
+    this.trackUpgradePrompt({
+      action: 'shown',
+      blockedFeature: feature,
+      limitType: feature === 'repair' || feature === 'regenerate' ? 'aiCredits' : 'connectedDiagrams',
+    });
+  }
+
+  public trackUpgradePromptClicked(feature: UpgradeFeature) {
+    this.trackUpgradePrompt({
+      action: 'clicked',
+      blockedFeature: feature,
+      limitType: feature === 'repair' || feature === 'regenerate' ? 'aiCredits' : 'connectedDiagrams',
+    });
+  }
+
+  // --- Event 11: user log in ---
+  public trackUserLogin(options: {
+    action: 'started' | 'completed' | 'logout';
+    trigger?: LoginTrigger;
+    status?: EventStatus;
+    errorType?: string;
+  }) {
+    this.sendEvent('VS Code Commercial user log in', 'VS_CODE_COMMERCIAL_USER_LOG_IN', {
+      pluginSource: 'vsCode',
+      source: options.action === 'logout' ? undefined : 'login',
+      ...options,
+    });
+  }
+
+  public trackLogin() {
+    this.trackUserLogin({ action: 'completed', status: 'success' });
+  }
+
+  public trackLogout() {
+    this.trackUserLogin({ action: 'logout', status: 'success' });
+  }
+
+  public trackSignInCompleted(trigger: LoginTrigger) {
+    this.trackUserLogin({ action: 'completed', trigger, status: 'success' });
+  }
+
+  public trackCreateAccountClick() {
     this.sendEvent(
-      'VS Code Installation Click',
-      'VS_CODE_PLUGIN_INSTALLATION_CLICK',
+      'VS Code Commercial Create Account Click',
+      'VS_CODE_COMMERCIAL_CREATE_ACCOUNT_CLICK',
+      { entryPoint: 'sidebar' },
+    );
+  }
+
+  // Soft prompt shown/clicked removed (hard-login). Kept helpers below for later redesign.
+  public trackHardLoginPromptShown(trigger: LoginTrigger) {
+    this.sendEvent(
+      'VS Code Commercial Hard Login Prompt Shown',
+      'VS_CODE_COMMERCIAL_HARD_LOGIN_PROMPT_SHOWN',
+      { trigger, entryPoint: 'hardLoginPopup' },
+    );
+  }
+
+  public trackInstallationClick(entryPoint: EntryPoint = 'sidebar') {
+    this.sendEvent(
+      'VS Code Commercial Installation Click',
+      'VS_CODE_COMMERCIAL_INSTALLATION_CLICK',
       { entryPoint },
     );
   }
 
   public trackShowMoreClick() {
-    this.sendEvent(
-      'VS Code Show More Click',
-      'VS_CODE_PLUGIN_SHOW_MORE_CLICK',
-      { entryPoint: 'hardLoginPopup' },
-    );
-  }
-
-  // Upgrade funnel —  Prompt Shown and Prompt Clicked, each with `feature` (e.g. repair, regenerate).
-  // Click opens /app/user/billing with utm_source=mermaid_chart_vs_code, utm_medium=vscode_upgrade,
-  //   utm_campaign=<feature>.
-  // Collab records actual conversion: event `PAID_CONVERSION` after Stripe payment succeeds.
-  //   Fires when campaignSrc=mermaid_chart_vs_code; includes `feature` from utm_campaign above.
-  public trackUpgradePromptShown(feature: UpgradeFeature) {
-    this.sendEvent('VS Code Upgrade Prompt Shown', 'VS_CODE_PLUGIN_UPGRADE_PROMPT_SHOWN', {
-      feature,
-      pluginSource: 'vsCode',
+    this.sendEvent('VS Code Commercial Show More Click', 'VS_CODE_COMMERCIAL_SHOW_MORE_CLICK', {
+      entryPoint: 'hardLoginPopup',
     });
-  }
-
-  public trackUpgradePromptClicked(feature: UpgradeFeature) {
-    this.sendEvent('VS Code Upgrade Prompt Clicked', 'VS_CODE_PLUGIN_UPGRADE_PROMPT_CLICKED', {
-      feature,
-      pluginSource: 'vsCode',
-    });
-  }
-
-  public trackAIChatInvocation() {
-    this.sendEvent('VS Code AI Chat Participant Invoked','VS_CODE_PLUGIN_AI_CHAT_INVOCATION');
-  }
-  
-  public trackAIGeneratedDiagram(diagramType: string) {
-    this.sendEvent('VS Code AI Chat Generated Diagram','VS_CODE_PLUGIN_AI_CHAT_GENERATE_DIAGRAM', { diagramType });
-  }
-  
-  public trackRegenerateCommandInvoked() {
-    this.sendEvent('VS Code Regenerate Command Invoked','VS_CODE_PLUGIN_REGENERATE_DIAGRAM');
-  }
-
-  // Pre-commit sync
-  public trackPreCommitDiagramRegenerate() {
-    this.sendEvent(
-      "VS Code Pre-Commit Diagram Regenerate",
-      "VS_CODE_PLUGIN_PRE_COMMIT_DIAGRAM_REGENERATE",
-    );
-  }
-
-  // On-commit generate (create diagram from unlinked staged files)
-  public trackOnCommitDiagramGenerateShown() {
-    this.sendEvent(
-      "VS Code On-Commit Diagram Generate Show",
-      "VS_CODE_PLUGIN_ON_COMMIT_DIAGRAM_GENERATE_SHOW",
-    );
-  }
-
-  public trackOnCommitDiagramGenerationDecision(decision: OnCommitGenerateDecision) {
-    this.sendEvent(
-      "VS Code On-Commit Diagram Generation Decision",
-      "VS_CODE_PLUGIN_ON_COMMIT_DIAGRAM_GENERATION_DECISION",
-      { decision },
-    );
-  }
-
-  // App review sync
-  public trackAppReviewTriggered() {
-    this.sendEvent(
-      "VS Code Mermaid Sync App Review Triggered",
-      "VS_CODE_PLUGIN_MERMAID_SYNC_APP_REVIEW_TRIGGERED",
-    );
-  }
-
-  public trackReviewSyncOpenChanges() {
-    this.sendEvent(
-      "VS Code Mermaid Sync Review Open Changes",
-      "VS_CODE_PLUGIN_MERMAID_SYNC_REVIEW_OPEN_CHANGES",
-    );
-  }
-
-  public trackReviewSyncAcceptAll() {
-    this.sendEvent(
-      "VS Code Mermaid Sync Review Accept All",
-      "VS_CODE_PLUGIN_MERMAID_SYNC_REVIEW_ACCEPT_ALL",
-    );
-  }
-
-  public trackReviewSyncRejectAll() {
-    this.sendEvent(
-      "VS Code Mermaid Sync Review Reject All",
-      "VS_CODE_PLUGIN_MERMAID_SYNC_REVIEW_REJECT_ALL",
-    );
-  }
-
-  // Generate diagram from code
-  public trackOpenCopilotChat() {
-    this.sendEvent(
-      "VS Code Open Chat @mermaid-chart CodeLens",
-      "VS_CODE_PLUGIN_OPEN_COPILOT_CHAT_CODELENS",
-    );
-  }
-
-  public trackGenerateDiagramFromCode() {
-    this.sendEvent(
-      "VS Code Generate Diagram From Code",
-      "VS_CODE_PLUGIN_GENERATE_DIAGRAM_FROM_CODE",
-    );
-  }
-
-  public trackImproveDiagramInvoked() {
-    this.sendEvent(
-      "VS Code Improve Diagram Invoked",
-      "VS_CODE_PLUGIN_IMPROVE_DIAGRAM",
-    );
-  }
-
-  public trackRepairDiagram(status: 'ok' | 'failed') {
-    this.sendEvent('VS Code Repair Diagram', 'VS_CODE_PLUGIN_REPAIR_DIAGRAM', { status });
-  }
-
-  // Diagram management
-  public trackDiagramRenamed() {
-    this.sendEvent(
-      "VS Code Diagram Renamed",
-      "VS_CODE_PLUGIN_DIAGRAM_RENAMED",
-    );
-  }
-
-  public trackDiagramDeleted() {
-    this.sendEvent(
-      "VS Code Diagram Deleted",
-      "VS_CODE_PLUGIN_DIAGRAM_DELETED",
-    );
-  }
-
-  public trackDiagramDuplicated() {
-    this.sendEvent(
-      "VS Code Diagram Duplicated",
-      "VS_CODE_PLUGIN_DIAGRAM_DUPLICATED",
-    );
-  }
-
-  public trackDiagramAdded() {
-    this.sendEvent(
-      "VS Code Diagram Added",
-      "VS_CODE_PLUGIN_DIAGRAM_ADDED",
-    );
-  }
-
-  public trackViewDiagram() {
-    this.sendEvent(
-      "VS Code View Diagram In Mermaid Chart",
-      "VS_CODE_PLUGIN_VIEW_DIAGRAM",
-    );
-  }
-
-  public trackEditDiagramInMermaidChart() {
-    this.sendEvent(
-      "VS Code Edit Diagram In Mermaid Chart",
-      "VS_CODE_PLUGIN_EDIT_DIAGRAM_IN_MERMAID_CHART",
-    );
-  }
-
-  public trackEditDiagramLocally() {
-    this.sendEvent(
-      "VS Code Edit Diagram Locally",
-      "VS_CODE_PLUGIN_EDIT_DIAGRAM_LOCALLY",
-    );
-  }
-
-  // File sync / connect — fired when a connected diagram has remote changes and the
-  // pull / force-push prompt is shown, not on every save of a Mermaid file.
-  public trackRemoteSync() {
-    this.sendEvent(
-      "VS Code Remote Sync",
-      "VS_CODE_PLUGIN_REMOTE_SYNC",
-    );
-  }
-
-  public trackConnectDiagramToMermaidChart() {
-    this.sendEvent(
-      "VS Code Connect Diagram To Mermaid Chart",
-      "VS_CODE_PLUGIN_CONNECT_DIAGRAM",
-    );
-  }
-
-  public trackConnectGitHub() {
-    this.sendEvent(
-      "VS Code Connect GitHub",
-      "VS_CODE_PLUGIN_CONNECT_GITHUB",
-    );
-  }
-
-  public trackDisconnectGitHub() {
-    this.sendEvent(
-      "VS Code Disconnect GitHub",
-      "VS_CODE_PLUGIN_DISCONNECT_GITHUB",
-    );
-  }
-
-  public trackAppReviewAccept() {
-    this.sendEvent(
-      "VS Code App Review Accept",
-      "VS_CODE_PLUGIN_APP_REVIEW_ACCEPT",
-    );
-  }
-
-  public trackAppReviewReject() {
-    this.sendEvent(
-      "VS Code App Review Reject",
-      "VS_CODE_PLUGIN_APP_REVIEW_REJECT",
-    );
-  }
-
-  public trackAppReviewReturnedToReview() {
-    this.sendEvent(
-      "VS Code App Review Returned To Review State",
-      "VS_CODE_PLUGIN_APP_REVIEW_RETURNED_TO_REVIEW",
-    );
-  }
-
-  public trackAppReviewCommit() {
-    this.sendEvent(
-      "VS Code App Review Commit",
-      "VS_CODE_PLUGIN_APP_REVIEW_COMMIT",
-    );
-  }
-
-  public trackOpenReviewUI() {
-    this.sendEvent(
-      "VS Code Open Review UI",
-      "VS_CODE_PLUGIN_OPEN_REVIEW_UI",
-    );
-  }
-
-  public trackOpenCodeDiff() {
-    this.sendEvent(
-      "VS Code Open Code Diff",
-      "VS_CODE_PLUGIN_OPEN_CODE_DIFF",
-    );
-  }
-
-  public trackOpenDiagramDiff() {
-    this.sendEvent(
-      "VS Code Open Diagram Diff",
-      "VS_CODE_PLUGIN_OPEN_DIAGRAM_DIFF",
-    );
-  }
-
-  // AI Skills Pack — fired once when Copilot skill files are written to the repo
-  public trackAiSkillsInstalled() {
-    this.sendEvent(
-      "VS Code AI Skills Pack Installed",
-      "VS_CODE_PLUGIN_AI_SKILLS_INSTALLED",
-    );
   }
 }
 

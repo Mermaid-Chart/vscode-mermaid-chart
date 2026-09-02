@@ -15,7 +15,22 @@ const LIGHT_THEME_KEY = "mermaid.vscode.light";
 const MAX_ZOOM= "mermaid.vscode.maxZoom";
 const MAX_CHAR_LENGTH = "mermaid.vscode.maxCharLength";
 const MAX_EDGES = "mermaid.vscode.maxEdges";
+const MAX_ERROR_REASON_LENGTH = 300;
 
+export type PreviewEntryPoint = 'codeLens' | 'commandPalette' | 'contextMenu';
+
+function toErrorType(errorMessage: string): string {
+  if (errorMessage.includes("Maximum text size in diagram exceeded")) {
+    return "maxTextSizeExceeded";
+  }
+  if (errorMessage.includes("Edge limit exceeded")) {
+    return "maxEdgesExceeded";
+  }
+  if (errorMessage.includes("No diagram type detected")) {
+    return "unknownDiagramType";
+  }
+  return "syntaxError";
+}
 
 export class PreviewPanel {
   private static currentPanel: PreviewPanel | undefined;
@@ -26,6 +41,9 @@ export class PreviewPanel {
   private isFileChange = false;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private lastContent: string = "";
+  private hasTrackedPreview = false;
+  private lastDiagramType: string | undefined;
+  private readonly entryPoint: PreviewEntryPoint | undefined;
   
   private cachedAICredits: {remaining: number, total: number} | null = null;
   private creditsFetched = false;
@@ -36,9 +54,14 @@ export class PreviewPanel {
 
 
 
-  private constructor(panel: vscode.WebviewPanel, document: vscode.TextDocument) {
+  private constructor(
+    panel: vscode.WebviewPanel,
+    document: vscode.TextDocument,
+    entryPoint?: PreviewEntryPoint,
+  ) {
     this.panel = panel;
     this.document = document;
+    this.entryPoint = entryPoint;
     this.diagnosticsCollection = vscode.languages.createDiagnosticCollection("mermaid");
 
 
@@ -69,7 +92,7 @@ export class PreviewPanel {
     };
   }
 
-  public static createOrShow(document: vscode.TextDocument) {
+  public static createOrShow(document: vscode.TextDocument, entryPoint?: PreviewEntryPoint) {
     if (PreviewPanel.currentPanel) {
       PreviewPanel.currentPanel.panel.reveal();
       return;
@@ -81,7 +104,7 @@ export class PreviewPanel {
       vscode.ViewColumn.Beside,
       { enableScripts: true }
     );
-    PreviewPanel.currentPanel = new PreviewPanel(panel, document);
+    PreviewPanel.currentPanel = new PreviewPanel(panel, document, entryPoint);
   }
 
   private async update() {
@@ -221,10 +244,14 @@ export class PreviewPanel {
 
     this.panel.webview.onDidReceiveMessage(async (message) => {
       if (message.type === "error" && message.message) {
-        this.handleDiagramError(message.message);
+        this.handleDiagramError(message.message, message.diagramType);
       } else if (message.type === "clearError") {
         this.diagnosticsCollection.clear();
+      } else if (message.type === "diagramRendered") {
+        this.lastDiagramType = message.diagramType;
+        this.trackRender("success");
       } else if (message.type === "exportPng" && message.pngBase64) {
+        analytics.trackPreviewExportAction("PNG", this.lastDiagramType);
         await vscode.window.withProgress({
           location: vscode.ProgressLocation.Notification,
           title: "Exporting PNG...",
@@ -233,6 +260,7 @@ export class PreviewPanel {
           await saveDiagramAsPng(this.document, message.pngBase64, this.lastContent);
         });
       } else if (message.type === "exportSvg" && message.svgBase64) {
+        analytics.trackPreviewExportAction("SVG", this.lastDiagramType);
         await vscode.window.withProgress({
           location: vscode.ProgressLocation.Notification,
           title: "Exporting SVG...",
@@ -245,8 +273,7 @@ export class PreviewPanel {
       } else if (message.type === "requestAICredits") {
         await this.fetchAndSendCredits();      } else if (message.type === "login") {
         try {
-          analytics.trackSignInPromptShown('preview-repair');
-          analytics.trackSignInPromptClicked('preview-repair');
+          analytics.trackUserLogin({ action: 'started', trigger: 'preview-repair' });
           setPendingLoginTrigger('preview-repair');
           await vscode.commands.executeCommand('mermaidChart.login', 'preview-repair');
           // Refresh authentication status and credits after login attempt
@@ -266,7 +293,9 @@ export class PreviewPanel {
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
   }
 
-  private handleDiagramError(errorMessage: string) {
+  private handleDiagramError(errorMessage: string, diagramType?: string) {
+    this.lastDiagramType = diagramType;
+    this.trackRender("error", errorMessage);
     const diagnostics: vscode.Diagnostic[] = [];
     const errorDetails = this.getErrorLine(errorMessage);
   
@@ -301,6 +330,35 @@ export class PreviewPanel {
   
     this.diagnosticsCollection.clear();
     this.diagnosticsCollection.set(this.document.uri, diagnostics);
+  }
+
+  /** Only the first render of this panel is recorded — not keystroke re-renders. */
+  private trackRender(renderStatus: 'success' | 'error', errorMessage?: string) {
+    if (!this.entryPoint || this.hasTrackedPreview) {
+      return;
+    }
+    this.hasTrackedPreview = true;
+
+    analytics.trackDiagramPreviewed(this.entryPoint, {
+      renderStatus,
+      diagramType: this.lastDiagramType,
+      ...(errorMessage
+        ? {
+            errorType: toErrorType(errorMessage),
+            errorMessage: this.toSafeErrorReason(errorMessage),
+          }
+        : {}),
+    });
+  }
+
+  private toSafeErrorReason(errorMessage: string): string {
+    const lines = errorMessage.split("\n").map((line) => line.trim());
+    const expectation = lines.find((line) => line.startsWith("Expecting"));
+
+    return [lines[0], expectation]
+      .filter(Boolean)
+      .join(" ")
+      .slice(0, MAX_ERROR_REASON_LENGTH);
   }
   
   private getErrorLine(errorMessage: string): { line: number; message: string } | null {

@@ -380,6 +380,20 @@ export class StagingSyncService {
       return;
     }
 
+    const stagedSourceSet = new Set<string>();
+    for (const diagram of affected) {
+      for (const source of diagram.stagedSourceFiles) {
+        stagedSourceSet.add(source);
+      }
+    }
+    const promptCounts = {
+      linkedDiagramCount: affected.length,
+      stagedFileCount: stagedSourceSet.size,
+    };
+
+    // Event 8: prompt shown (before the user acts)
+    analytics.trackOnCommitDiagramRegenerateShown(promptCounts);
+
     const pick = await vscode.window.showInformationMessage(
       `Pre-commit Mermaid Diagram Sync\n\n The following staged source files are referenced by Mermaid diagrams that may be out of sync:\n\n${fileLines}\n\n Regenerate diagrams now using Mermaid AI? This will use your AI credits.\n\n To disable this: Settings → Mermaid Chart: Pre Commit Sync Enabled`,
       { modal: false },
@@ -387,7 +401,14 @@ export class StagingSyncService {
       'Discard',
     );
 
+    // Event 8: accepted / dismissed
+    analytics.trackOnCommitDiagramRegenerateDecision(
+      pick === 'Regenerate' ? 'accepted' : 'dismissed',
+      promptCounts,
+    );
+
     if (pick !== 'Regenerate') return;
+    // Event 1: AI Action regenerate (actual work starting)
     analytics.trackPreCommitDiagramRegenerate();
 
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;

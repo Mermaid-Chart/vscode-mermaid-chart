@@ -55,11 +55,11 @@ export class AppCommitWorkflow {
     private readonly gitStatusTracker: AppReviewGitStatusTracker
   ) {}
 
-  async commitAppReview(fileUri: vscode.Uri): Promise<void> {
+  async commitAppReview(fileUri: vscode.Uri): Promise<"success" | "cancelled" | "error"> {
     const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     if (!root) {
       vscode.window.showErrorMessage("No workspace folder open.");
-      return;
+      return "error";
     }
 
     const abs = fileUri.fsPath;
@@ -67,7 +67,7 @@ export class AppCommitWorkflow {
       vscode.window.showInformationMessage(
         "No uncommitted changes for this file (git status clean). Nothing to commit."
       );
-      return;
+      return "cancelled";
     }
 
     const fileName = path.basename(abs);
@@ -79,14 +79,14 @@ export class AppCommitWorkflow {
       const rel = mapping?.relativePath ?? toPosixRepoPath(path.relative(gitRoot, abs));
       if (!rel || rel.startsWith("..")) {
         vscode.window.showErrorMessage("File is not under the git repository root.");
-        return;
+        return "error";
       }
 
       const normalizedRels = [rel];
       const wantMermaidIgnore = await this.promptMermaidIgnoreBeforeCommit(normalizedRels);
       if (wantMermaidIgnore === null) {
         vscode.window.showInformationMessage("Commit cancelled");
-        return;
+        return "cancelled";
       }
       let mermaidIgnorePreview: { changed: boolean; nextContent: string; ignorePath: string } | null =
         null;
@@ -102,7 +102,7 @@ export class AppCommitWorkflow {
       const commitMessage = await this.getCommitMessage(fileName);
       if (!commitMessage) {
         vscode.window.showInformationMessage("Commit cancelled");
-        return;
+        return "cancelled";
       }
 
       if (wantMermaidIgnore && mermaidIgnorePreview?.changed) {
@@ -130,8 +130,10 @@ export class AppCommitWorkflow {
       await this.askAboutPush(gitRoot, [abs]);
 
       vscode.window.showInformationMessage(`Committed changes for ${fileName}`);
+      return "success";
     } catch (error) {
       vscode.window.showErrorMessage(`Commit failed: ${error}`);
+      return "error";
     }
   }
 

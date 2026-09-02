@@ -92,8 +92,7 @@ function wireDiffPreviewMessages(
         postAuth(panel, await loadAuthForDiffPreview());
       } else if (message.type === "login") {
         try {
-          analytics.trackSignInPromptShown('preview-repair');
-          analytics.trackSignInPromptClicked('preview-repair');
+          analytics.trackUserLogin({ action: 'started', trigger: 'preview-repair' });
           setPendingLoginTrigger('preview-repair');
           await vscode.commands.executeCommand("mermaidChart.login", 'preview-repair');
           setTimeout(() => {

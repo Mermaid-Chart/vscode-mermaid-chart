@@ -151,11 +151,10 @@ export class MermaidChartAuthenticationProvider
       window.showInformationMessage(`Signed in with ${session.account.id}`);
       const trigger = consumePendingLoginTrigger();
       analytics.trackSignInCompleted(trigger);
-      analytics.trackLogin();
       return session;
     } catch (e) {
       window.showErrorMessage(`Sign in failed: ${e}`);
-      analytics.trackException(e);
+      analytics.trackException(e, 'userLogin', 'mermaidChart.login', 'authError');
       throw e;
     }
   }

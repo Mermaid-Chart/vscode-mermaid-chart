@@ -334,7 +334,12 @@ export class AppDiffViewProvider {
       return;
     }
 
-    analytics.trackOpenCodeDiff();
+    analytics.trackReviewAction({
+      reviewAction: "openFileDiff",
+      scope: "file",
+      fileCount: this.appReviewIntegration.getReviewMappings().size,
+      status: "success",
+    });
 
     const panelSession = this.sessionsByOriginal.get(path.normalize(mapping.originalFilePath));
     const modifiedUri = vscode.Uri.file(mapping.originalFilePath);

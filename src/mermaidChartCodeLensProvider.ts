@@ -150,7 +150,7 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
       new vscode.CodeLens(codeInRange, {
         title: "▷ Generate Mermaid Diagram",
         command: "mermaidChart.generateDiagramFromCode",
-        arguments: []
+        arguments: [{ entryPoint: "codeLens" }],
       })
     );
 
@@ -189,7 +189,7 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
       new vscode.CodeLens(firstLine, {
         title: "$(preview) Preview diagram",
         command: "mermaidChart.preview",
-        arguments: [],
+        arguments: ["codeLens"],
         tooltip: "Open or focus the Mermaid preview",
       }),
     ];

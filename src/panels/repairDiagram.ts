@@ -38,7 +38,7 @@ export class RepairDiagram {
         });
 
         if (response && response.result === 'ok' && response.code) {
-          analytics.trackRepairDiagram('ok');
+          analytics.trackRepairDiagram('success');
           // Extract clean mermaid code from markdown response
           const cleanedCode = RepairDiagram.extractMermaidCode(response.code);
           
@@ -62,15 +62,15 @@ export class RepairDiagram {
             await RepairDiagram.showDiffView(originalCode, cleanedCode, document);
           }
         } else if (response && response.result === 'fail') {
-          analytics.trackRepairDiagram('failed');
+          analytics.trackRepairDiagram('error');
           vscode.window.showErrorMessage("AI could not generate a valid repair for this diagram. Please try fixing it manually.");
         } else {
-          analytics.trackRepairDiagram('failed');
+          analytics.trackRepairDiagram('error');
           vscode.window.showErrorMessage("Failed to repair diagram. Please try again.");
         }
       });
     } catch (error: any) {
-      analytics.trackRepairDiagram('failed');
+      analytics.trackRepairDiagram('error');
       console.error("Error repairing diagram:", error);
       let errorMsg = "Failed to repair diagram.";
       

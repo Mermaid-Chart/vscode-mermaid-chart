@@ -139,7 +139,12 @@ export class AppReviewIntegration {
         silent,
         clearExisting
       );
-      analytics.trackAppReviewTriggered();
+      analytics.trackReviewAction({
+        reviewAction: "reviewShown",
+        scope: "all",
+        fileCount: relPaths.length,
+        status: "success",
+      });
 
       const message = `Mermaid Sync app updated ${relPaths.length} diagram file(s). See Review Mermaid Sync in the sidebar.`;
       if (silent) {

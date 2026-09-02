@@ -6,6 +6,7 @@ import * as path from 'path';
 const COMMENT_REGEX = /^\s*%%(?!{)[^\n]+\n?/gm;
 const DIRECTIVE_REGEX = /%{2}{\s*(?:(\w+)\s*:|(\w+))\s*(?:(\w+)|((?:(?!}%{2}).|\r?\n)*))?\s*(?:}%{2})?/gi;
 const FIRST_WORD_REGEX = /^\s*(\w+)/;
+const DIAGRAM_KEYWORD_REGEX = /^\s*([\w-]+)/;
 
 export const anyCommentRegex = /\s*%%.*\n/gm;
 
@@ -111,22 +112,28 @@ export const cleanupComments = (text: string): string => {
 
 /**
  * Extracts the first word from a Mermaid diagram after cleaning directives and comments.
- * 
- * @param text - The raw Mermaid diagram text.
- * @returns The first word in lowercase, or an empty string if not found.
+ * Callers use this to look up tmLanguage files, which are keyed without the suffix,
+ * so `stateDiagram-v2` keeps resolving to `statediagram`.
  */
 export function getFirstWordFromDiagram(text: string): string {
+  const match = getDiagramKeyword(text).match(FIRST_WORD_REGEX);
+  return match ? match[1] : '';
+}
+
+/**
+ * Extracts the leading diagram keyword, keeping any suffix, after cleaning directives and
+ * comments. Unlike {@link getFirstWordFromDiagram} this tells `stateDiagram-v2` apart from
+ * `stateDiagram`, which mermaid reports as two different diagram types.
+ */
+export function getDiagramKeyword(text: string): string {
   const cleanedCode = cleanupText(text);
-  const { diagramText } = splitFrontMatter(cleanedCode); // Extract diagram text
+  const { diagramText } = splitFrontMatter(cleanedCode);
 
   const directiveResult = removeDirectives(diagramText);
   const code = cleanupComments(directiveResult);
-  
-  const match = code.match(FIRST_WORD_REGEX);
-  if (match) {
-    return match[1].toLowerCase(); // Return the first word in lowercase
-  }
-  return ''; // Return an empty string if no word is found
+
+  const match = code.match(DIAGRAM_KEYWORD_REGEX);
+  return match ? match[1].toLowerCase() : '';
 }
 
 /**

@@ -156,8 +156,10 @@
 
     const element = document.getElementById("mermaid-diagram");
     if (element && diagramContent) {
+      let diagramType;
       try {
         const parsed = await mermaid.parse(diagramContent || 'info')
+        diagramType = parsed?.diagram?.type;
         if (parsed?.config?.theme && 
             ['default', 'base', 'dark' , 'forest' , 'neutral' , 'neo' , 'neo-dark' , 'redux' , 'redux-dark' , 'redux-color' , 'redux-dark-color' , 'mc' , 'null'].includes(parsed.config.theme)) {
           theme = parsed.config.theme;
@@ -254,12 +256,13 @@
           hasErrorOccured = false
         }
         applyDiffHighlights();
-        vscode.postMessage({ type: "diagramRendered" });
+        vscode.postMessage({ type: "diagramRendered", diagramType });
       } catch (error) {
         errorMessage = `Syntax error in text: ${error.message || error}`;
         vscode.postMessage({
           type: "error",
           message: errorMessage,
+          diagramType,
         });
         
         // Always request AI credits when error occurs

@@ -16,7 +16,7 @@ const FEEDBACK_RATE_LIMIT_MS = 24 * 60 * 60 * 1000;
  * Set to true only while testing the extension-side feedback flow locally.
  * @todo Turn false before release.
  */
-const feedbackRateLimitDisabledForTesting = true;
+const feedbackRateLimitDisabledForTesting = false;
 
 const VIEW_FOCUS_COMMAND: Record<ChartSidebarView, string> = {
   home: "mermaidChart.focus",

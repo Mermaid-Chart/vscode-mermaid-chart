@@ -2,6 +2,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import type { AppReviewIntegration } from "./appReviewIntegration";
 import { toReviewTreeUri } from "./appReviewStatus";
+import { showChartSidebarMode } from "./panels/feedbackPanel";
 
 export class ReviewMermaidSyncTreeProvider
   implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable
@@ -31,7 +32,9 @@ export class ReviewMermaidSyncTreeProvider
   async focusView(): Promise<void> {
     this.refresh();
     await vscode.commands.executeCommand("workbench.view.extension.mermaidActivityBar");
-    await vscode.commands.executeCommand("mermaidReviewSync.focus");
+    // The review tree is only visible in the "review" sidebar mode (GitHub icon),
+    // so switch modes instead of focusing a hidden view.
+    await showChartSidebarMode("review");
   }
 
   private updateVisibilityContext(): void {

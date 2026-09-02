@@ -38,6 +38,13 @@ import { getSnippetsBasedOnDiagram } from "./constants/condSnippets";
 import { ensureIdField, extractIdFromCode, getFirstWordFromDiagram, normalizeMermaidText } from "./frontmatter";
 import { customErrorMessage } from "./constants/errorMessages";
 import { MermaidWebviewProvider } from "./panels/loginPanel";
+import {
+  MermaidFeedbackWebviewProvider,
+  getChartSidebarView,
+  setChartSidebarView,
+  showChartSidebarMode,
+  toggleChartSidebarMode,
+} from "./panels/feedbackPanel";
 import analytics, { type LoginTrigger, type EntryPoint } from "./analytics";
 import { promptForLogin, registerAuthenticatedCommand, setPendingLoginTrigger } from "./loginTrigger";
 import { showUpgradePrompt } from "./upgradePricing";
@@ -158,6 +165,8 @@ export async function activate(context: vscode.ExtensionContext) {
   registerAppReviewFeatureOnce(context);
 
   const mermaidWebviewProvider = new MermaidWebviewProvider(context);
+  const mermaidFeedbackProvider = new MermaidFeedbackWebviewProvider(context);
+  await setChartSidebarView("home");
 
   const mcAPI = new MermaidChartVSCode();
   
@@ -228,6 +237,12 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("mermaidWebview", mermaidWebviewProvider)
   );
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      MermaidFeedbackWebviewProvider.viewType,
+      mermaidFeedbackProvider
+    )
+  );
 
   registerLanguageModelExtensionContext(context);
   const diagramImprovementDiffProvider = new DiagramImprovementDiffProvider();
@@ -253,6 +268,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     registerAuthenticatedCommand("mermaidChart.improveDiagram", async (uri?: vscode.Uri) => {
       analytics.trackImproveDiagramInvoked();
+      await showChartSidebarMode("improve");
       await diagramImprovementPanel.openImproveDiagram(uri);
     }),
     registerAuthenticatedCommand("mermaidChart.repairDiagram", repairActiveDiagram)
@@ -794,6 +810,58 @@ context.subscriptions.push(
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("mermaidChart.reloadSidebar", async () => {
+      const mode = getChartSidebarView();
+      if (mode === "feedback") {
+        mermaidFeedbackProvider.refresh();
+        return;
+      }
+      if (mode === "improve") {
+        await diagramImprovementPanel.showImproveDiagram();
+        return;
+      }
+      if (mode === "review") {
+        await vscode.commands.executeCommand("mermaidChart.reviewSyncOpenChanges");
+        return;
+      }
+      mermaidChartProvider.refresh();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("mermaidChart.openHome", () =>
+      showChartSidebarMode("home")
+    ),
+    vscode.commands.registerCommand("mermaidChart.openHomeActive", () =>
+      showChartSidebarMode("home")
+    ),
+    vscode.commands.registerCommand("mermaidChart.openImprove", async () => {
+      await toggleChartSidebarMode("improve");
+      if (getChartSidebarView() === "improve") {
+        await diagramImprovementPanel.showImproveDiagram();
+      }
+    }),
+    vscode.commands.registerCommand("mermaidChart.openImproveActive", async () => {
+      await toggleChartSidebarMode("improve");
+      if (getChartSidebarView() === "improve") {
+        await diagramImprovementPanel.showImproveDiagram();
+      }
+    }),
+    vscode.commands.registerCommand("mermaidChart.openReview", () =>
+      toggleChartSidebarMode("review")
+    ),
+    vscode.commands.registerCommand("mermaidChart.openReviewActive", () =>
+      toggleChartSidebarMode("review")
+    ),
+    vscode.commands.registerCommand("mermaidChart.openFeedback", () =>
+      toggleChartSidebarMode("feedback")
+    ),
+    vscode.commands.registerCommand("mermaidChart.openFeedbackActive", () =>
+      toggleChartSidebarMode("feedback")
+    )
+  );
+
   let disposable = registerAuthenticatedCommand(
     "mermaidChart.outline",
     () => {
@@ -821,16 +889,17 @@ const insertUuidIntoEditorDisposable = registerAuthenticatedCommand(
   );
 
 context.subscriptions.push(
-  registerAuthenticatedCommand("mermaidChart.diagramHelp", () => {
+  vscode.commands.registerCommand("mermaidChart.diagramHelp", () => {
       const activeEditor = vscode.window.activeTextEditor;
+      let helpUrl = "https://mermaid.js.org/intro/";
       if (activeEditor) {
           const documentText = activeEditor.document.getText();
           const firstWord = getFirstWordFromDiagram(documentText);
-          const helpUrl = getHelpUrl(firstWord);
-          vscode.env.openExternal(vscode.Uri.parse(helpUrl));
-      } else {
-          vscode.window.showWarningMessage("No active editor found.");
+          if (firstWord) {
+            helpUrl = getHelpUrl(firstWord);
+          }
       }
+      void vscode.env.openExternal(vscode.Uri.parse(helpUrl));
   })
 );
 

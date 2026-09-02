@@ -706,7 +706,25 @@
           "id": "mermaidChart",
           "name": "Mermaid Chart",
           "contextualOnly": true,
-          "when": "mermaid.showChart"
+          "when": "mermaid.showChart && mermaidChart:sidebarView == home"
+        },
+        {
+          "id": "mermaidImproveDiagram",
+          "name": "Improve diagram",
+          "type": "webview",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView == improve"
+        },
+        {
+          "id": "mermaidReviewSync",
+          "name": "Review Mermaid Sync",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView == review"
+        },
+        {
+          "id": "mermaidFeedback",
+          "name": "Send feedback",
+          "type": "webview",
+          "contextualOnly": true,
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView == feedback"
         },
         {
           "id": "mermaidWebview",
@@ -714,56 +732,98 @@
           "type": "webview",
           "contextualOnly": true,
           "when": "mermaid.showWebview"
-        },
-        {
-          "id": "mermaidImproveDiagram",
-          "name": "Improve diagram",
-          "type": "webview",
-          "when": "mermaid.isLoggedIn"
-        },
-        {
-          "id": "mermaidReviewSync",
-          "name": "Review Mermaid Sync",
-          "when": "mermaid.hasAppReviewSync"
         }
       ]
     },
     "menus": {
       "view/title": [
         {
-          "command": "mermaidChart.refresh",
-          "group": "navigation",
-          "when": "view == mermaidChart"
+          "command": "mermaidChart.openHome",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback) && mermaidChart:sidebarView != home",
+          "group": "navigation@1"
+        },
+        {
+          "command": "mermaidChart.openHomeActive",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView == home && view == mermaidChart",
+          "group": "navigation@1"
+        },
+        {
+          "command": "mermaidChart.openImprove",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback) && mermaidChart:sidebarView != improve",
+          "group": "navigation@2"
+        },
+        {
+          "command": "mermaidChart.openImproveActive",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView == improve && view == mermaidImproveDiagram",
+          "group": "navigation@2"
+        },
+        {
+          "command": "mermaidChart.openReview",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback)",
+          "group": "navigation@3"
+        },
+        {
+          "command": "mermaidChart.openReviewActive",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView == review && view == mermaidReviewSync",
+          "group": "navigation@1"
+        },
+        {
+          "command": "mermaidChart.openFeedback",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback) && mermaidChart:sidebarView != feedback",
+          "group": "navigation@4"
+        },
+        {
+          "command": "mermaidChart.openFeedbackActive",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView == feedback && view == mermaidFeedback",
+          "group": "navigation@4"
+        },
+        {
+          "command": "mermaidChart.reloadSidebar",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback)",
+          "group": "navigation@5"
         },
         {
           "command": "mermaidChart.diagramHelp",
-          "when": "view == mermaidChart",
-          "group": "navigation"
-        },
-        {
-          "command": "mermaidChart.diagramHelp",
-          "when": "view == mermaidWebview",
-          "group": "navigation"
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback)",
+          "group": "navigation@6"
         },
         {
           "command": "mermaidChart.reviewSyncOpenChanges",
           "when": "view == mermaidReviewSync",
-          "group": "navigation@1"
+          "group": "navigation@2"
         },
         {
           "command": "mermaidChart.reviewSyncRejectAll",
           "when": "view == mermaidReviewSync",
-          "group": "navigation@2"
+          "group": "navigation@3"
         },
         {
           "command": "mermaidChart.reviewSyncAcceptAll",
           "when": "view == mermaidReviewSync",
-          "group": "navigation@3"
+          "group": "navigation@4"
         },
         {
           "command": "mermaidChart.reviewSyncCloseAll",
           "when": "view == mermaidReviewSync",
-          "group": "navigation@4"
+          "group": "navigation@5"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "mermaidChart.openHomeActive",
+          "when": "false"
+        },
+        {
+          "command": "mermaidChart.openImproveActive",
+          "when": "false"
+        },
+        {
+          "command": "mermaidChart.openReviewActive",
+          "when": "false"
+        },
+        {
+          "command": "mermaidChart.openFeedbackActive",
+          "when": "false"
         }
       ],
       "view/item/context": [
@@ -878,8 +938,72 @@
     ],
     "commands": [
       {
+        "command": "mermaidChart.openHome",
+        "title": "Home",
+        "icon": {
+          "light": "images/icons/home-light.svg",
+          "dark": "images/icons/home-dark.svg"
+        }
+      },
+      {
+        "command": "mermaidChart.openHomeActive",
+        "title": "Home",
+        "icon": "images/icons/home-active.svg"
+      },
+      {
+        "command": "mermaidChart.openImprove",
+        "title": "Improve diagram",
+        "icon": {
+          "light": "images/icons/improve-light.svg",
+          "dark": "images/icons/improve-dark.svg"
+        }
+      },
+      {
+        "command": "mermaidChart.openImproveActive",
+        "title": "Improve diagram",
+        "icon": "images/icons/improve-active.svg"
+      },
+      {
+        "command": "mermaidChart.openReview",
+        "title": "GitHub review",
+        "icon": {
+          "light": "images/icons/github-light.svg",
+          "dark": "images/icons/github-dark.svg"
+        }
+      },
+      {
+        "command": "mermaidChart.openReviewActive",
+        "title": "GitHub review",
+        "icon": "images/icons/github-active.svg"
+      },
+      {
         "command": "mermaidChart.diagramHelp",
-        "title": "Diagram help"
+        "title": "Diagram help",
+        "icon": {
+          "light": "images/icons/help-light.svg",
+          "dark": "images/icons/help-dark.svg"
+        }
+      },
+      {
+        "command": "mermaidChart.reloadSidebar",
+        "title": "Reload",
+        "icon": {
+          "light": "images/icons/refresh-light.svg",
+          "dark": "images/icons/refresh-dark.svg"
+        }
+      },
+      {
+        "command": "mermaidChart.openFeedback",
+        "title": "Send feedback",
+        "icon": {
+          "light": "images/icons/feedback-light.svg",
+          "dark": "images/icons/feedback-dark.svg"
+        }
+      },
+      {
+        "command": "mermaidChart.openFeedbackActive",
+        "title": "Send feedback",
+        "icon": "images/icons/feedback-active.svg"
       },
       {
         "command": "mermaidChart.insertUuidIntoEditor",
@@ -1247,7 +1371,7 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm compile",
-    "precompile": "pnpm --filter ./webview build && webpack --mode=production --config ./build/markdownPreview.webpack.config.js && webpack --mode=production --config ./build/sidebarMermaid.webpack.config.js",
+    "precompile": "pnpm --filter ./webview build",
     "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --sourcemap --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --minify",
     "watch": "tsc -p ./ --noEmit --watch",
     "pretest": "pnpm compile && pnpm lint",

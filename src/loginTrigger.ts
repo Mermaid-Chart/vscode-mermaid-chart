@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import analytics, { type LoginTrigger } from './analytics';
 
 let pendingLoginTrigger: LoginTrigger | undefined;
-let pendingSignupIntent = false;
 
 export function setPendingLoginTrigger(trigger: LoginTrigger): void {
   pendingLoginTrigger = trigger;
@@ -16,17 +15,6 @@ export function consumePendingLoginTrigger(): LoginTrigger {
   const trigger = pendingLoginTrigger ?? 'mermaid-sidebar';
   pendingLoginTrigger = undefined;
   return trigger;
-}
-
-/** When true, OAuth opens /app/sign-up with redirect back to /oauth/authorize. */
-export function setPendingSignupIntent(enabled: boolean): void {
-  pendingSignupIntent = enabled;
-}
-
-export function consumePendingSignupIntent(): boolean {
-  const value = pendingSignupIntent;
-  pendingSignupIntent = false;
-  return value;
 }
 
 export async function promptForLogin(

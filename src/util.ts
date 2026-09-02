@@ -15,6 +15,7 @@ import * as packageJson from '../package.json';
 const activeListeners = new Map<string, vscode.Disposable>();
 const REOPEN_CHECK_DELAY_MS = 500; // Delay before checking if temp file is reopened
 import { MermaidWebviewProvider } from "./panels/loginPanel";
+import { setChartSidebarView } from "./panels/feedbackPanel";
 import { getSampleDiagrams } from "./constants/diagramTemplates";
 const DARK_BACKGROUND = "rgba(176, 19, 74, 0.5)"; // #B0134A with 50% opacity
 const LIGHT_BACKGROUND = "#FDE0EE";
@@ -351,6 +352,8 @@ export function updateViewVisibility(isLoggedIn: boolean,webviewProvider?: Merma
   vscode.commands.executeCommand("setContext", "mermaid.showChart", isLoggedIn);
   vscode.commands.executeCommand("setContext", "mermaid.showWebview", !isLoggedIn);
   vscode.commands.executeCommand("setContext", "mermaid.isLoggedIn", isLoggedIn);
+  // Leave feedback webview only while logged in; collapse back to tree/home.
+  void setChartSidebarView("home");
   if (isLoggedIn) {
     mermaidChartProvider?.refresh();
   } else {

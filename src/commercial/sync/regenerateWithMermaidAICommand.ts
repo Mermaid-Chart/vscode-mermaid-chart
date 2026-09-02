@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { addMetadataToFrontmatter, splitFrontMatter, extractMetadataFromCode } from '../../frontmatter';
-import { MermaidChartAuthenticationProvider } from '../../mermaidChartAuthenticationProvider';
 import type { MermaidChartVSCode } from '../../mermaidChartVSCode';
 import { showUpgradePrompt } from '../../upgradePricing';
+import { registerAuthenticatedCommand } from '../../loginTrigger';
 
 /** Extracts clean Mermaid code from a markdown response that may contain a ```mermaid block. */
 export function extractMermaidCode(markdownText: string): string {
@@ -81,27 +81,9 @@ export function registerRegenerateWithMermaidAICommand(
   mcAPI: MermaidChartVSCode,
 ): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand(
+    registerAuthenticatedCommand(
       'mermaidChart.regenerateDiagramWithMermaidAI',
       async (mmdUri: vscode.Uri, sourceFiles: string[]) => {
-        const session = await vscode.authentication.getSession(
-          MermaidChartAuthenticationProvider.id,
-          [],
-          { silent: true },
-        );
-
-        if (!session) {
-          const pick = await vscode.window.showInformationMessage(
-            'Please login to Mermaid Chart to regenerate diagrams with Mermaid AI.',
-            { modal: true },
-            'Login',
-          );
-          if (pick === 'Login') {
-            await mcAPI.login();
-          }
-          return;
-        }
-
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,

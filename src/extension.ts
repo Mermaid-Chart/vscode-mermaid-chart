@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import type MarkdownIt from 'markdown-it';
 import { MermaidChartProvider, MCTreeItem, getAllTreeViewProjectsCache, getProjectIdForDocument, Document, getDiagramFromCache, updateDiagramInCache } from "./mermaidChartProvider";
 import { MermaidChartVSCode } from "./mermaidChartVSCode";
@@ -7,7 +8,6 @@ import {
   applyMermaidChartTokenHighlighting,
   configSection,
   editMermaidChart,
-  ensureAuthenticated,
   findComments,
   findDiagramCode,
   findMermaidChartTokens,
@@ -38,8 +38,8 @@ import { getSnippetsBasedOnDiagram } from "./constants/condSnippets";
 import { ensureIdField, extractIdFromCode, getFirstWordFromDiagram, normalizeMermaidText } from "./frontmatter";
 import { customErrorMessage } from "./constants/errorMessages";
 import { MermaidWebviewProvider } from "./panels/loginPanel";
-import analytics, { type LoginTrigger } from "./analytics";
-import { setPendingLoginTrigger } from "./loginTrigger";
+import analytics, { type LoginTrigger, type EntryPoint } from "./analytics";
+import { promptForLogin, registerAuthenticatedCommand, setPendingLoginTrigger } from "./loginTrigger";
 import { showUpgradePrompt } from "./upgradePricing";
 import { RemoteSyncHandler } from "./remoteSyncHandler";
 import { registerRegenerateCommand } from './commercial/sync/regenerateCommand';
@@ -74,6 +74,7 @@ import {
 
 
 const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
+const MERMAID_PREVIEW_EXTENSION_ID = "vstirbu.vscode-mermaid-preview";
 let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWords.json');
 let isExtensionStarted = false;
 let appReviewFeatureInstance: AppReviewFeature | undefined;
@@ -123,9 +124,24 @@ export async function activate(context: vscode.ExtensionContext) {
   setPreviewBridge(new PreviewBridgeImpl());
   setValidationBridge(new ValidationBridgeImpl());
   setDiagramDiffBridge({
-    openDiagramDiffWebviews,
+    openDiagramDiffWebviews: (oldContent, newContent) => {
+      if (!context.globalState.get<boolean>("isUserLoggedIn", false)) {
+        void promptForLogin(
+          'hard-login-gate',
+          'Sign in to Mermaid Chart to review diagram changes. Use Mermaid Preview if you want to continue without an account.',
+        );
+        return () => {};
+      }
+      return openDiagramDiffWebviews(oldContent, newContent);
+    },
     // Same review surface the GitHub App review list opens (PLUG-81 / pre-commit reuse).
     openDiagramReviewSurface: async (options) => {
+      if (!(await promptForLogin(
+        'hard-login-gate',
+        'Sign in to Mermaid Chart to review diagram changes. Use Mermaid Preview if you want to continue without an account.',
+      ))) {
+        return { closePanels: () => {}, panel: undefined };
+      }
       const result = await openAppReviewDiagramSurface(
         options.fileUri,
         options.oldContent,
@@ -170,13 +186,39 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  const isUserLoggedIn = context.globalState.get<boolean>("isUserLoggedIn", false);
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'mermaidChart.getPreviewExtension',
+      async (entryPoint: EntryPoint = 'sidebar') => {
+        analytics.trackInstallationClick(entryPoint);
+        await vscode.commands.executeCommand(
+          'workbench.extensions.search',
+          `@id:${MERMAID_PREVIEW_EXTENSION_ID}`,
+        );
+      },
+    ),
+    vscode.commands.registerCommand('mermaidChart.showLoginRequiredChanges', async () => {
+      const docPath = path.join(
+        context.extensionPath,
+        'docs',
+        'MermaidChartLoginChanges.md',
+      );
+      const doc = await vscode.workspace.openTextDocument(docPath);
+      await vscode.commands.executeCommand('markdown.showPreview', doc.uri);
+    }),
+  );
 
   const mermaidChartProvider: MermaidChartProvider = new MermaidChartProvider(
     mcAPI
   );
 
   await mcAPI.initialize(context, mermaidWebviewProvider, mermaidChartProvider);
+  const isUserLoggedIn = !!(await vscode.authentication.getSession(
+    'mermaidchart',
+    [],
+    { silent: true },
+  ));
+  await context.globalState.update("isUserLoggedIn", isUserLoggedIn);
 
   // Register diagram management commands (rename and delete)
   DiagramManager.registerCommands(context, mcAPI, mermaidChartProvider);
@@ -205,15 +247,15 @@ export async function activate(context: vscode.ExtensionContext) {
   updateViewVisibility(isUserLoggedIn, mermaidWebviewProvider, mermaidChartProvider);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mermaidChart.preview', getPreview)
+    registerAuthenticatedCommand('mermaidChart.preview', getPreview)
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("mermaidChart.improveDiagram", async (uri?: vscode.Uri) => {
+    registerAuthenticatedCommand("mermaidChart.improveDiagram", async (uri?: vscode.Uri) => {
       analytics.trackImproveDiagramInvoked();
       await diagramImprovementPanel.openImproveDiagram(uri);
     }),
-    vscode.commands.registerCommand("mermaidChart.repairDiagram", repairActiveDiagram)
+    registerAuthenticatedCommand("mermaidChart.repairDiagram", repairActiveDiagram)
   );
 
   const activeEditor = vscode.window.activeTextEditor;
@@ -245,7 +287,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions
   );
   
-  vscode.commands.registerCommand('mermaidChart.createMermaidFile', async () => {
+  registerAuthenticatedCommand('mermaidChart.createMermaidFile', async () => {
     createMermaidFile(context, null, false);
   });
   context.subscriptions.push(
@@ -343,7 +385,7 @@ export async function activate(context: vscode.ExtensionContext) {
   updateMermaidIdContext(vscode.window.activeTextEditor?.document);
 
 
-  const viewCommandDisposable = vscode.commands.registerCommand(
+  const viewCommandDisposable = registerAuthenticatedCommand(
     "mermaidChart.viewMermaidChart",
     (uuid: string) => {
       console.log("Viewing Mermaid Chart with UUID: ", uuid);
@@ -358,7 +400,7 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   vscode.window.registerTreeDataProvider("mermaidChart", mermaidChartProvider);
 
-  const editCommandDisposable = vscode.commands.registerCommand(
+  const editCommandDisposable = registerAuthenticatedCommand(
     "extension.editMermaidChart",
     (uuid: string) => {
       return editMermaidChart(mcAPI, uuid, mermaidChartProvider);
@@ -367,10 +409,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(editCommandDisposable);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("mermaidChart.editLocally", async (uuid: string) => {
-      if (!(await ensureAuthenticated())) {
-        return;
-      }
+    registerAuthenticatedCommand("mermaidChart.editLocally", async (uuid: string) => {
       let projects = getAllTreeViewProjectsCache();
       if (projects.length === 0) {
         if(MermaidChartProvider.isSyncing) {
@@ -407,7 +446,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
 context.subscriptions.push(
-  vscode.commands.registerCommand('mermaid.editAuxFile', async (uri: vscode.Uri, range: vscode.Range) => {
+  registerAuthenticatedCommand('mermaid.editAuxFile', async (uri: vscode.Uri, range: vscode.Range) => {
     try {
       const document = await vscode.workspace.openTextDocument(uri);
       const content = document.getText();
@@ -431,10 +470,7 @@ context.subscriptions.push(
 );
  
 context.subscriptions.push(
-  vscode.commands.registerCommand('mermaid.connectDiagram', async (uri: vscode.Uri, range: vscode.Range) => {
-    if (!(await ensureAuthenticated('connect-diagram'))) {
-      return;
-    }
+  registerAuthenticatedCommand('mermaid.connectDiagram', async (uri: vscode.Uri, range: vscode.Range) => {
     const document = await vscode.workspace.openTextDocument(uri);
     const content = document.getText();
     const blockContent = content.substring(document.offsetAt(range.start), document.offsetAt(range.end)).trim();
@@ -544,7 +580,7 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
 });
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mermaidChart.syncDiagramWithMermaid', async () => {
+    registerAuthenticatedCommand('mermaidChart.syncDiagramWithMermaid', async () => {
       const editor = vscode.window.activeTextEditor;
       if (editor) {
         syncFileToMermaidChart(editor.document);
@@ -642,11 +678,7 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
 };
 
 context.subscriptions.push(
-  vscode.commands.registerCommand('mermaidChart.connectDiagramToMermaidChart', async () => {
-    if (!(await ensureAuthenticated('connect-diagram'))) {
-      return;
-    }
-
+  registerAuthenticatedCommand('mermaidChart.connectDiagramToMermaidChart', async () => {
     const activeEditor = vscode.window.activeTextEditor;
     const document = activeEditor?.document;
 
@@ -740,7 +772,7 @@ context.subscriptions.push(
 
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("mermaidChart.focus", () => {
+    registerAuthenticatedCommand("mermaidChart.focus", () => {
       const emptyMermaidChartToken: MCTreeItem = {
         uuid: "",
         title: "",
@@ -756,13 +788,13 @@ context.subscriptions.push(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("mermaidChart.refresh", () => {
+    registerAuthenticatedCommand("mermaidChart.refresh", () => {
       mermaidChartProvider.refresh();
  
     })
   );
 
-  let disposable = vscode.commands.registerCommand(
+  let disposable = registerAuthenticatedCommand(
     "mermaidChart.outline",
     () => {
       vscode.window.registerTreeDataProvider(
@@ -773,7 +805,7 @@ context.subscriptions.push(
   );
   context.subscriptions.push(disposable);
 
-const insertUuidIntoEditorDisposable = vscode.commands.registerCommand(
+const insertUuidIntoEditorDisposable = registerAuthenticatedCommand(
   "mermaidChart.insertUuidIntoEditor",
   ({ uuid }: MCTreeItem) =>
       uuid ? insertMermaidChartToken(uuid, mermaidChartProvider) 
@@ -783,13 +815,13 @@ const insertUuidIntoEditorDisposable = vscode.commands.registerCommand(
   context.subscriptions.push(insertUuidIntoEditorDisposable);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("extension.refreshTreeView", () => {
+    registerAuthenticatedCommand("extension.refreshTreeView", () => {
       mermaidChartProvider.refresh();
     })
   );
 
 context.subscriptions.push(
-  vscode.commands.registerCommand("mermaidChart.diagramHelp", () => {
+  registerAuthenticatedCommand("mermaidChart.diagramHelp", () => {
       const activeEditor = vscode.window.activeTextEditor;
       if (activeEditor) {
           const documentText = activeEditor.document.getText();
@@ -808,7 +840,10 @@ context.subscriptions.push(
       { scheme: 'untitled' }
     ],
     {
-        provideCompletionItems(document, position, token, context) {
+        provideCompletionItems(document, position, token, completionContext) {
+            if (!context.globalState.get<boolean>("isUserLoggedIn", false)) {
+              return [];
+            }
             const languageId = document.languageId.toLowerCase();
             if (document.getText().trim() === "") {
               return;
@@ -854,7 +889,7 @@ context.subscriptions.push(
   console.log("Mermaid Charts view registered");
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("mermaidChart.openCopilotChat", async () => {
+    registerAuthenticatedCommand("mermaidChart.openCopilotChat", async () => {
       const copilotExtension = vscode.extensions.getExtension("GitHub.copilot-chat");
       if (!copilotExtension) {
         const installOption = "Install GitHub Copilot Chat";
@@ -880,7 +915,7 @@ context.subscriptions.push(
   );
 
 context.subscriptions.push(
-  vscode.commands.registerCommand(
+  registerAuthenticatedCommand(
     "mermaidChart.generateCloudDiagram",
     async () => {
       const copilotExtension = vscode.extensions.getExtension(
@@ -912,7 +947,7 @@ context.subscriptions.push(
 );
 
 context.subscriptions.push(
-  vscode.commands.registerCommand(
+  registerAuthenticatedCommand(
     "mermaidChart.generateERDiagram",
     async () => {
       const copilotExtension = vscode.extensions.getExtension(
@@ -944,7 +979,7 @@ context.subscriptions.push(
 );
 
 context.subscriptions.push(
-  vscode.commands.registerCommand(
+  registerAuthenticatedCommand(
     "mermaidChart.generateDockerDiagram",
     async () => {
       const copilotExtension = vscode.extensions.getExtension(
@@ -979,7 +1014,7 @@ context.subscriptions.push(
 // Optional fileUris: set by on-commit generate popup to seed Copilot references.
 // CodeLens / palette call with no args — existing behavior unchanged.
 context.subscriptions.push(
-  vscode.commands.registerCommand(
+  registerAuthenticatedCommand(
     "mermaidChart.generateDiagramFromCode",
     async (fileUris?: vscode.Uri[] | string[]) => {
       try {
@@ -1019,7 +1054,7 @@ context.subscriptions.push(
 );
 
 context.subscriptions.push(
-  vscode.commands.registerCommand('mermaidChart.openResponsePreview', async (mermaidCode: string) => {
+  registerAuthenticatedCommand('mermaidChart.openResponsePreview', async (mermaidCode: string) => {
     if (!mermaidCode) {
       vscode.window.showErrorMessage("No Mermaid code provided");
       return;
@@ -1037,6 +1072,9 @@ context.subscriptions.push(
     ],
     {
       provideCompletionItems(document) {
+        if (!context.globalState.get<boolean>("isUserLoggedIn", false)) {
+          return [];
+        }
         if (document.getText().trim() === "") {
           const templates = getDiagramTemplates();
           const templateEntries = Object.entries(templates);
@@ -1085,7 +1123,7 @@ context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
 }));
 
 // Register the regenerate command from commercial directory
-registerRegenerateCommand(context, mcAPI);
+registerRegenerateCommand(context);
 registerRegenerateWithMermaidAICommand(context, mcAPI);
 StagingSyncService.register(context, mcAPI);
 
@@ -1097,6 +1135,7 @@ const aiSkillsToastAlwaysShowForTesting = false;
 const aiSkillsToastStateKey = "mermaidAiSkills.toast";
 
 async function showAiSkillsToast(): Promise<void> {
+  if (!context.globalState.get<boolean>("isUserLoggedIn", false)) { return; }
   const config = vscode.workspace.getConfiguration("mermaidChart");
   if (!config.get<boolean>("aiSkills.enabled", true)) { return; }
   if (!config.get<boolean>("aiSkills.promptOnDetect", true)) { return; }
@@ -1130,7 +1169,7 @@ async function showAiSkillsToast(): Promise<void> {
 
 // Palette command: MermaidChart: Install AI Skills… (Copilot / .github only)
 context.subscriptions.push(
-  vscode.commands.registerCommand("mermaidChart.installAiSkills", async () => {
+  registerAuthenticatedCommand("mermaidChart.installAiSkills", async () => {
     const config = vscode.workspace.getConfiguration("mermaidChart");
     if (!config.get<boolean>("aiSkills.enabled", true)) {
       vscode.window.showWarningMessage("Mermaid AI Skills is disabled. Enable mermaidChart.aiSkills.enabled to use this feature.");
@@ -1174,7 +1213,7 @@ setTimeout(() => { showAiSkillsToast().catch(console.error); }, 3000);
 // ── End AI Skills Pack ──────────────────────────────────────────────────────
 
 context.subscriptions.push(
-  vscode.commands.registerCommand(
+  registerAuthenticatedCommand(
     'mermaidChart.openDiagramDiffWebviews',
     (oldContent: string, newContent: string) => {
       if (typeof oldContent !== 'string' || typeof newContent !== 'string') {
@@ -1198,6 +1237,9 @@ return {
   extendMarkdownIt(md: MarkdownIt) {
       extendMarkdownItWithMermaid(md, {
           languageIds: () => {
+              if (!context.globalState.get<boolean>("isUserLoggedIn", false)) {
+                return [];
+              }
               return vscode.workspace.getConfiguration(configSection).get<string[]>('languages', ['mermaid']);
           }
       });

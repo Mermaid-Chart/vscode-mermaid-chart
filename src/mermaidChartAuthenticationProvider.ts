@@ -17,9 +17,9 @@ import { v4 as uuid } from "uuid";
 import { PromiseAdapter, promiseFromEvent } from "./util";
 import { MermaidChartVSCode } from "./mermaidChartVSCode";
 import analytics from "./analytics";
-import { consumePendingLoginTrigger, getPendingLoginTrigger } from "./loginTrigger";
+import { consumePendingLoginTrigger, consumePendingSignupIntent, getPendingLoginTrigger } from "./loginTrigger";
 
-const utmSource = 'mermaid_chart_vs_code';
+export const utmSource = 'mermaid_chart_vs_code';
 
 class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
   public handleUri(uri: Uri) {
@@ -217,7 +217,7 @@ export class MermaidChartAuthenticationProvider
             // SIGN_UP attribution — not a marketing campaign name.
           },
         });
-        const uri = Uri.parse(authData.url);
+        const uri = Uri.parse(this.resolveAuthEntryUrl(authData.url));
         await env.openExternal(uri);
 
         const scope = authData.scope.join(" ");
@@ -249,6 +249,21 @@ export class MermaidChartAuthenticationProvider
         }
       }
     );
+  }
+
+  /**
+   * Create-account flow: open OSS sign-up with redirect=/oauth/authorize?... so Collab's
+   * redirect cookie sends Google/GitHub/email signups back through authorize → vscode:.
+   */
+  private resolveAuthEntryUrl(authorizeUrl: string): string {
+    if (!consumePendingSignupIntent()) {
+      return authorizeUrl;
+    }
+    const authorize = new URL(authorizeUrl);
+    const params = new URLSearchParams();
+    params.set('redirect', `${authorize.pathname}${authorize.search}`);
+    params.set('utm_source', utmSource);
+    return `${authorize.origin}/app/sign-up?${params.toString()}`;
   }
 
   /**

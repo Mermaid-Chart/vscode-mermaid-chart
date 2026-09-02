@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import analytics, { type LoginTrigger } from './analytics';
 
 let pendingLoginTrigger: LoginTrigger | undefined;
+let pendingSignupIntent = false;
 
 export function setPendingLoginTrigger(trigger: LoginTrigger): void {
   pendingLoginTrigger = trigger;
@@ -17,10 +18,20 @@ export function consumePendingLoginTrigger(): LoginTrigger {
   return trigger;
 }
 
+/** When true, OAuth opens /app/sign-up with redirect back to /oauth/authorize. */
+export function setPendingSignupIntent(enabled: boolean): void {
+  pendingSignupIntent = enabled;
+}
+
+export function consumePendingSignupIntent(): boolean {
+  const value = pendingSignupIntent;
+  pendingSignupIntent = false;
+  return value;
+}
+
 export async function promptForLogin(
   trigger: LoginTrigger,
   message: string,
-  loginLabel = 'Login',
 ): Promise<boolean> {
   const session = await vscode.authentication.getSession(
     'mermaidchart',
@@ -31,20 +42,38 @@ export async function promptForLogin(
     return true;
   }
 
-  analytics.trackSignInPromptShown(trigger);
-  const selection = await vscode.window.showInformationMessage(message, loginLabel);
-  if (selection !== loginLabel) {
-    return false;
+  analytics.trackHardLoginPromptShown(trigger);
+  const selection = await vscode.window.showInformationMessage(
+    message,
+    'Show more',
+    'Get the extension',
+    'Discard',
+  );
+
+  if (selection === 'Show more') {
+    analytics.trackShowMoreClick();
+    await vscode.commands.executeCommand('mermaidChart.showLoginRequiredChanges');
+  } else if (selection === 'Get the extension') {
+    await vscode.commands.executeCommand(
+      'mermaidChart.getPreviewExtension',
+      'hardLoginPopup',
+    );
   }
 
-  analytics.trackSignInPromptClicked(trigger);
-  setPendingLoginTrigger(trigger);
-  await vscode.commands.executeCommand('mermaidChart.login', trigger);
+  return false;
+}
 
-  const afterLogin = await vscode.authentication.getSession(
-    'mermaidchart',
-    [],
-    { silent: true },
-  );
-  return !!afterLogin;
+export function registerAuthenticatedCommand(
+  command: string,
+  callback: (...args: any[]) => any,
+): vscode.Disposable {
+  return vscode.commands.registerCommand(command, async (...args: any[]) => {
+    if (!(await promptForLogin(
+      'hard-login-gate',
+      'Sign in to Mermaid Chart to use this functionality. Use Mermaid Preview if you want to continue without an account.',
+    ))) {
+      return;
+    }
+    return callback(...args);
+  });
 }

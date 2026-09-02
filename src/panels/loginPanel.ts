@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { generateWebviewContent } from "../templates/loginTemplate";
 import { generateAuthOptionsContent } from "../templates/authOptionsTemplate";
 import analytics from "../analytics";
-import { setPendingLoginTrigger } from "../loginTrigger";
+import { setPendingLoginTrigger, setPendingSignupIntent } from "../loginTrigger";
 
 type ViewState = 'login' | 'authOptions';
 
@@ -28,13 +28,28 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.command) {
+        case "createAccount":
+          // Reuse OAuth waiter: VS Code Allow modal → OSS signup → cookie → authorize → vscode:
+          setPendingSignupIntent(true);
+          setPendingLoginTrigger('mermaid-sidebar');
+          vscode.commands.executeCommand("mermaidChart.login", 'mermaid-sidebar');
+          break;
+
         case "signIn":
           analytics.trackSignInPromptShown('mermaid-sidebar');
           this.currentState = 'authOptions';
           this.updateWebviewContent();
           break;
 
+        case "getPreviewExtension":
+          vscode.commands.executeCommand(
+            "mermaidChart.getPreviewExtension",
+            "sidebar",
+          );
+          break;
+
         case "startOAuthFlow":
+          setPendingSignupIntent(false);
           analytics.trackSignInPromptClicked('mermaid-sidebar');
           setPendingLoginTrigger('mermaid-sidebar');
           vscode.commands.executeCommand("mermaidChart.login", 'mermaid-sidebar');
@@ -96,6 +111,7 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
           cancellable: false,
         },
         async () => {
+          setPendingSignupIntent(false);
           setPendingLoginTrigger('mermaid-sidebar');
           await vscode.commands.executeCommand("mermaidChart.validateManualToken", token.trim());
         }

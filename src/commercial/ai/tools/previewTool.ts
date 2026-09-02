@@ -1,9 +1,16 @@
 import * as vscode from 'vscode';
 import { PreviewBridge } from "@mermaid-chart/vscode-utils";
 import { PreviewPanel } from "../../../panels/previewPanel";
+import { promptForLogin } from "../../../loginTrigger";
 
 export class PreviewBridgeImpl implements PreviewBridge {
   async createOrShowPreview(documentUri?: string, code?: string): Promise<void> {
+    if (!(await promptForLogin(
+      'hard-login-gate',
+      'Sign in to Mermaid Chart to preview diagrams. Use Mermaid Preview if you want to continue without an account.',
+    ))) {
+      return;
+    }
     try {
       // If a documentUri is provided, use that existing document
       if (documentUri) {

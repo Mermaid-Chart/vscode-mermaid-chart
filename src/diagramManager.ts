@@ -6,6 +6,7 @@ import { ensureIdField } from './frontmatter';
 import { getDiagramTemplates } from './util';
 import analytics from './analytics';
 import { showUpgradePrompt } from './upgradePricing';
+import { registerAuthenticatedCommand } from './loginTrigger';
 
 /**
  * Handles diagram management operations like rename and delete
@@ -435,7 +436,7 @@ export class DiagramManager {
     const diagramManager = new DiagramManager(mcAPI, provider);
 
     // Register rename command
-    const renameCommand = vscode.commands.registerCommand(
+    const renameCommand = registerAuthenticatedCommand(
       'mermaidChart.renameDiagram',
       async (item: MCTreeItem) => {
         await diagramManager.renameDiagram(item);
@@ -444,7 +445,7 @@ export class DiagramManager {
     context.subscriptions.push(renameCommand);
 
     // Register duplicate command
-    const duplicateCommand = vscode.commands.registerCommand(
+    const duplicateCommand = registerAuthenticatedCommand(
       'mermaidChart.duplicateDiagram',
       async (item: MCTreeItem) => {
         await diagramManager.duplicateDiagram(item);
@@ -453,7 +454,7 @@ export class DiagramManager {
     context.subscriptions.push(duplicateCommand);
 
     // Register add diagram command
-    const addDiagramCommand = vscode.commands.registerCommand(
+    const addDiagramCommand = registerAuthenticatedCommand(
       'mermaidChart.addDiagram',
       async (item: MCTreeItem) => {
         await diagramManager.addDiagram(item, context);
@@ -462,7 +463,7 @@ export class DiagramManager {
     context.subscriptions.push(addDiagramCommand);
 
     // Register delete command
-    const deleteCommand = vscode.commands.registerCommand(
+    const deleteCommand = registerAuthenticatedCommand(
       'mermaidChart.deleteDiagram',
       async (item: MCTreeItem) => {
         await diagramManager.deleteDiagram(item);
@@ -471,7 +472,7 @@ export class DiagramManager {
     context.subscriptions.push(deleteCommand);
 
     // Register link diagram command
-    const linkDiagramCommand = vscode.commands.registerCommand(
+    const linkDiagramCommand = registerAuthenticatedCommand(
       'mermaidChart.linkDiagram',
       async (item: MCTreeItem) => {
         await diagramManager.linkDiagram(item);
@@ -480,7 +481,7 @@ export class DiagramManager {
     context.subscriptions.push(linkDiagramCommand);
 
     // Register view diagram command
-    const viewDiagramCommand = vscode.commands.registerCommand(
+    const viewDiagramCommand = registerAuthenticatedCommand(
       'mermaidChart.viewDiagram',
       async (item: MCTreeItem) => {
         await diagramManager.viewDiagram(item);
@@ -489,7 +490,7 @@ export class DiagramManager {
     context.subscriptions.push(viewDiagramCommand);
 
     // Register edit diagram in Mermaid Chart command
-    const editDiagramInMermaidChartCommand = vscode.commands.registerCommand(
+    const editDiagramInMermaidChartCommand = registerAuthenticatedCommand(
       'mermaidChart.editDiagramInMermaidChart',
       async (item: MCTreeItem) => {
         await diagramManager.editDiagramInMermaidChart(item);
@@ -498,7 +499,7 @@ export class DiagramManager {
     context.subscriptions.push(editDiagramInMermaidChartCommand);
 
     // Register edit diagram locally command
-    const editDiagramLocallyCommand = vscode.commands.registerCommand(
+    const editDiagramLocallyCommand = registerAuthenticatedCommand(
       'mermaidChart.editDiagramLocally',
       async (item: MCTreeItem) => {
         await diagramManager.editDiagramLocally(item);

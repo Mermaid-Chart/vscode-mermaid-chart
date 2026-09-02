@@ -718,7 +718,8 @@
         {
           "id": "mermaidImproveDiagram",
           "name": "Improve diagram",
-          "type": "webview"
+          "type": "webview",
+          "when": "mermaid.isLoggedIn"
         },
         {
           "id": "mermaidReviewSync",

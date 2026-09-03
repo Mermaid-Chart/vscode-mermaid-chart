@@ -200,7 +200,7 @@ export class DiagramManager {
       if (error?.status === 402 || error?.response?.status === 402) {
         await showUpgradePrompt(
           'duplicate_diagram',
-          'Unable to create duplicate diagram. You have reached the diagram limit for your free account. Please upgrade your Mermaid Chart subscription to create more diagrams.',
+          'Unable to create duplicate diagram. You have reached the diagram limit for your free account. Please upgrade your Mermaid subscription to create more diagrams.',
         );
       } else {
         // Show generic error message for other errors
@@ -287,7 +287,7 @@ export class DiagramManager {
         const newDocument = await this.mcAPI.createDocument(projectId);
 
         if (!newDocument || !newDocument.documentID) {
-          throw new Error('Failed to create document on Mermaid Chart');
+          throw new Error('Failed to create document on Mermaid');
         }
 
         // Set the document title and selected template code
@@ -315,7 +315,7 @@ export class DiagramManager {
             true,
           );
           vscode.window.showInformationMessage(
-            `Diagram "${finalName}" created successfully. Edit and save to sync with Mermaid Chart.`
+            `Diagram "${finalName}" created successfully. Edit and save to sync with Mermaid.`
           );
         } else {
           throw new Error('Failed to open editor for the new diagram');
@@ -328,7 +328,7 @@ export class DiagramManager {
       if (error?.status === 402 || error?.response?.status === 402) {
         await showUpgradePrompt(
           'add_diagram',
-          'Unable to create diagram. You have reached the diagram limit for your free account. Please upgrade your Mermaid Chart subscription to create more diagrams.',
+          'Unable to create diagram. You have reached the diagram limit for your free account. Please upgrade your Mermaid subscription to create more diagrams.',
         );
       } else {
         // Show generic error message for other errors
@@ -376,13 +376,13 @@ export class DiagramManager {
       if (error?.response?.status === 400 || error?.status === 400 || 
           (error.message && error.message.includes('400'))) {
         vscode.window.showErrorMessage(
-          `Cannot view diagram "${item.title}". The diagram may have syntax errors. Please check your diagram syntax on Mermaid Chart or edit it locally to fix any issues.`,
+          `Cannot view diagram "${item.title}". The diagram may have syntax errors. Please check your diagram syntax in Mermaid or edit it locally to fix any issues.`,
           'Edit Locally',
-          'Edit in Mermaid Chart'
+          'Edit in Mermaid'
         ).then(selection => {
           if (selection === 'Edit Locally') {
             this.editDiagramLocally(item);
-          } else if (selection === 'Edit in Mermaid Chart') {
+          } else if (selection === 'Edit in Mermaid') {
             this.editDiagramInMermaidChart(item);
           }
         });
@@ -406,7 +406,7 @@ export class DiagramManager {
       await vscode.commands.executeCommand('extension.editMermaidChart', item.uuid);
     } catch (error: any) {
       console.error('Error editing diagram in Mermaid Chart:', error);
-      vscode.window.showErrorMessage(`Failed to edit diagram in Mermaid Chart: ${error.message || error}`);
+      vscode.window.showErrorMessage(`Failed to edit diagram in Mermaid: ${error.message || error}`);
     }
   }
 

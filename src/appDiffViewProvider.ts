@@ -124,7 +124,7 @@ export class AppDiffViewProvider {
     const mapping = this.appReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
       vscode.window.showErrorMessage(
-        "No active Mermaid Sync app review for this file. Run MermaidChart: Review Mermaid Sync from the command palette."
+        "No active Mermaid Sync app review for this file. Run Mermaid: Review Mermaid Sync from the command palette."
       );
       return;
     }

@@ -1,8 +1,8 @@
-# What Changed in Mermaid Chart
+# What Changed in Mermaid
 
-## Mermaid Chart now requires sign-in
+## Mermaid now requires sign-in
 
-Sign in with a free Mermaid Chart account to use this extension, including:
+Sign in with a free Mermaid account to use this extension, including:
 
 - Diagram preview, creation, and editing
 - Cloud sync and team collaboration

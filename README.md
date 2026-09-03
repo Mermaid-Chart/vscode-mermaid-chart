@@ -1,12 +1,12 @@
-# Mermaid Chart extension for Visual Studio Code
+# Mermaid extension for Visual Studio Code
 
 The official Mermaid extension for Visual Studio Code enables developers to seamlessly create, edit, preview and integrate mermaid diagrams from within the VS Code.
 
 
 ## Getting Started 🚀
 
-1. Install [Mermaid Chart](https://marketplace.visualstudio.com/items?itemName=MermaidChart.vscode-mermaid-chart) from Marketplace
-2. Sign in with your Mermaid Chart account, or [create a free account](https://mermaid.ai/app/sign-up) — an account is required to use this extension
+1. Install [Mermaid](https://marketplace.visualstudio.com/items?itemName=MermaidChart.vscode-mermaid-chart) from Marketplace
+2. Sign in with your Mermaid account, or [create a free account](https://mermaid.ai/app/sign-up) — an account is required to use this extension
 3. Want to preview Mermaid diagrams without an account? Use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) instead
   
 ## Now with AI-Powered Diagramming! ✨
@@ -29,9 +29,9 @@ Transform ideas into diagrams instantly with our AI integration! Our extension n
 > **Note**<br/>
 > To use the AI diagramming feature, you must have the [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) extension installed.
 
-## Mermaid Chart Account Required 🔐
+## Mermaid Account Required 🔐
 
-From **v2.7.7**, Mermaid Chart is a signed-in extension. Creating, previewing, AI diagramming, cloud sync, Improve Diagram and Mermaid Sync review are all login gated, so you need a free Mermaid Chart account to use them.
+From **v2.7.7**, Mermaid is a signed-in extension. Creating, previewing, AI diagramming, cloud sync, Improve Diagram and Mermaid Sync review are all login gated, so you need a free Mermaid account to use them.
 
 If you run a command while signed out, the extension shows a notification instead of running it, with three choices:
 
@@ -46,14 +46,14 @@ To sign in, open the Mermaid icon in the activity bar and use **Sign in**, or **
 
 ![Image illustrating accessible diagrams in explorer panel](https://mermaid.ai/docs/img/plugins/vscode-plugin.gif)
 
-## Mermaid Chart Sidebar
+## Mermaid Sidebar
 
 Once you are signed in, the Mermaid icon in the activity bar gives you your diagrams, Improve Diagram, Mermaid Sync review, and the feedback form. The icons in the sidebar title bar switch between these sections and give you a reload of the panel and diagram help.
 
 ### Home
-Home lists the projects and diagrams from your Mermaid Chart account, so you can open, edit, link and manage them without leaving VS Code. Right-click any diagram for the full set of actions, and use the **+** button at project level to add a new diagram.
+Home lists the projects and diagrams from your Mermaid account, so you can open, edit, link and manage them without leaving VS Code. Right-click any diagram for the full set of actions, and use the **+** button at project level to add a new diagram.
 
-![Mermaid Chart Sidebar Home](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-home.png)
+![Mermaid Sidebar Home](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-home.png)
 
 ### Improve diagram
 The **Improve diagram** view has an updated UI in the sidebar. Open a `.mmd` or `.mermaid` file, run Improve Diagram, and the sidebar shows two AI suggestions for the active diagram — one focused on layout and grouping, one on styling — with a model dropdown, **Refresh** and **Cancel**, and a diff preview before you apply anything.
@@ -61,7 +61,7 @@ The **Improve diagram** view has an updated UI in the sidebar. Open a `.mmd` or 
 ![Improve diagram sidebar](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-improve-diagram.png)
 
 ### Review Mermaid Sync
-Click the **GitHub icon** in the sidebar title bar to switch to the Mermaid Sync review view. From now on, whenever you run **MermaidChart: Review Mermaid Sync** or `git pull` brings in diagram updates from the [Mermaid Diagram Sync GitHub App](https://github.com/marketplace/mermaid-diagram-sync), the affected `.mmd` and `.mermaid` files are listed here for review. Click the GitHub icon again to leave this view and go back to your diagrams.
+Click the **GitHub icon** in the sidebar title bar to switch to the Mermaid Sync review view. From now on, whenever you run **Mermaid: Review Mermaid Sync** or `git pull` brings in diagram updates from the [Mermaid Diagram Sync GitHub App](https://github.com/marketplace/mermaid-diagram-sync), the affected `.mmd` and `.mermaid` files are listed here for review. Click the GitHub icon again to leave this view and go back to your diagrams.
 
 ![Review Mermaid Sync sidebar](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-review-mermaid-sync.png)
 
@@ -78,7 +78,7 @@ Tell us what you were doing, how often it happens, and describe the problem. You
 ![Feedback form](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-feedback-form.png)
 
 ### Reload & Diagram help icons
-- **Reload** — reloads the Mermaid Chart sidebar, refreshing the current section and clearing the feedback form if it is open.
+- **Reload** — reloads the Mermaid sidebar, refreshing the current section and clearing the feedback form if it is open.
 - **Diagram help** — opens the official Mermaid.js documentation for the diagram type you are working on.
 
 
@@ -97,7 +97,7 @@ This extension collects limited analytics data to improve functionality and user
 Data is automatically sent to `https://mermaid.ai/` Servers 
 when:
 - The extension is activated/loaded
-- You sign in or sign out of your Mermaid Chart account
+- You sign in or sign out of your Mermaid account
 - AI-powered features are used (chat participant, diagram generation, repair)
 - Errors or exceptions occur
 
@@ -152,7 +152,7 @@ Currently supported diagrams and charts:
 - Radar
 
 ### Sign-in & Authentication Support
-Signing in with your Mermaid Chart account is required to use the extension, and we support flexible authentication options so you can connect from any environment — unlocking cloud synchronization, diagram sharing, and collaborative editing.
+Signing in with your Mermaid account is required to use the extension, and we support flexible authentication options so you can connect from any environment — unlocking cloud synchronization, diagram sharing, and collaborative editing.
 
 #### Dual Authentication Support
 We provide two convenient authentication methods to accommodate different development environments and user preferences:
@@ -166,7 +166,7 @@ We provide two convenient authentication methods to accommodate different develo
 - **IDE flexibility**: Perfect for users working in different IDEs, remote environments, or corporate networks
 - **Troubleshooting alternative**: When OAuth encounters issues or restrictions, manual token provides a reliable fallback
 - **Simple process**: 
-  1. Visit your [Mermaid Chart account settings](https://mermaid.ai/app/user/settings)
+  1. Visit your [Mermaid account settings](https://mermaid.ai/app/user/settings)
   2. Generate a new authentication token
   3. Copy and paste the token into the extension
 - **Persistent access**: Once authenticated, no need to re-enter tokens or manage authentication manually
@@ -202,7 +202,7 @@ With Smart Diagram Regeneration, when your source code or requirements change, t
 
 Refine existing diagrams with AI-suggested layout and styling improvements — without rewriting Mermaid from scratch. **Improve Diagram** adds quick actions at the top of every `.mmd` and `.mermaid` file and a dedicated **Improve diagram** view in the Mermaid activity bar, where you can compare alternatives side by side before applying them.
 
-- **Quick Actions via CodeLens**: At the top of each diagram file, choose from **Preview Diagram**, **Save Diagram to Mermaid Chart**, **Repair Diagram** (for Mermaid syntax errors), or **Improve Diagram** — all without leaving the editor.<br>
+- **Quick Actions via CodeLens**: At the top of each diagram file, choose from **Preview Diagram**, **Save Diagram to Mermaid**, **Repair Diagram** (for Mermaid syntax errors), or **Improve Diagram** — all without leaving the editor.<br>
 - **Two AI-Powered Variants**: The Improve sidebar generates two optimized suggestions for the active diagram: one focused on **layout and grouping**, and one on **styling** — giving you multiple variations of the same diagram to compare and choose from.<br>
 - **Diff Preview Before You Apply**: Click a suggestion card to open a code diff with dual diagram previews (current vs proposed). Review the changes visually, then save the right side to apply your chosen improvement to the workspace file.<br>
 - **Model Selection**: Choose which chat model powers generation (auto, claude, openAI availbel in your copilot plan) from a dropdown in the sidebar; your selection is remembered across sessions.<br>
@@ -217,7 +217,7 @@ Refine existing diagrams with AI-suggested layout and styling improvements — w
 
 ### Visualize Cloud Infrastructure from Your Codebase
 - Instantly visualize your cloud infrastructure with our AI-powered diagram generator.<br>
-- Simply mention:  `@mermaid-chart /generate_cloud_architecture_diagram` in GitHub Copilot Chat or `MermaidChart: Generate Cloud Diagram` in command pallet.
+- Simply mention:  `@mermaid-chart /generate_cloud_architecture_diagram` in GitHub Copilot Chat or `Mermaid: Generate Cloud Diagram` in command pallet.
 - it will scan your workspace, detect cloud configuration files, and generate a clear, accurate architecture diagram.<br>
 - Before generating, you can easily select the specific files you want to include, giving you full control over the output.<br>
 - Understand your cloud setup at a glance — no manual effort required.
@@ -301,9 +301,9 @@ Refine existing diagrams with AI-suggested layout and styling improvements — w
 - **CodeLens (enabled by default):** When you open a supported code file (e.g. `.ts`, `.js`, `.py`, `.java`, `.go`, `.rs`, `.cs`), two CodeLens actions appear at the bottom of the file:
   - **▷ Generate Mermaid Diagram** — opens GitHub Copilot Chat and runs `@mermaid-chart /generate_diagram_from_code`
   - **💬 Open Chat @mermaid-chart** — opens Copilot Chat with `@mermaid-chart` ready to use<br>
-- **Command palette:** Run `MermaidChart: Generate Diagram from Code` from any supported code file to start the same workflow without using CodeLens.<br>
+- **Command palette:** Run `Mermaid: Generate Diagram from Code` from any supported code file to start the same workflow without using CodeLens.<br>
 - **How it works:** The `/generate_diagram_from_code` handler lets you select code files to analyze, then shows a list of suitable diagram types (flowchart, class diagram, sequence diagram, state diagram, ER diagram, architecture diagram, mindmap, and more). Once you pick a type, the AI analyzes components, relationships, and flow in your code and generates a Mermaid diagram.<br>
-- **Turn off CodeLens:** If you prefer not to see CodeLens on code files, open VS Code Settings, search for `Mermaid Chart: Show Generate Diagram Code Lens`, and uncheck it.
+- **Turn off CodeLens:** If you prefer not to see CodeLens on code files, open VS Code Settings, search for `Mermaid: Show Generate Diagram Code Lens`, and uncheck it.
 
 ![vscode-plugin-generate-diagram-from-code](https://mermaid.ai/docs/img/plugins/vscode-generate-generate-diagram-from-code.gif)
 
@@ -333,8 +333,8 @@ Change diagram themes instantly during your current session with our new theme s
 - Switch between light and dark themes based on your preference
 - Apply changes in real-time without reloading
 
-All Mermaid Chart themes are supported including: 
-**Mermaid Chart, Neo, Neo Dark, Default, Forest, Base, Dark, Neutral, Redux Dark, Redux Color, and Redux Dark Color**.
+All Mermaid themes are supported including:
+**Mermaid, Neo, Neo Dark, Default, Forest, Base, Dark, Neutral, Redux Dark, Redux Color, and Redux Dark Color**.
 
 Simply click the palette icon next to the export button to access the theme dropdown.
 
@@ -390,13 +390,13 @@ Now based on the diagram type auto suggestions for code snippets will be trigger
 If you get stuck with a diagram's syntax or want to learn about other features for a given diagram, now you can directly access the respective diagram's detailed documentation on the official mermaid.js docs. 
 ![Diagram Help](https://mermaid.ai/docs/img/plugins/vscode-plugin-diagram-help.png)
 
-### Advanced Features with your MermaidChart account
-Your signed-in account also connects the extension to the Mermaid Chart service, so you can attach diagrams to your code and get quick access to updating them.
+### Advanced Features with your Mermaid account
+Your signed-in account also connects the extension to the Mermaid service, so you can attach diagrams to your code and get quick access to updating them.
 
 If you do not have an account yet, sign up for free on https://mermaid.ai
 
 #### Fetch & Use existing diagrams in Side Panel
-Users can start login flow with their Mermaid Chart account and once logged-in, in the side panel all the projects and diagrams from your account will be loaded in the side panel.
+Users can start login flow with their Mermaid account and once logged-in, in the side panel all the projects and diagrams from your account will be loaded in the side panel.
 ![Fetch & Use existing diagrams in Side Panel](https://mermaid.ai/docs/img/plugins/vscode-plugin-activitybar.png)
 
 #### Enhanced Diagram Management with Context Menu
@@ -405,8 +405,8 @@ Manage your Mermaid diagrams effortlessly with our comprehensive right-click con
 **Diagram Operations:**
 - **Link Diagram**: Insert the diagram ID into your code editor as a comment at the cursor position for easy reference
 - **View Diagram**: Preview the diagram directly in VS Code
-- **Edit in Mermaid Chart**: Open the diagram in the web editor at mermaid.ai for advanced editing
-- **Edit Locally**: Open the diagram locally for editing while maintaining sync with Mermaid Chart
+- **Edit in Mermaid**: Open the diagram in the web editor at mermaid.ai for advanced editing
+- **Edit Locally**: Open the diagram locally for editing while maintaining sync with Mermaid
 
 **Management Options:**
 - **Rename**: Change the diagram name with a custom title
@@ -420,7 +420,7 @@ Use the **+** button at the project level to quickly add new diagrams to your wo
 
 
 #### Smart Sync to promote collaboration
-When a  user modifies an existing diagram, before saving it to MermaidChart service, it smartly checks if any modification is made in the web view, and if found, it indicates to the user to resolve any conflicts, and then save the resolved diagram back. 
+When a  user modifies an existing diagram, before saving it to Mermaid, it smartly checks if any modification is made in the web view, and if found, it indicates to the user to resolve any conflicts, and then save the resolved diagram back.
 ![Smart Sync to promote collaboration 1](https://mermaid.ai/docs/img/plugins/vscode-plugin-smart-indicator-view.png)
 
 ![Smart Sync to promote collaboration 2](https://mermaid.ai/docs/img/plugins/vscode-plugin-smart-indicator.png)
@@ -438,8 +438,8 @@ Keep your Mermaid diagrams in sync with your code — automatically, before ever
 - **Automatic Staging Detection**: Whenever you run `git add`, the extension watches for staged source files that are referenced by any `.mmd` or `.mermaid` diagram in your workspace. No manual trigger needed.<br>
 - **Smart Notification Popup**: As soon as relevant staged files are detected, a VS Code notification appears listing the affected diagrams and asking whether you want to regenerate them using Mermaid AI — right before you commit, so your diagrams never lag behind your code.<br>
 - **Powered by Mermaid AI**: Clicking **Regenerate** calls the Mermaid AI regeneration API. Updated diagrams are written to disk and opened in **Review Mermaid Sync** so you can Accept, Reject, or review each change before you commit. AI credits are deducted the same way as in the [Mermaid Diagram Sync GitHub App](https://github.com/marketplace/mermaid-diagram-sync).<br>
-- **Login Prompt**: If you are not signed in to Mermaid Chart, the popup offers a quick login link instead of regenerating.<br>
-- **Opt-out Anytime**: Can be turned off via Settings → **Mermaid Chart: Pre Commit Sync Enabled**.<br>
+- **Login Prompt**: If you are not signed in to Mermaid, the popup offers a quick login link instead of regenerating.<br>
+- **Opt-out Anytime**: Can be turned off via Settings → **Mermaid: Pre Commit Sync Enabled**.<br>
 
 #### Review regenerated diagrams
 After regenerate, each affected diagram appears in the **Review Mermaid Sync** sidebar (same list UI used for GitHub Sync review):
@@ -463,7 +463,7 @@ When you stage source files that are not yet referenced by any `.mmd` or `.merma
 - **One-Click Generation**: Click **Generate** in the notification and the extension automatically opens the Copilot chat with `@mermaid-chart /generate_diagram_from_code`, pre-seeding all the unlinked staged file paths as references — no manual file selection needed.<br>
 - **Choose Your Diagram Type**: Once the chat opens, you can pick the diagram type (flowchart, class diagram, sequence diagram, and more) and the AI generates the appropriate Mermaid syntax instantly.<br>
 - **Smart Frequency Limit**: The popup shows up to 2 times across interactions. After that, it enters a quiet period of approximately one month — whether you clicked Generate or dismissed it — so it never becomes intrusive.<br>
-- **Opt-out Anytime**: Can be turned off permanently via Settings → **Mermaid Chart: Create Diagram From Stage Enabled**.<br>
+- **Opt-out Anytime**: Can be turned off permanently via Settings → **Mermaid: Create Diagram From Stage Enabled**.<br>
 - **Never Blocks Commit**: This is a soft, non-modal notification only. Your staging and commit flow is never interrupted regardless of your choice.<br>
 
 ![vscode-plugin-create-diagram-from-stage](https://mermaid.ai/docs/img/plugins/vscode-plugin-create-diagram-from-stage.gif)
@@ -479,9 +479,9 @@ When you stage source files that are not yet referenced by any `.mmd` or `.merma
 
 ### Review Mermaid Sync
 
-**MermaidChart: Review Mermaid Sync** helps you review diagram changes on your pull request that were committed by the Mermaid Diagram Sync GitHub App. To learn how the app works, what it updates, and how `.mermaidignore` fits in, see the [Mermaid Diagram Sync marketplace page](https://github.com/marketplace/mermaid-diagram-sync).
+**Mermaid: Review Mermaid Sync** helps you review diagram changes on your pull request that were committed by the Mermaid Diagram Sync GitHub App. To learn how the app works, what it updates, and how `.mermaidignore` fits in, see the [Mermaid Diagram Sync marketplace page](https://github.com/marketplace/mermaid-diagram-sync).
 
-> **Before you start:** Install the GitHub App on your repo, open a branch that has an **open pull request**, and run **MermaidChart: Connect GitHub for Mermaid Diagram Sync** once so the extension can load PR base and head content from GitHub.
+> **Before you start:** Install the GitHub App on your repo, open a branch that has an **open pull request**, and run **Mermaid: Connect GitHub for Mermaid Diagram Sync** once so the extension can load PR base and head content from GitHub.
 
 #### Automatically review after `git pull`
 
@@ -491,7 +491,7 @@ For example, if a recent source change removes a function and the app regenerate
 
 #### Full PR review mode
 
-When you want to see **all** app-driven diagram changes on the current branch for the open PR, run **MermaidChart: Review Mermaid Sync** from the Command Palette. That scans from the **PR base** through **HEAD** and registers every affected diagram file for review. Use this when you need the full picture, not only what arrived in the last pull.
+When you want to see **all** app-driven diagram changes on the current branch for the open PR, run **Mermaid: Review Mermaid Sync** from the Command Palette. That scans from the **PR base** through **HEAD** and registers every affected diagram file for review. Use this when you need the full picture, not only what arrived in the last pull.
 
 #### Highlighted files
 
@@ -558,7 +558,7 @@ From the list toolbar you can act on the whole review at once:
   -  🟡 modified elements in yellow
   -  🔴 deleted elements highlighted in red, with precise highlighting that doesn't obscure diagram text.<br>
 - **Available in Two Scenarios**:
-  - **Remote Sync**: When you connect your diagrams to Mermaid Chart and make changes remotely, the diff preview shows highlighted differences
+  - **Remote Sync**: When you connect your diagrams to Mermaid and make changes remotely, the diff preview shows highlighted differences
   - **Regenerate Diagram**: When you modify source files and regenerate diagrams, see exactly what changed with diagram highlighting<br>
 - **Supports Two Diagram Types**: Works seamlessly with flowchart and sequence diagrams
 
@@ -574,7 +574,7 @@ From the list toolbar you can act on the whole review at once:
 
 
 #### Refresh 
-To get the latest changes of diagrams from Mermaid Chart, click on the button named Refresh at the top in the side panel.
+To get the latest changes of diagrams from Mermaid, click on the button named Refresh at the top in the side panel.
 
 ![Refresh ](https://mermaid.ai/docs/img/plugins/vscode-plugin-refresh.png)
 
@@ -584,12 +584,12 @@ Users now have the option to open and edit diagrams in the web view on https://m
 
 ### Mermaid AI Skills for GitHub Copilot
 
-Teach [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) how to use this extension’s tools and commands automatically — so when you ask for a diagram in Copilot Chat, Copilot can decide which Mermaid Chart command to run (preview, repair, generate, connect to Mermaid Chart, and more) instead of you hunting the Command Palette.
+Teach [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) how to use this extension’s tools and commands automatically — so when you ask for a diagram in Copilot Chat, Copilot can decide which Mermaid command to run (preview, repair, generate, connect to Mermaid, and more) instead of you hunting the Command Palette.
 
 **How to install**
 
 1. Make sure [GitHub Copilot Chat](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat) is installed in VS Code.
-2. Run **MermaidChart: Install AI Skills for GitHub Copilot** from the Command Palette, or choose **Add Mermaid Skills** when the extension prompts you.
+2. Run **Mermaid: Install AI Skills for GitHub Copilot** from the Command Palette, or choose **Add Mermaid Skills** when the extension prompts you.
 3. The extension writes Copilot instruction files into your workspace under `.github/` (full guide + a short pointer in `copilot-instructions.md`).
 
 **What Copilot can do after install**
@@ -600,7 +600,7 @@ Once the skills are in your repo, Copilot can use Mermaid extension capabilities
 - **Repair** broken Mermaid syntax with Mermaid AI
 - **Improve** layout and styling of the current diagram
 - **Generate** diagrams from code (cloud, ER, Docker, from-code, and `@mermaid-chart` slash commands)
-- **Login / connect / sync** diagrams with Mermaid Chart when cloud linking is needed
+- **Login / connect / sync** diagrams with Mermaid when cloud linking is needed
 - **Review Mermaid Sync** / **Regenerate** when diagrams stay in sync with code changes
 
 > **Note**<br/>
@@ -612,26 +612,26 @@ Once the skills are in your repo, Copilot can use Mermaid extension capabilities
 
 | Command | Description |
 |---------|------------|
-| **MermaidChart: Create Diagram** | Creates a new Mermaid diagram in the editor. |
-| **MermaidChart: Login** | Logs in to the Mermaid Chart service to access and manage diagrams. |
-| **MermaidChart: Logout** | Logs out from the Mermaid Chart service.. |
-| **MermaidChart: Sync Diagram** | Synchronizes the current diagram with Mermaid Chart.. |
-| **MermaidChart: Preview Diagram** | Opens a preview of the selected Mermaid diagram within the editor. |
-| **MermaidChart: Improve Diagram** | Opens the Improve diagram sidebar and generates two AI layout/styling variants for the active `.mmd` / `.mermaid` file (also available via CodeLens). |
-| **MermaidChart: Repair Diagram** | Repairs Mermaid syntax errors in the active diagram using Mermaid AI (also available via CodeLens). |
-| **MermaidChart: Review Mermaid Sync** | Scans the current branch PR for [Mermaid Diagram Sync](https://github.com/marketplace/mermaid-diagram-sync) app commits and registers diagram files for review. |
-| **MermaidChart: Connect GitHub for Mermaid Diagram Sync** | Signs in to GitHub (repo scope) to load PR base/head content for app review. |
-| **MermaidChart: Disconnect GitHub for Mermaid Diagram Sync** | Clears this extension’s GitHub connection for app review (does not sign you out of GitHub in VS Code). |
-| **MermaidChart: Commit App Review** | Commits reviewed diagram changes for the active file; optionally adds paths to `.mermaidignore`. |
-| **MermaidChart: Accept App Review** / **Reject App Review** | Accept or reject the app proposal for the file under review (also available via CodeLens). |
-| **MermaidChart: Generate Diagram from Code** | Opens GitHub Copilot Chat and runs `@mermaid-chart /generate_diagram_from_code` to generate a Mermaid diagram from the active code file. |
-| **MermaidChart: Install AI Skills for GitHub Copilot** | Adds Mermaid AI Skills to the workspace so GitHub Copilot can use extension commands and LM tools for diagram workflows. |
+| **Mermaid: Create Diagram** | Creates a new Mermaid diagram in the editor. |
+| **Mermaid: Login** | Logs in to the Mermaid service to access and manage diagrams. |
+| **Mermaid: Logout** | Logs out from the Mermaid service.. |
+| **Mermaid: Sync Diagram** | Synchronizes the current diagram with Mermaid.. |
+| **Mermaid: Preview Diagram** | Opens a preview of the selected Mermaid diagram within the editor. |
+| **Mermaid: Improve Diagram** | Opens the Improve diagram sidebar and generates two AI layout/styling variants for the active `.mmd` / `.mermaid` file (also available via CodeLens). |
+| **Mermaid: Repair Diagram** | Repairs Mermaid syntax errors in the active diagram using Mermaid AI (also available via CodeLens). |
+| **Mermaid: Review Mermaid Sync** | Scans the current branch PR for [Mermaid Diagram Sync](https://github.com/marketplace/mermaid-diagram-sync) app commits and registers diagram files for review. |
+| **Mermaid: Connect GitHub for Mermaid Diagram Sync** | Signs in to GitHub (repo scope) to load PR base/head content for app review. |
+| **Mermaid: Disconnect GitHub for Mermaid Diagram Sync** | Clears this extension’s GitHub connection for app review (does not sign you out of GitHub in VS Code). |
+| **Mermaid: Commit App Review** | Commits reviewed diagram changes for the active file; optionally adds paths to `.mermaidignore`. |
+| **Mermaid: Accept App Review** / **Reject App Review** | Accept or reject the app proposal for the file under review (also available via CodeLens). |
+| **Mermaid: Generate Diagram from Code** | Opens GitHub Copilot Chat and runs `@mermaid-chart /generate_diagram_from_code` to generate a Mermaid diagram from the active code file. |
+| **Mermaid: Install AI Skills for GitHub Copilot** | Adds Mermaid AI Skills to the workspace so GitHub Copilot can use extension commands and LM tools for diagram workflows. |
 
 
 ### Extension Settings
 
 This extension contributes the following settings:
-- `mermaidChart.baseUrl`: This points to the instance of the mermaid chart you are running, for the public service this is `https://mermaid.ai/`.
+- `mermaidChart.baseUrl`: This points to the Mermaid service instance you are using; for the public service this is `https://mermaid.ai/`.
 - `mermaidChart.showGenerateDiagramCodeLens`: Show "Generate Mermaid Diagram" and "Open Chat @mermaid-chart" CodeLens at the bottom of supported code files (default: `true`). Set to `false` to hide CodeLens
 - `mermaidChart.aiSkills.enabled`: Enable the Mermaid AI Skills Pack for GitHub Copilot (default: `true`)
 - `mermaidChart.aiSkills.promptOnDetect`: Prompt to install Mermaid AI Skills for GitHub Copilot (monthly until you add the skills)
@@ -645,8 +645,10 @@ This extension contributes the following settings:
 ## Release Notes
 
 ### 2.7.7 - 2026-09-03
-- **A Mermaid Chart account is now required.** All extension features are login gated; running a command while signed out shows a notification with **Show more**, **Get the extension**, and **Discard**. Use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) if you want to keep previewing diagrams without an account.
-- Updated the signed-in sidebar: **Home** with your Mermaid Chart diagrams, the refreshed **Improve diagram** view, **Review Mermaid Sync** behind the GitHub icon, and a **feedback form** you can send once per day.
+- Updated all user-visible product labels to **Mermaid** across the extension, Command Palette, sidebar, documentation, and account prompts. Internal command IDs and configuration keys remain unchanged for compatibility.
+- **A Mermaid account is now required.** All extension features are login gated; running a command while signed out shows a notification with **Show more**, **Get the extension**, and **Discard**. Chat participant requests now also return an immediate sign-in message instead of waiting for the notification. Use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) if you want to keep previewing diagrams without an account.
+- Updated the signed-in sidebar: **Home** with your Mermaid diagrams, the refreshed **Improve diagram** view, **Review Mermaid Sync** behind the GitHub icon, and a **feedback form** you can send once per day.
+- Expanded analytics across AI actions, diagram creation and preview, exports, sync reviews, commit prompts, setup, upgrades, sign-in, and hard-login interactions.
 
 ### 2.7.6 - 2026-08-14
 - Added **Review UI for Pre-Commit Mermaid Regeneration**.

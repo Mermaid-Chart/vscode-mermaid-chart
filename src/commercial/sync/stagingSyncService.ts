@@ -218,7 +218,7 @@ export class StagingSyncService {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'Mermaid Chart: Scanning staged files for diagram sync...',
+        title: 'Mermaid: Scanning staged files for diagram sync...',
         cancellable: false,
       },
       async () => {
@@ -375,7 +375,7 @@ export class StagingSyncService {
     if (!session) {
       await promptForLogin(
         'pre-commit',
-        'Sign in to Mermaid Chart to regenerate diagrams during pre-commit sync. Use Mermaid Preview if you want to continue without an account.',
+        'Sign in to Mermaid to regenerate diagrams during pre-commit sync. Use Mermaid Preview if you want to continue without an account.',
       );
       return;
     }
@@ -395,7 +395,7 @@ export class StagingSyncService {
     analytics.trackOnCommitDiagramRegenerateShown(promptCounts);
 
     const pick = await vscode.window.showInformationMessage(
-      `Pre-commit Mermaid Diagram Sync\n\n The following staged source files are referenced by Mermaid diagrams that may be out of sync:\n\n${fileLines}\n\n Regenerate diagrams now using Mermaid AI? This will use your AI credits.\n\n To disable this: Settings → Mermaid Chart: Pre Commit Sync Enabled`,
+      `Pre-commit Mermaid Diagram Sync\n\n The following staged source files are referenced by Mermaid diagrams that may be out of sync:\n\n${fileLines}\n\n Regenerate diagrams now using Mermaid AI? This will use your AI credits.\n\n To disable this: Settings → Mermaid: Pre Commit Sync Enabled`,
       { modal: false },
       'Regenerate',
       'Discard',

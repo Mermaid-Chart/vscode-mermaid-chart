@@ -206,7 +206,7 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!context.globalState.get<boolean>("isUserLoggedIn", false)) {
         void promptForLogin(
           'hard-login-gate',
-          'Sign in to Mermaid Chart to review diagram changes. Use Mermaid Preview if you want to continue without an account.',
+          'Sign in to Mermaid to review diagram changes. Use Mermaid Preview if you want to continue without an account.',
         );
         return () => {};
       }
@@ -216,7 +216,7 @@ export async function activate(context: vscode.ExtensionContext) {
     openDiagramReviewSurface: async (options) => {
       if (!(await promptForLogin(
         'hard-login-gate',
-        'Sign in to Mermaid Chart to review diagram changes. Use Mermaid Preview if you want to continue without an account.',
+        'Sign in to Mermaid to review diagram changes. Use Mermaid Preview if you want to continue without an account.',
       ))) {
         return { closePanels: () => {}, panel: undefined };
       }
@@ -281,7 +281,7 @@ export async function activate(context: vscode.ExtensionContext) {
       const docPath = path.join(
         context.extensionPath,
         'docs',
-        'MermaidChartLoginChanges.md',
+        'MermaidLoginChanges.md',
       );
       const doc = await vscode.workspace.openTextDocument(docPath);
       await vscode.commands.executeCommand('markdown.showPreview', doc.uri);
@@ -680,7 +680,7 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
 
       // Update the cache with the new code immediately after successful save
       updateDiagramInCache(diagramId, content);
-      vscode.window.showInformationMessage(`Diagram synced successfully with Mermaid chart. Diagram ID: ${diagramId}`);
+      vscode.window.showInformationMessage(`Diagram synced successfully with Mermaid. Diagram ID: ${diagramId}`);
       }
     }
   }
@@ -725,7 +725,7 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
             // Only show sync popup for files that actually need syncing
         const progressPromise = vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: 'Syncing diagram with Mermaid Chart...',
+            title: 'Syncing diagram with Mermaid...',
             cancellable: false
         }, async (progress) => {
                 const projectId = getProjectIdForDocument(diagramId);
@@ -757,7 +757,7 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
                 updateDiagramInCache(diagramId, document.getText());
 
                 vscode.window.showInformationMessage(
-                    `Diagram synced successfully with Mermaid Chart.`
+                    `Diagram synced successfully with Mermaid.`
                 );
         });
 
@@ -799,7 +799,7 @@ context.subscriptions.push(
     
     // Check if the document is already connected
     if (id) {
-      vscode.window.showWarningMessage("This diagram is already connected to Mermaid Chart.");
+      vscode.window.showWarningMessage("This diagram is already connected to Mermaid.");
       return;
     }
     if(MermaidChartProvider.isSyncing) {
@@ -855,7 +855,7 @@ context.subscriptions.push(
 
     PreviewPanel.createOrShow(document);
     analytics.trackConnectDiagramToMermaidChart();
-    vscode.window.showInformationMessage(`Diagram connected successfully with Mermaid chart.`);
+    vscode.window.showInformationMessage(`Diagram connected successfully with Mermaid.`);
     }   catch(error) {
       if (error instanceof Error ) {
         const errMessage = error.message;

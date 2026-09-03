@@ -1,8 +1,10 @@
 # Change Log
 
 ### 2.7.7 - 2026-09-03
-- **A Mermaid Chart account is now required.** All extension features are login gated; running a command while signed out shows a notification with **Show more**, **Get the extension**, and **Discard**. Use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) if you want to keep previewing diagrams without an account.
-- Updated the signed-in sidebar: **Home** with your Mermaid Chart diagrams, the refreshed **Improve diagram** view, **Review Mermaid Sync** behind the GitHub icon, and a **feedback form** you can send once per day.
+- Updated all user-visible product labels to **Mermaid** across the extension, Command Palette, sidebar, documentation, and account prompts. Internal command IDs and configuration keys remain unchanged for compatibility.
+- **A Mermaid account is now required.** All extension features are login gated; running a command while signed out shows a notification with **Show more**, **Get the extension**, and **Discard**. Chat participant requests now also return an immediate sign-in message instead of waiting for the notification. Use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) if you want to keep previewing diagrams without an account.
+- Updated the signed-in sidebar: **Home** with your Mermaid diagrams, the refreshed **Improve diagram** view, **Review Mermaid Sync** behind the GitHub icon, and a **feedback form** you can send once per day.
+- Expanded analytics across AI actions, diagram creation and preview, exports, sync reviews, commit prompts, setup, upgrades, sign-in, and hard-login interactions.
 
 ### 2.7.6 - 2026-08-14
 - Added **Review UI for Pre-Commit Mermaid Regeneration**.

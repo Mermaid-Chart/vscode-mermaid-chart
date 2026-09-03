@@ -31,7 +31,7 @@ export class MermaidChartAuthenticationProvider
   implements AuthenticationProvider, Disposable
 {
   static id = "mermaidchart";
-  static providerName = "MermaidChart";
+  static providerName = "Mermaid";
   private sessionsKey = `${MermaidChartAuthenticationProvider.id}.sessions`;
   private _sessionChangeEmitter =
     new EventEmitter<AuthenticationProviderAuthenticationSessionsChangeEvent>();
@@ -123,7 +123,7 @@ export class MermaidChartAuthenticationProvider
         await this.login(scopes);
         token = await this.mcAPI.getAccessToken();
         if (!token) {
-          throw new Error(`MermaidChart login failure`);
+          throw new Error(`Mermaid login failure`);
         }
         user = await this.getUserInfo();
       }
@@ -201,7 +201,7 @@ export class MermaidChartAuthenticationProvider
     return await window.withProgress<string>(
       {
         location: ProgressLocation.Notification,
-        title: "Signing in to MermaidChart...",
+        title: "Signing in to Mermaid...",
         cancellable: true,
       },
       async (_, token) => {

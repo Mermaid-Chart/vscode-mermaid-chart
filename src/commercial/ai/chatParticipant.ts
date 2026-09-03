@@ -13,7 +13,7 @@ export function initializeAIChatParticipant(
   ) => {
     if (!(await isSignedIn())) {
       stream.markdown(
-        "**You need a Mermaid Chart account to use this feature.**\n\n" +
+        "**You need a Mermaid account to use this feature.**\n\n" +
           "Sign in from the Mermaid icon in the activity bar, then run this command again. " +
           "If you want to keep working without an account, use the " +
           "[Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) extension.",
@@ -22,7 +22,7 @@ export function initializeAIChatParticipant(
       // which would leave the chat response spinning.
       void promptForLogin(
         "hard-login-gate",
-        "Sign in to Mermaid Chart to use AI diagramming. Use Mermaid Preview if you want to continue without an account.",
+        "Sign in to Mermaid to use AI diagramming. Use Mermaid Preview if you want to continue without an account.",
       );
       return;
     }

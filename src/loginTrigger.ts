@@ -62,7 +62,7 @@ export function registerAuthenticatedCommand(
   return vscode.commands.registerCommand(command, async (...args: any[]) => {
     if (!(await promptForLogin(
       'hard-login-gate',
-      'Sign in to Mermaid Chart to use this functionality. Use Mermaid Preview if you want to continue without an account.',
+      'Sign in to Mermaid to use this functionality. Use Mermaid Preview if you want to continue without an account.',
     ))) {
       return;
     }

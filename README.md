@@ -645,10 +645,14 @@ This extension contributes the following settings:
 ## Release Notes
 
 ### 2.7.7 - 2026-09-03
-- Updated all user-visible product labels to **Mermaid** across the extension, Command Palette, sidebar, documentation, and account prompts. Internal command IDs and configuration keys remain unchanged for compatibility.
-- **A Mermaid account is now required.** All extension features are login gated; running a command while signed out shows a notification with **Show more**, **Get the extension**, and **Discard**. Chat participant requests now also return an immediate sign-in message instead of waiting for the notification. Use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) if you want to keep previewing diagrams without an account.
-- Updated the signed-in sidebar: **Home** with your Mermaid diagrams, the refreshed **Improve diagram** view, **Review Mermaid Sync** behind the GitHub icon, and a **feedback form** you can send once per day.
-- Expanded analytics across AI actions, diagram creation and preview, exports, sync reviews, commit prompts, setup, upgrades, sign-in, and hard-login interactions.
+- **The extension is now simply called Mermaid.** From this version every command in the Command Palette starts with `Mermaid:` instead of `MermaidChart:`, and the sidebar, notifications, settings descriptions, and sign-in screens use the **Mermaid** name too. Your keybindings, settings, and saved diagrams keep working exactly as before — there is nothing to update on your side.
+- **You now need a Mermaid account to use the extension.** Run any command while signed out and you will get a notification with three choices: 
+    - **Show more** opens a page explaining the change, 
+    - **Get the extension** takes you to Mermaid Preview in the Marketplace, and 
+    - **Discard** dismisses it. 
+- If you would rather keep working without an account, use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview).
+- **The sidebar is reorganized once you sign in** — **Home** lists your Mermaid diagrams, **Improve diagram** has a refreshed look, the GitHub icon opens **Review Mermaid Sync** (click the same icon again to close it), and the feedback form lets you send us a note once a day.
+
 
 ### 2.7.6 - 2026-08-14
 - Added **Review UI for Pre-Commit Mermaid Regeneration**.

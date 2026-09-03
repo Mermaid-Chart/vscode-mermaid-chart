@@ -22,6 +22,8 @@
   let panEnabled = false;
   let hasErrorOccured= false;
   let theme: 'default' | 'base' | 'dark' | 'forest' | 'neutral' | 'neo' | 'neo-dark' | 'redux' | 'redux-dark' | 'redux-color' | 'redux-dark-color' | 'mc' | 'null' = 'redux'; 
+  /** True when the diagram source declares its own config.theme, which overrides mermaid.initialize. */
+  let hasFrontMatterTheme = false;
   $: zoomLevel = 100;
   let maxZoomLevel = 5;
   let maxTextSize = 90000;
@@ -63,6 +65,12 @@
   function handleThemeChange(event) {
     const newTheme = event.detail.theme;
     theme = newTheme;
+    if (hasFrontMatterTheme) {
+      // Frontmatter beats mermaid.initialize, so the pick only sticks once the source
+      // changes. The extension writes it back and the document update re-renders us.
+      vscode.postMessage({ type: "setFrontMatterTheme", theme: newTheme });
+      return;
+    }
     renderDiagram();
   }
 
@@ -160,6 +168,7 @@
       try {
         const parsed = await mermaid.parse(diagramContent || 'info')
         diagramType = parsed?.diagram?.type;
+        hasFrontMatterTheme = !!parsed?.config?.theme;
         if (parsed?.config?.theme && 
             ['default', 'base', 'dark' , 'forest' , 'neutral' , 'neo' , 'neo-dark' , 'redux' , 'redux-dark' , 'redux-color' , 'redux-dark-color' , 'mc' , 'null'].includes(parsed.config.theme)) {
           theme = parsed.config.theme;

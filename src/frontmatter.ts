@@ -153,6 +153,29 @@ export function normalizeMermaidText(code: string): string {
 }
 
 /**
+ * Updates `config.theme` in the frontmatter, leaving every other frontmatter key,
+ * comment and the diagram body untouched.
+ * @param code The original diagram code
+ * @param theme The mermaid theme to write
+ * @returns The updated code, or undefined when the diagram declares no frontmatter theme
+ */
+export function setFrontMatterTheme(code: string, theme: string): string | undefined {
+  const { diagramText, frontMatter } = splitFrontMatter(code);
+  if (!frontMatter) {
+    return undefined;
+  }
+
+  const document = parseFrontMatterYAML(frontMatter);
+  if (document.getIn(['config', 'theme']) === undefined) {
+    return undefined;
+  }
+
+  document.setIn(['config', 'theme'], theme);
+
+  return `---\n${document.toString()}---\n${diagramText}`;
+}
+
+/**
  * Adds metadata to the frontmatter of a Mermaid diagram
  * @param code The original diagram code
  * @param metadata The metadata to add (query, references, generationTime)

@@ -10,6 +10,7 @@ import analytics from "../analytics";
 import { setPendingLoginTrigger } from "../loginTrigger";
 import { MermaidChartAuthenticationProvider } from "../mermaidChartAuthenticationProvider";
 import { getThemeColors } from "../../webview/src/themes/themeConfig";
+import { setFrontMatterTheme } from "../frontmatter";
 const DARK_THEME_KEY = "mermaid.vscode.dark";
 const LIGHT_THEME_KEY = "mermaid.vscode.light";
 const MAX_ZOOM= "mermaid.vscode.maxZoom";
@@ -268,6 +269,8 @@ export class PreviewPanel {
         }, async () => {
           await saveDiagramAsSvg(this.document, message.svgBase64, this.lastContent);
         });
+      } else if (message.type === "setFrontMatterTheme" && message.theme) {
+        await this.applyFrontMatterTheme(message.theme);
       } else if (message.type === "repairDiagram") {
         await this.handleRepairDiagram(message.code, message.errorMessage);
       } else if (message.type === "requestAICredits") {
@@ -291,6 +294,27 @@ export class PreviewPanel {
     });
 
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+  }
+
+  /**
+   * A diagram's own `config.theme` overrides `mermaid.initialize`, so for those diagrams the
+   * picked theme only takes effect once it is written back to the source. The resulting
+   * document change re-runs update() and the webview re-renders with the new theme.
+   */
+  private async applyFrontMatterTheme(theme: string) {
+    const currentText = this.document.getText();
+    const updatedText = setFrontMatterTheme(currentText, theme);
+    if (!updatedText || updatedText === currentText) {
+      return;
+    }
+
+    const fullRange = new vscode.Range(
+      this.document.positionAt(0),
+      this.document.positionAt(currentText.length)
+    );
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(this.document.uri, fullRange, updatedText);
+    await vscode.workspace.applyEdit(edit);
   }
 
   private handleDiagramError(errorMessage: string, diagramType?: string) {

@@ -298,8 +298,8 @@ export class PreviewPanel {
 
   /**
    * A diagram's own `config.theme` overrides `mermaid.initialize`, so for those diagrams the
-   * picked theme only takes effect once it is written back to the source. The resulting
-   * document change re-runs update() and the webview re-renders with the new theme.
+   * picked theme only sticks once it is written back to the source. Call update() immediately
+   * after the edit so we do not wait on the 300ms typing debounce.
    */
   private async applyFrontMatterTheme(theme: string) {
     const currentText = this.document.getText();
@@ -315,6 +315,9 @@ export class PreviewPanel {
     const edit = new vscode.WorkspaceEdit();
     edit.replace(this.document.uri, fullRange, updatedText);
     await vscode.workspace.applyEdit(edit);
+    // Webview already did an optimistic render; this keeps the panel in sync without the
+    // typing debounce that would otherwise leave toolbar and SVG out of step.
+    await this.update();
   }
 
   private handleDiagramError(errorMessage: string, diagramType?: string) {

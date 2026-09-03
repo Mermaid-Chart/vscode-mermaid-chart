@@ -62,15 +62,42 @@
     isExportModalOpen = false;
   }
 
+  /**
+   * Locally rewrite config.theme so we can re-render immediately (same feel as diagrams
+   * without frontmatter theme). The extension still persists the same change to the file.
+   */
+  function patchFrontMatterThemeLocal(code: string, nextTheme: string): string | undefined {
+    const normalized = (code || "").replace(/\r\n/g, "\n");
+    const match = normalized.match(/^(---\n)([\s\S]*?\n)(---(?:\n|$))/);
+    if (!match) {
+      return undefined;
+    }
+    const [, open, body, close] = match;
+    if (!/(^|\n)[ \t]*theme[ \t]*:/m.test(body)) {
+      return undefined;
+    }
+    const newBody = body.replace(
+      /(^|\n)([ \t]*theme[ \t]*:[ \t]*)([^\n]+)/,
+      `$1$2${nextTheme}`,
+    );
+    if (newBody === body) {
+      return undefined;
+    }
+    return `${open}${newBody}${close}${normalized.slice(match[0].length)}`;
+  }
+
   function handleThemeChange(event) {
     const newTheme = event.detail.theme;
     theme = newTheme;
     if (hasFrontMatterTheme) {
-      // Frontmatter beats mermaid.initialize, so the pick only sticks once the source
-      // changes. The extension writes it back and the document update re-renders us.
+      const patched = patchFrontMatterThemeLocal(diagramContent, newTheme);
+      if (patched) {
+        diagramContent = patched;
+      }
+      // Persist to the editor; host also calls update() so the buffer and preview stay aligned.
       vscode.postMessage({ type: "setFrontMatterTheme", theme: newTheme });
-      return;
     }
+    // Same path with or without config.theme — render now, do not wait on the file round-trip.
     renderDiagram();
   }
 
@@ -715,7 +742,9 @@
       } else if (content) {
         // Regular rendering flow
         diagramContent = content.replace(/\r\n/g, '\n');
-        if (currentTheme) {
+        // Diagram-owned frontmatter theme wins over the VS Code setting theme. Applying
+        // currentTheme here would flash the toolbar back to redux/redux-dark before parse.
+        if (currentTheme && !hasFrontMatterTheme) {
           const nextTheme = String(currentTheme).includes("%")
             ? decodeURIComponent(String(currentTheme))
             : String(currentTheme);

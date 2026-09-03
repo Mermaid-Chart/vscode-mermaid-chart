@@ -6,8 +6,9 @@ The official Mermaid extension for Visual Studio Code enables developers to seam
 ## Getting Started 🚀
 
 1. Install [Mermaid Chart](https://marketplace.visualstudio.com/items?itemName=MermaidChart.vscode-mermaid-chart) from Marketplace
-2. Login using account for Mermaid Chart. Or [create new account](https://mermaid.ai/app/sign-up)
-
+2. Sign in with your Mermaid Chart account, or [create a free account](https://mermaid.ai/app/sign-up) — an account is required to use this extension
+3. Want to preview Mermaid diagrams without an account? Use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) instead
+  
 ## Now with AI-Powered Diagramming! ✨
 
 Transform ideas into diagrams instantly with our AI integration! Our extension now includes:
@@ -28,11 +29,57 @@ Transform ideas into diagrams instantly with our AI integration! Our extension n
 > **Note**<br/>
 > To use the AI diagramming feature, you must have the [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) extension installed.
 
-Now we offer a feature rich experience to create, visualize and edit Mermaid diagrams locally without needing to create any account. Made with ❤️ from the creators of Mermaid.js and we strive to provide the best Mermaid experience and provide regular updates.
+## Mermaid Chart Account Required 🔐
 
-Optionally, by creating a free MermaidChart account you can save and sync diagrams on the cloud, explore Mermaid AI, and experience the intuitive best-in-class drag-drop UI for Mermaid diagrams. 
+From **v2.7.7**, Mermaid Chart is a signed-in extension. Creating, previewing, AI diagramming, cloud sync, Improve Diagram and Mermaid Sync review are all login gated, so you need a free Mermaid Chart account to use them.
+
+If you run a command while signed out, the extension shows a notification instead of running it, with three choices:
+
+- **Show more** — opens an in-editor page explaining what changed
+- **Get the extension** — Install [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) in the Marketplace, so you can keep previewing diagrams without signing in
+- **Discard** — dismisses the notification
+
+To sign in, open the Mermaid icon in the activity bar and use **Sign in**, or **Create a free account** to sign up at [mermaid.ai](https://mermaid.ai/app/sign-up) and come back to the editor. Made with ❤️ from the creators of Mermaid.js — we strive to provide the best Mermaid experience and ship regular updates.
+
+> **Prefer to work without an account?**<br/>
+> [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) is free and local: live preview, pan and zoom, PNG/SVG export, syntax highlighting, snippets and Markdown rendering — no account, no sign-up, no trial.
 
 ![Image illustrating accessible diagrams in explorer panel](https://mermaid.ai/docs/img/plugins/vscode-plugin.gif)
+
+## Mermaid Chart Sidebar
+
+Once you are signed in, the Mermaid icon in the activity bar gives you your diagrams, Improve Diagram, Mermaid Sync review, and the feedback form. The icons in the sidebar title bar switch between these sections and give you a reload of the panel and diagram help.
+
+### Home
+Home lists the projects and diagrams from your Mermaid Chart account, so you can open, edit, link and manage them without leaving VS Code. Right-click any diagram for the full set of actions, and use the **+** button at project level to add a new diagram.
+
+![Mermaid Chart Sidebar Home](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-home.png)
+
+### Improve diagram
+The **Improve diagram** view has an updated UI in the sidebar. Open a `.mmd` or `.mermaid` file, run Improve Diagram, and the sidebar shows two AI suggestions for the active diagram — one focused on layout and grouping, one on styling — with a model dropdown, **Refresh** and **Cancel**, and a diff preview before you apply anything.
+
+![Improve diagram sidebar](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-improve-diagram.png)
+
+### Review Mermaid Sync
+Click the **GitHub icon** in the sidebar title bar to switch to the Mermaid Sync review view. From now on, whenever you run **MermaidChart: Review Mermaid Sync** or `git pull` brings in diagram updates from the [Mermaid Diagram Sync GitHub App](https://github.com/marketplace/mermaid-diagram-sync), the affected `.mmd` and `.mermaid` files are listed here for review. Click the GitHub icon again to leave this view and go back to your diagrams.
+
+![Review Mermaid Sync sidebar](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-review-mermaid-sync.png)
+
+> **Note**<br/>
+> For more details on Improve Diagram and Review Mermaid Sync, check their individual sections further down in this README.
+
+### Send us feedback
+If something does not work or gets in your way, you can report it from the sidebar without leaving the editor. Open the feedback section and click **Open feedback form**.
+
+![Send us feedback](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-feedback.png)
+
+Tell us what you were doing, how often it happens, and describe the problem. Your email is required so we can reply to you there once we have looked into it. You can send one feedback submission per day, and the reload icon clears the form if you want to start over.
+
+![Feedback form](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-feedback-form.png)
+
+### Reload & Diagram help icons
+- **Reload** — reloads the Mermaid Chart sidebar, refreshing the current section and clearing the feedback form if it is open.
+- **Diagram help** — opens the official Mermaid.js documentation for the diagram type you are working on.
 
 
 ## 🔒 Privacy Policy & Data Collection
@@ -105,7 +152,7 @@ Currently supported diagrams and charts:
 - Radar
 
 ### Sign-in & Authentication Support
-Our extension supports flexible authentication options to seamlessly connect with your Mermaid Chart account, enabling advanced features like cloud synchronization, diagram sharing, and collaborative editing.
+Signing in with your Mermaid Chart account is required to use the extension, and we support flexible authentication options so you can connect from any environment — unlocking cloud synchronization, diagram sharing, and collaborative editing.
 
 #### Dual Authentication Support
 We provide two convenient authentication methods to accommodate different development environments and user preferences:
@@ -343,10 +390,10 @@ Now based on the diagram type auto suggestions for code snippets will be trigger
 If you get stuck with a diagram's syntax or want to learn about other features for a given diagram, now you can directly access the respective diagram's detailed documentation on the official mermaid.js docs. 
 ![Diagram Help](https://mermaid.ai/docs/img/plugins/vscode-plugin-diagram-help.png)
 
-### Advanced Features when linking with MermaidChart
-When you connect the extension with the MermaidChart account to explore some of the advanced features. With the integration to the Mermaid Chart service, this extension allows users to attach diagrams to their code and to gain quick access to updating diagrams.
+### Advanced Features with your MermaidChart account
+Your signed-in account also connects the extension to the Mermaid Chart service, so you can attach diagrams to your code and get quick access to updating them.
 
-You can explore all the these options by signing-up for a free account on https://mermaid.ai 
+If you do not have an account yet, sign up for free on https://mermaid.ai
 
 #### Fetch & Use existing diagrams in Side Panel
 Users can start login flow with their Mermaid Chart account and once logged-in, in the side panel all the projects and diagrams from your account will be loaded in the side panel.
@@ -492,9 +539,9 @@ For each diagram in the list, you can:
 - **Close** — Remove that file from the review session (without reverting content)
 - **Open the file** — Jump into the editor for the full review flow (diagram preview, diff, CodeLens options, etc.)
 
-#### Bulk actions (login required)
+#### Bulk actions
 
-The following bulk actions are gated behind **Mermaid Chart login**:
+From the list toolbar you can act on the whole review at once:
 
 - **Accept All** — Accept bot changes across every file in the review list
 - **Reject All** — Reject and restore all files in one step
@@ -596,6 +643,10 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.7.7 - 2026-09-03
+- **A Mermaid Chart account is now required.** All extension features are login gated; running a command while signed out shows a notification with **Show more**, **Get the extension**, and **Discard**. Use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) if you want to keep previewing diagrams without an account.
+- Updated the signed-in sidebar: **Home** with your Mermaid Chart diagrams, the refreshed **Improve diagram** view, **Review Mermaid Sync** behind the GitHub icon, and a **feedback form** you can send once per day.
 
 ### 2.7.6 - 2026-08-14
 - Added **Review UI for Pre-Commit Mermaid Regeneration**.

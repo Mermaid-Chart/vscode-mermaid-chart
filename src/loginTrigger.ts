@@ -17,16 +17,20 @@ export function consumePendingLoginTrigger(): LoginTrigger {
   return trigger;
 }
 
-export async function promptForLogin(
-  trigger: LoginTrigger,
-  message: string,
-): Promise<boolean> {
+export async function isSignedIn(): Promise<boolean> {
   const session = await vscode.authentication.getSession(
     'mermaidchart',
     [],
     { silent: true },
   );
-  if (session) {
+  return !!session;
+}
+
+export async function promptForLogin(
+  trigger: LoginTrigger,
+  message: string,
+): Promise<boolean> {
+  if (await isSignedIn()) {
     return true;
   }
 

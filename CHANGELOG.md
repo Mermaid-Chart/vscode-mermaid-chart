@@ -1,5 +1,9 @@
 # Change Log
 
+### 2.7.7 - 2026-09-03
+- **A Mermaid Chart account is now required.** All extension features are login gated; running a command while signed out shows a notification with **Show more**, **Get the extension**, and **Discard**. Use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) if you want to keep previewing diagrams without an account.
+- Updated the signed-in sidebar: **Home** with your Mermaid Chart diagrams, the refreshed **Improve diagram** view, **Review Mermaid Sync** behind the GitHub icon, and a **feedback form** you can send once per day.
+
 ### 2.7.6 - 2026-08-14
 - Added **Review UI for Pre-Commit Mermaid Regeneration**.
 - **Regenerate Diagram copilote based** now opens the same review UI (summary chips, Now/Before, Diff code) instead of the older dual preview panels.

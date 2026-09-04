@@ -10,7 +10,7 @@ import analytics from "../analytics";
 import { setPendingLoginTrigger } from "../loginTrigger";
 import { MermaidChartAuthenticationProvider } from "../mermaidChartAuthenticationProvider";
 import { getThemeColors } from "../../webview/src/themes/themeConfig";
-import { setFrontMatterTheme } from "../frontmatter";
+import { setFrontMatterTheme, getFirstWordFromDiagram } from "../frontmatter";
 const DARK_THEME_KEY = "mermaid.vscode.dark";
 const LIGHT_THEME_KEY = "mermaid.vscode.light";
 const MAX_ZOOM= "mermaid.vscode.maxZoom";
@@ -245,11 +245,12 @@ export class PreviewPanel {
 
     this.panel.webview.onDidReceiveMessage(async (message) => {
       if (message.type === "error" && message.message) {
-        this.handleDiagramError(message.message, message.diagramType);
+        this.handleDiagramError(message.message);
       } else if (message.type === "clearError") {
         this.diagnosticsCollection.clear();
       } else if (message.type === "diagramRendered") {
-        this.lastDiagramType = message.diagramType;
+        // Parse still decides success/failure in the webview; analytics type is the source keyword.
+        this.lastDiagramType = getFirstWordFromDiagram(this.lastContent) || undefined;
         this.trackRender("success");
       } else if (message.type === "exportPng" && message.pngBase64) {
         analytics.trackPreviewExportAction("PNG", this.lastDiagramType);
@@ -320,8 +321,8 @@ export class PreviewPanel {
     await this.update();
   }
 
-  private handleDiagramError(errorMessage: string, diagramType?: string) {
-    this.lastDiagramType = diagramType;
+  private handleDiagramError(errorMessage: string) {
+    this.lastDiagramType = getFirstWordFromDiagram(this.lastContent) || undefined;
     this.trackRender("error", errorMessage);
     const diagnostics: vscode.Diagnostic[] = [];
     const errorDetails = this.getErrorLine(errorMessage);

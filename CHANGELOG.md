@@ -1,6 +1,6 @@
 # Change Log
 
-### 2.7.7 - 2026-09-03
+### 2.7.7 - 2026-09-04
 - **The extension is now simply called Mermaid.** From this version every command in the Command Palette starts with `Mermaid:` instead of `MermaidChart:`, and the sidebar, notifications, settings descriptions, and sign-in screens use the **Mermaid** name too. Your keybindings, settings, and saved diagrams keep working exactly as before — there is nothing to update on your side.
 - **You now need a Mermaid account to use the extension.** Run any command while signed out and you will get a notification with three choices: 
     - **Show more** opens a page explaining the change, 

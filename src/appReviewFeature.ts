@@ -54,6 +54,11 @@ export class AppReviewFeature implements vscode.Disposable {
     this.reviewScmSync.refreshIfActive();
   }
 
+  /** Files in the review session — Event 7 `fileCount`. Read before an action mutates the list. */
+  private reviewFileCount(): number {
+    return this.integration.getReviewMappings().size;
+  }
+
   register(context: vscode.ExtensionContext): void {
     this.reviewSyncTree.register(context);
     this.registerProviders(context);
@@ -115,8 +120,14 @@ export class AppReviewFeature implements vscode.Disposable {
 
     const wording = this.wordingFor(all);
     this.integration.notifyReviewMappingsChanged();
+    analytics.trackReviewAction({
+      reviewAction: "accept",
+      scope: "all",
+      fileCount: all.length,
+      status: failed > 0 ? "error" : "success",
+      errorType: failed > 0 ? "acceptFailed" : undefined,
+    });
     if (accepted > 0) {
-      analytics.trackReviewSyncAcceptAll();
       vscode.window.showInformationMessage(
         `Accepted ${wording.source} changes for ${accepted} diagram file(s).`,
       );
@@ -152,8 +163,14 @@ export class AppReviewFeature implements vscode.Disposable {
 
     const wording = this.wordingFor(all);
     this.integration.notifyReviewMappingsChanged();
+    analytics.trackReviewAction({
+      reviewAction: "reject",
+      scope: "all",
+      fileCount: all.length,
+      status: failed > 0 ? "error" : "success",
+      errorType: failed > 0 ? "rejectFailed" : undefined,
+    });
     if (rejected > 0) {
-      analytics.trackReviewSyncRejectAll();
       vscode.window.showInformationMessage(
         `Rejected ${wording.source} changes for ${rejected} diagram file(s).`,
       );
@@ -167,7 +184,8 @@ export class AppReviewFeature implements vscode.Disposable {
   }
 
   private async openChangesInReview(): Promise<void> {
-    if (this.integration.getReviewMappings().size === 0) {
+    const fileCount = this.reviewFileCount();
+    if (fileCount === 0) {
       vscode.window.showInformationMessage("No diagrams in review.");
       return;
     }
@@ -176,7 +194,12 @@ export class AppReviewFeature implements vscode.Disposable {
       multiDiffSourceUri: this.reviewScmSync.ensureForMultiDiff(),
       onMultiDiffClosed: () => this.reviewScmSync.releaseMultiDiff(),
     });
-    analytics.trackReviewSyncOpenChanges();
+    analytics.trackReviewAction({
+      reviewAction: "openChanges",
+      scope: "all",
+      fileCount,
+      status: "success",
+    });
   }
 
   private async closeAllInReview(): Promise<void> {
@@ -200,6 +223,12 @@ export class AppReviewFeature implements vscode.Disposable {
     this.reviewSyncTree.refresh();
 
     if (count > 0) {
+      analytics.trackReviewAction({
+        reviewAction: "closeReview",
+        scope: "all",
+        fileCount: mappings.length,
+        status: "success",
+      });
       vscode.window.showInformationMessage(
         `Closed ${this.wordingFor(mappings).source} review for ${count} diagram file(s).`,
       );
@@ -289,39 +318,70 @@ export class AppReviewFeature implements vscode.Disposable {
           vscode.window.showWarningMessage("Open a diagram file (.mmd) to review changes.");
           return;
         }
-        analytics.trackOpenReviewUI();
+        const fileCount = this.reviewFileCount();
+        analytics.trackReviewAction({
+          reviewAction: "openReviewUI",
+          scope: "file",
+          fileCount,
+          status: "success",
+        });
         await this.diffViewProvider.showAppDiff(target);
       }),
       registerAuthenticatedCommand("mermaidChart.appReviewAccept", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (target) {
-          if (await this.diffViewProvider.acceptAppChanges(target)) {
-            analytics.trackAppReviewAccept();
-          }
+          const fileCount = this.reviewFileCount();
+          const accepted = await this.diffViewProvider.acceptAppChanges(target);
+          analytics.trackReviewAction({
+            reviewAction: "accept",
+            scope: "file",
+            fileCount,
+            status: accepted ? "success" : "error",
+            errorType: accepted ? undefined : "acceptFailed",
+          });
           await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
       registerAuthenticatedCommand("mermaidChart.appReviewReject", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (target) {
-          if (await this.diffViewProvider.rejectAppChanges(target)) {
-            analytics.trackAppReviewReject();
-          }
+          const fileCount = this.reviewFileCount();
+          const rejected = await this.diffViewProvider.rejectAppChanges(target);
+          analytics.trackReviewAction({
+            reviewAction: "reject",
+            scope: "file",
+            fileCount,
+            status: rejected ? "success" : "error",
+            errorType: rejected ? undefined : "rejectFailed",
+          });
           await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
       registerAuthenticatedCommand("mermaidChart.appReviewBackToPending", async (arg) => {
         const target = this.resolveReviewTarget(arg);
         if (target) {
-          if (await this.diffViewProvider.restoreAppProposalAndPending(target)) {
-            analytics.trackAppReviewReturnedToReview();
-          }
+          const fileCount = this.reviewFileCount();
+          const restored = await this.diffViewProvider.restoreAppProposalAndPending(target);
+          analytics.trackReviewAction({
+            reviewAction: "returnToReview",
+            scope: "file",
+            fileCount,
+            status: restored ? "success" : "error",
+            errorType: restored ? undefined : "restoreFailed",
+          });
           await this.gitStatusTracker.refreshPath(target.fsPath);
         }
       }),
-      registerAuthenticatedCommand("mermaidChart.commitAppReview", (uri: vscode.Uri) => {
-        analytics.trackAppReviewCommit();
-        return this.commitWorkflow.commitAppReview(uri);
+      registerAuthenticatedCommand("mermaidChart.commitAppReview", async (uri: vscode.Uri) => {
+        const fileCount = this.reviewFileCount();
+        const outcome = await this.commitWorkflow.commitAppReview(uri);
+        analytics.trackReviewAction({
+          reviewAction: "commit",
+          scope: "file",
+          fileCount,
+          status: outcome === "error" ? "error" : outcome,
+          errorType: outcome === "error" ? "gitError" : undefined,
+        });
       }),
       registerAuthenticatedCommand("mermaidChart.closeAppReview", async (arg) => {
         const target = this.resolveReviewTarget(arg);
@@ -329,6 +389,7 @@ export class AppReviewFeature implements vscode.Disposable {
           return;
         }
         const absolutePath = target.fsPath;
+        const fileCount = this.reviewFileCount();
         await this.diffViewProvider.cancelSessionsForOriginal(absolutePath);
         const removed = this.integration.removeReviewForFile(absolutePath);
         this.gitStatusTracker.invalidatePath(absolutePath);
@@ -337,6 +398,12 @@ export class AppReviewFeature implements vscode.Disposable {
         this.reviewSyncTree.refresh();
         this.refreshReviewScmIfOpen();
         if (removed) {
+          analytics.trackReviewAction({
+            reviewAction: "closeReview",
+            scope: "file",
+            fileCount,
+            status: "success",
+          });
           vscode.window.showInformationMessage("Review closed for this file.");
         } else {
           vscode.window.showWarningMessage("No active app review for this file.");

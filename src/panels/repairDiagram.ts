@@ -21,7 +21,7 @@ export class RepairDiagram {
     document: vscode.TextDocument
   ): Promise<void> {
     if (!RepairDiagram.mcAPI) {
-      vscode.window.showErrorMessage("Mermaid Chart API not available. Please log in first.");
+      vscode.window.showErrorMessage("Mermaid API not available. Please log in first.");
       return;
     }
 
@@ -38,7 +38,7 @@ export class RepairDiagram {
         });
 
         if (response && response.result === 'ok' && response.code) {
-          analytics.trackRepairDiagram('ok');
+          analytics.trackRepairDiagram('success');
           // Extract clean mermaid code from markdown response
           const cleanedCode = RepairDiagram.extractMermaidCode(response.code);
           
@@ -62,27 +62,27 @@ export class RepairDiagram {
             await RepairDiagram.showDiffView(originalCode, cleanedCode, document);
           }
         } else if (response && response.result === 'fail') {
-          analytics.trackRepairDiagram('failed');
+          analytics.trackRepairDiagram('error');
           vscode.window.showErrorMessage("AI could not generate a valid repair for this diagram. Please try fixing it manually.");
         } else {
-          analytics.trackRepairDiagram('failed');
+          analytics.trackRepairDiagram('error');
           vscode.window.showErrorMessage("Failed to repair diagram. Please try again.");
         }
       });
     } catch (error: any) {
-      analytics.trackRepairDiagram('failed');
+      analytics.trackRepairDiagram('error');
       console.error("Error repairing diagram:", error);
       let errorMsg = "Failed to repair diagram.";
       
       if (error.message?.includes("402")) {
-        errorMsg = "AI credits limit exceeded. Please check your Mermaid Chart subscription.";
+        errorMsg = "AI credits limit exceeded. Please check your Mermaid subscription.";
         await showUpgradePrompt(
           'repair',
           errorMsg,
         );
         return;
       } else if (error.message?.includes("401") || error.message?.includes("403")) {
-        errorMsg = "Please log in to Mermaid Chart to use AI repair feature.";
+        errorMsg = "Please log in to Mermaid to use AI repair feature.";
       } else if (error.message) {
         errorMsg = error.message;
       }
@@ -158,6 +158,11 @@ export class RepairDiagram {
           preview: false,
           viewColumn: vscode.ViewColumn.One
         }
+      );
+
+      vscode.window.showInformationMessage(
+        "Review the repaired diagram on the right, then save (Ctrl+S) to apply the changes to your diagram. Close the diff to discard them.",
+        "OK"
       );
 
     } catch (error) {

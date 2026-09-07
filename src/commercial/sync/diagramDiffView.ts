@@ -2,7 +2,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import * as os from "node:os";
 import * as crypto from "crypto";
-import { splitFrontMatter } from "../../frontmatter";
+import { splitFrontMatter, getFirstWordFromDiagram } from "../../frontmatter";
 import { setupDiagramDiffPreview } from "../../diagramDiffPreview";
 import { debounce } from "../../utils/debounce";
 import { getWebviewHTML, ReviewDiagramPreviewContext } from "../../templates/previewTemplate";
@@ -66,6 +66,8 @@ function readPreviewLimits(): { maxZoom: number; maxCharLength: number; maxEdges
 export interface DiagramDiffWebviewOptions {
   currentRepairDocumentUri?: vscode.Uri;
   incomingRepairDocumentUri?: vscode.Uri;
+  /** When true, skip conflictShown — caller already tracked Diagram Synced. */
+  skipSyncAnalytics?: boolean;
 }
 
 function pushPreviewContent(panel: vscode.WebviewPanel | undefined, fullText: string): void {
@@ -248,7 +250,11 @@ export function openDiagramDiffWebviews(
   newContent: string,
   options?: DiagramDiffWebviewOptions,
 ): () => void {
-  analytics.trackOpenDiagramDiff();
+  if (!options?.skipSyncAnalytics) {
+    analytics.trackOpenDiagramDiff(
+      getFirstWordFromDiagram(newContent) || getFirstWordFromDiagram(oldContent) || undefined,
+    );
+  }
   let panelCurrent: vscode.WebviewPanel | undefined;
   let panelUpdated: vscode.WebviewPanel | undefined;
   const disposables: vscode.Disposable[] = [];

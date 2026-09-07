@@ -7,7 +7,7 @@ export class PreviewBridgeImpl implements PreviewBridge {
   async createOrShowPreview(documentUri?: string, code?: string): Promise<void> {
     if (!(await promptForLogin(
       'hard-login-gate',
-      'Sign in to Mermaid Chart to preview diagrams. Use Mermaid Preview if you want to continue without an account.',
+      'Sign in to Mermaid to preview diagrams. Use Mermaid Preview if you want to continue without an account.',
     ))) {
       return;
     }

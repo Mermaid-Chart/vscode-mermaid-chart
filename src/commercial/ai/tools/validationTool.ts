@@ -9,9 +9,9 @@ export class ValidationBridgeImpl implements ValidationBridge {
   async validateDiagram(code: string): Promise<{valid: boolean, error?: string}> {
     if (!(await promptForLogin(
       'hard-login-gate',
-      'Sign in to Mermaid Chart to validate diagrams. Use Mermaid Preview if you want to continue without an account.',
+      'Sign in to Mermaid to validate diagrams. Use Mermaid Preview if you want to continue without an account.',
     ))) {
-      return { valid: false, error: 'Sign in to Mermaid Chart to validate diagrams.' };
+      return { valid: false, error: 'Sign in to Mermaid to validate diagrams.' };
     }
     return new Promise<{valid: boolean, error?: string}>((resolve) => {
       // Create a webview panel but keep it invisible

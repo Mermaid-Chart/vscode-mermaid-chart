@@ -63,7 +63,7 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
     if (session && !diagramId) {
       codeLenses.push(this.createCodeLens(token, "Connect Diagram", "mermaid.connectDiagram", [token.uri, token.range]));
     } else if (session && diagramId) {
-      codeLenses.push(this.createCodeLens(token, "Edit Diagram in Mermaid Chart", "extension.editMermaidChart", [diagramId]));
+      codeLenses.push(this.createCodeLens(token, "Edit Diagram in Mermaid", "extension.editMermaidChart", [diagramId]));
     }
     codeLenses.push(this.createCodeLens(token, "Edit Diagram", "mermaid.editAuxFile", [token.uri, token.range]));
   }
@@ -73,7 +73,7 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
     token: MermaidChartToken
   ) {
     codeLenses.push(this.createCodeLens(token, "View Diagram", "mermaidChart.viewMermaidChart", [token.uuid]));
-    codeLenses.push(this.createCodeLens(token, "Edit Diagram in Mermaid Chart", "extension.editMermaidChart", [token.uuid]));
+    codeLenses.push(this.createCodeLens(token, "Edit Diagram in Mermaid", "extension.editMermaidChart", [token.uuid]));
     codeLenses.push(this.createCodeLens(token, "Edit Diagram", "mermaidChart.editLocally", [token.uuid]));
   }
   
@@ -150,7 +150,7 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
       new vscode.CodeLens(codeInRange, {
         title: "▷ Generate Mermaid Diagram",
         command: "mermaidChart.generateDiagramFromCode",
-        arguments: []
+        arguments: [{ entryPoint: "codeLens" }],
       })
     );
 
@@ -178,18 +178,18 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
         title: "$(wrench) Repair diagram",
         command: "mermaidChart.repairDiagram",
         arguments: [],
-        tooltip: "Repair syntax with Mermaid Chart AI",
+        tooltip: "Repair syntax with Mermaid AI",
       }),
       new vscode.CodeLens(firstLine, {
-        title: "$(cloud-upload) Save to Mermaid Chart",
+        title: "$(cloud-upload) Save to Mermaid",
         command: "mermaidChart.connectDiagramToMermaidChart",
         arguments: [],
-        tooltip: "Connect or save this diagram to your Mermaid Chart account",
+        tooltip: "Connect or save this diagram to your Mermaid account",
       }),
       new vscode.CodeLens(firstLine, {
         title: "$(preview) Preview diagram",
         command: "mermaidChart.preview",
-        arguments: [],
+        arguments: ["codeLens"],
         tooltip: "Open or focus the Mermaid preview",
       }),
     ];

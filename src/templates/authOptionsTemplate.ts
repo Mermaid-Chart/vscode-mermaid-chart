@@ -17,7 +17,7 @@ export function generateAuthOptionsContent(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MermaidChart Authentication</title>
+    <title>Mermaid Authentication</title>
     <style>
     @font-face {
       font-family: "Recursive";
@@ -250,7 +250,7 @@ export function generateAuthOptionsContent(
         <div class="logo-container">
             <img class="logo" src="${logoSrc}" alt="Mermaid Logo">
             <h2 class="auth-title" id="authTitle">Choose Authentication Method</h2>
-            <p class="description" id="authDescription">Select how you'd like to sign in to Mermaid Chart</p>
+            <p class="description" id="authDescription">Select how you'd like to sign in to Mermaid</p>
         </div>
 
         <div class="auth-options">

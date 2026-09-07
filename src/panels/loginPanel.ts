@@ -35,7 +35,6 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
           break;
 
         case "signIn":
-          analytics.trackSignInPromptShown('mermaid-sidebar');
           this.currentState = 'authOptions';
           this.updateWebviewContent();
           break;
@@ -48,7 +47,7 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
           break;
 
         case "startOAuthFlow":
-          analytics.trackSignInPromptClicked('mermaid-sidebar');
+          analytics.trackUserLogin({ action: 'started', trigger: 'mermaid-sidebar' });
           setPendingLoginTrigger('mermaid-sidebar');
           vscode.commands.executeCommand("mermaidChart.login", 'mermaid-sidebar');
           break;
@@ -120,6 +119,7 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
 
   /** Opens Collab sign-up only (no OAuth redirect). User signs in from the extension after. */
   private async openSignupPage(): Promise<void> {
+    analytics.trackCreateAccountClick();
     const baseUrl = (getBaseUrl() ?? "https://mermaid.ai").replace(/\/$/, "");
     const signupUrl = `${baseUrl}/app/sign-up?utm_source=${encodeURIComponent(utmSource)}`;
     await vscode.env.openExternal(vscode.Uri.parse(signupUrl));

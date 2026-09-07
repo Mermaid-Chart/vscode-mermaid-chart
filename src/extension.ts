@@ -60,7 +60,10 @@ import {
   setDiagramDiffBridge,
   initializePlugin,
   setGenerateFromCodeFileRefs,
+  setGenerateFromCodeEntryPoint,
+  setHttpClientBaseUrl,
 } from "@mermaid-chart/vscode-utils";;
+import { getMermaidChartBaseUrl } from "./config";
 import { PreviewBridgeImpl } from "./commercial/ai/tools/previewTool";
 import { ValidationBridgeImpl } from "./commercial/ai/tools/validationTool";
 import {
@@ -86,6 +89,54 @@ let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWo
 let isExtensionStarted = false;
 let appReviewFeatureInstance: AppReviewFeature | undefined;
 let aiToolsRegistered = false;
+
+const trackedMarkdownPreviews = new Set<string>();
+
+function isMermaidLanguage(lang: string): boolean {
+  const languageIds = vscode.workspace
+    .getConfiguration(configSection)
+    .get<string[]>("languages", ["mermaid"]);
+  return languageIds.some((id) => id.toLowerCase() === lang.toLowerCase());
+}
+
+/**
+ * One previewed event per mermaid block the first time a Markdown document is rendered.
+ * Markdown preview re-renders on every keystroke, hence the per-document guard.
+ */
+function trackMarkdownMermaidPreview(md: MarkdownIt) {
+  const render = md.renderer.render;
+  const highlight = md.options.highlight;
+  let isFirstRenderOfDocument = false;
+  let trackedBlocks = 0;
+
+  md.options.highlight = (code, lang, attrs) => {
+    if (isFirstRenderOfDocument && lang && isMermaidLanguage(lang)) {
+      trackedBlocks++;
+      analytics.trackDiagramPreviewed("markdownCodeBlock", {
+        diagramType: getFirstWordFromDiagram(code) || undefined,
+      });
+    }
+    return highlight?.(code, lang, attrs) ?? code;
+  };
+
+  md.renderer.render = function (...args) {
+    const env = args[2] as { currentDocument?: vscode.Uri } | undefined;
+    const documentKey = env?.currentDocument?.toString() ?? "unknown";
+
+    isFirstRenderOfDocument = !trackedMarkdownPreviews.has(documentKey);
+    trackedBlocks = 0;
+    try {
+      return render.apply(md.renderer, args);
+    } finally {
+      if (isFirstRenderOfDocument && trackedBlocks > 0) {
+        trackedMarkdownPreviews.add(documentKey);
+      }
+      isFirstRenderOfDocument = false;
+    }
+  };
+
+  return md;
+}
 
 function registerAiToolsOnce(context: vscode.ExtensionContext): void {
   if (aiToolsRegistered) {
@@ -124,6 +175,7 @@ export async function activate(context: vscode.ExtensionContext) {
   setReviewDiagramExtensionPath(context.extensionUri.fsPath);
 
   initializePlugin(pluginID);
+  setHttpClientBaseUrl(getMermaidChartBaseUrl());
   console.log("[MermaidExtension] Registering AI tools...");
   registerAiToolsOnce(context);
   
@@ -135,7 +187,7 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!context.globalState.get<boolean>("isUserLoggedIn", false)) {
         void promptForLogin(
           'hard-login-gate',
-          'Sign in to Mermaid Chart to review diagram changes. Use Mermaid Preview if you want to continue without an account.',
+          'Sign in to Mermaid to review diagram changes. Use Mermaid Preview if you want to continue without an account.',
         );
         return () => {};
       }
@@ -145,7 +197,7 @@ export async function activate(context: vscode.ExtensionContext) {
     openDiagramReviewSurface: async (options) => {
       if (!(await promptForLogin(
         'hard-login-gate',
-        'Sign in to Mermaid Chart to review diagram changes. Use Mermaid Preview if you want to continue without an account.',
+        'Sign in to Mermaid to review diagram changes. Use Mermaid Preview if you want to continue without an account.',
       ))) {
         return { closePanels: () => {}, panel: undefined };
       }
@@ -210,7 +262,7 @@ export async function activate(context: vscode.ExtensionContext) {
       const docPath = path.join(
         context.extensionPath,
         'docs',
-        'MermaidChartLoginChanges.md',
+        'MermaidLoginChanges.md',
       );
       const doc = await vscode.workspace.openTextDocument(docPath);
       await vscode.commands.executeCommand('markdown.showPreview', doc.uri);
@@ -262,7 +314,16 @@ export async function activate(context: vscode.ExtensionContext) {
   updateViewVisibility(isUserLoggedIn, mermaidWebviewProvider, mermaidChartProvider);
 
   context.subscriptions.push(
-    registerAuthenticatedCommand('mermaidChart.preview', getPreview)
+    registerAuthenticatedCommand(
+      'mermaidChart.preview',
+      (entryPoint?: 'codeLens' | 'commandPalette') =>
+        getPreview(entryPoint === 'codeLens' ? 'codeLens' : 'commandPalette'),
+    ),
+    // VS Code does not tell a handler which menu invoked it, so the editor context menu
+    // gets its own command id to keep entry points apart in analytics.
+    registerAuthenticatedCommand('mermaidChart.previewFromContextMenu', () =>
+      getPreview("contextMenu"),
+    ),
   );
 
   context.subscriptions.push(
@@ -304,7 +365,14 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   
   registerAuthenticatedCommand('mermaidChart.createMermaidFile', async () => {
-    createMermaidFile(context, null, false);
+    const editor = await createMermaidFile(context, null, false);
+    if (editor) {
+      const code = editor.document.getText();
+      analytics.trackDiagramCreated('command', 'commandPalette', {
+        diagramType: getFirstWordFromDiagram(code) || undefined,
+        isLinked: !!extractIdFromCode(code),
+      });
+    }
   });
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.logout', async () => {
@@ -477,9 +545,13 @@ context.subscriptions.push(
       const editor = await createMermaidFile(context, normalizedContent, true);
       if (editor) {
         syncAuxFile(editor.document.uri.toString(), uri, range);
+        analytics.trackDiagramCreated('markdownCodeBlock', 'markdownCodeBlock', {
+          diagramType: getFirstWordFromDiagram(normalizedContent) || undefined,
+          isLinked: !!extractIdFromCode(normalizedContent),
+        });
       }
     } catch (error) {
-      analytics.trackException(error);
+      analytics.trackException(error, 'diagramCreated', 'mermaid.editAuxFile');
       vscode.window.showErrorMessage(`Error processing Mermaid diagram: ${error instanceof Error ? error.message : "Unknown error occurred."}`);
     }
   })
@@ -552,7 +624,7 @@ context.subscriptions.push(
         } else {
         vscode.window.showErrorMessage("Unknown error occurred.");
         }
-        analytics.trackException(error);
+        analytics.trackException(error, 'diagramSynced', 'mermaid.connectDiagram');
       }
   })
 );
@@ -589,7 +661,7 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
 
       // Update the cache with the new code immediately after successful save
       updateDiagramInCache(diagramId, content);
-      vscode.window.showInformationMessage(`Diagram synced successfully with Mermaid chart. Diagram ID: ${diagramId}`);
+      vscode.window.showInformationMessage(`Diagram synced successfully with Mermaid. Diagram ID: ${diagramId}`);
       }
     }
   }
@@ -634,7 +706,7 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
             // Only show sync popup for files that actually need syncing
         const progressPromise = vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: 'Syncing diagram with Mermaid Chart...',
+            title: 'Syncing diagram with Mermaid...',
             cancellable: false
         }, async (progress) => {
                 const projectId = getProjectIdForDocument(diagramId);
@@ -666,7 +738,7 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
                 updateDiagramInCache(diagramId, document.getText());
 
                 vscode.window.showInformationMessage(
-                    `Diagram synced successfully with Mermaid Chart.`
+                    `Diagram synced successfully with Mermaid.`
                 );
         });
 
@@ -688,7 +760,7 @@ vscode.workspace.onWillSaveTextDocument(async (event) => {
 
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred.";
-        analytics.trackException(error);
+        analytics.trackException(error, 'diagramSynced', 'mermaidChart.syncDiagramWithMermaid');
         vscode.window.showErrorMessage(`Failed to sync file: ${errorMessage}`);
     }
 };
@@ -708,7 +780,7 @@ context.subscriptions.push(
     
     // Check if the document is already connected
     if (id) {
-      vscode.window.showWarningMessage("This diagram is already connected to Mermaid Chart.");
+      vscode.window.showWarningMessage("This diagram is already connected to Mermaid.");
       return;
     }
     if(MermaidChartProvider.isSyncing) {
@@ -764,7 +836,7 @@ context.subscriptions.push(
 
     PreviewPanel.createOrShow(document);
     analytics.trackConnectDiagramToMermaidChart();
-    vscode.window.showInformationMessage(`Diagram connected successfully with Mermaid chart.`);
+    vscode.window.showInformationMessage(`Diagram connected successfully with Mermaid.`);
     }   catch(error) {
       if (error instanceof Error ) {
         const errMessage = error.message;
@@ -780,7 +852,7 @@ context.subscriptions.push(
         } else {
         vscode.window.showErrorMessage("Unknown error occurred.");
         }
-        analytics.trackException(error);
+        analytics.trackException(error, 'diagramSynced', 'mermaidChart.connectDiagramToMermaidChart');
     }
 
   })
@@ -1081,11 +1153,16 @@ context.subscriptions.push(
 
 // Register the generate diagram from code command
 // Optional fileUris: set by on-commit generate popup to seed Copilot references.
-// CodeLens / palette call with no args — existing behavior unchanged.
+// CodeLens passes { entryPoint: 'codeLens' }; palette has no args.
 context.subscriptions.push(
   registerAuthenticatedCommand(
     "mermaidChart.generateDiagramFromCode",
-    async (fileUris?: vscode.Uri[] | string[]) => {
+    async (
+      arg?:
+        | vscode.Uri[]
+        | string[]
+        | { entryPoint?: 'codeLens' | 'commandPalette' | 'notification'; fileUris?: vscode.Uri[] | string[] },
+    ) => {
       try {
         // Check if Copilot Chat is available
         const copilotExtension = vscode.extensions.getExtension("GitHub.copilot-chat");
@@ -1102,17 +1179,30 @@ context.subscriptions.push(
           return;
         }
 
+        let entryPoint: 'codeLens' | 'commandPalette' | 'notification' = 'commandPalette';
+        let fileUris: vscode.Uri[] | string[] | undefined;
+
+        if (Array.isArray(arg)) {
+          fileUris = arg;
+          entryPoint = 'notification';
+        } else if (arg && typeof arg === 'object') {
+          entryPoint = arg.entryPoint ?? 'commandPalette';
+          fileUris = arg.fileUris;
+        }
+
         if (fileUris && fileUris.length > 0) {
           const uris = fileUris.map((u) =>
             typeof u === "string" ? vscode.Uri.file(u) : u,
           );
           setGenerateFromCodeFileRefs(uris);
         }
+
+        // Commercial slash handler owns the AI Action event; seed real entryPoint so it is not always slashCommand.
+        setGenerateFromCodeEntryPoint(entryPoint);
         
         await vscode.commands.executeCommand("workbench.action.chat.open", {
           query: "@mermaid-chart /generate_diagram_from_code",
         });
-        analytics.trackGenerateDiagramFromCode();
         
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1123,12 +1213,24 @@ context.subscriptions.push(
 );
 
 context.subscriptions.push(
-  registerAuthenticatedCommand('mermaidChart.openResponsePreview', async (mermaidCode: string) => {
+  registerAuthenticatedCommand('mermaidChart.openResponsePreview', async (
+    mermaidCode: string,
+    createMeta?: { entryPoint?: 'slashCommand' | 'chatParticipant'; command?: string },
+  ) => {
     if (!mermaidCode) {
       vscode.window.showErrorMessage("No Mermaid code provided");
       return;
     }
-    await openMermaidPreview(context, mermaidCode);
+    const editor = await openMermaidPreview(context, mermaidCode);
+    if (editor) {
+      const code = editor.document.getText();
+      const entryPoint = createMeta?.entryPoint ?? 'chatParticipant';
+      analytics.trackDiagramCreated('aiGenerated', entryPoint, {
+        diagramType: getFirstWordFromDiagram(code) || undefined,
+        isLinked: !!extractIdFromCode(code),
+        command: entryPoint === 'slashCommand' ? createMeta?.command : undefined,
+      });
+    }
   })
 );
 
@@ -1313,6 +1415,7 @@ return {
           }
       });
       md.use(injectMermaidTheme);
+      trackMarkdownMermaidPreview(md);
       return md;
   }
 };

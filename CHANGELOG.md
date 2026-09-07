@@ -1,5 +1,14 @@
 # Change Log
 
+### 2.7.7 - 2026-09-04
+- **The extension is now simply called Mermaid.** From this version every command in the Command Palette starts with `Mermaid:` instead of `MermaidChart:`, and the sidebar, notifications, settings descriptions, and sign-in screens use the **Mermaid** name too. Your keybindings, settings, and saved diagrams keep working exactly as before — there is nothing to update on your side.
+- **You now need a Mermaid account to use the extension.** Run any command while signed out and you will get a notification with three choices: 
+    - **Show more** opens a page explaining the change, 
+    - **Get the extension** takes you to Mermaid Preview in the Marketplace, and 
+    - **Discard** dismisses it. 
+- If you would rather keep working without an account, use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview).
+- **The sidebar is reorganized once you sign in** — **Home** lists your Mermaid diagrams, **Improve diagram** has a refreshed look, the GitHub icon opens **Review Mermaid Sync** (click the same icon again to close it), and the feedback form lets you send us a note once a day.
+
 ### 2.7.6 - 2026-08-14
 - Added **Review UI for Pre-Commit Mermaid Regeneration**.
 - **Regenerate Diagram copilote based** now opens the same review UI (summary chips, Now/Before, Diff code) instead of the older dual preview panels.

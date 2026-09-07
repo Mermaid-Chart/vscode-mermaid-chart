@@ -290,7 +290,7 @@ export class MermaidChartProvider
       MermaidChartProvider.isSyncing = true;
       return await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
-        title: "Mermaid Chart",
+        title: "Mermaid",
         cancellable: false
       }, async (progress) => {
         progress.report({ message: "Syncing diagrams from Mermaid..." });

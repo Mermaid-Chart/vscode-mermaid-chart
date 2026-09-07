@@ -3,6 +3,7 @@ import { MermaidChartVSCode } from './mermaidChartVSCode';
 import { getDiagramFromCache, updateDiagramInCache } from './mermaidChartProvider';
 import { openDiagramDiffWebviews } from './commercial/sync/diagramDiffView';
 import analytics from './analytics';
+import { getFirstWordFromDiagram } from './frontmatter';
 
 
 export class RemoteSyncHandler {
@@ -26,9 +27,11 @@ export class RemoteSyncHandler {
         document: vscode.TextDocument,
         diagramId: string,
     ): Promise<'continue' | 'abort'> {
+        const currentContent = document.getText();
+        const diagramType = getFirstWordFromDiagram(currentContent) || undefined;
+        let conflictShown = false;
+
         try {
-            const currentContent = document.getText();
-            
             // Check if there are unresolved conflicts
             if (this.hasUnresolvedConflicts(currentContent)) {
                 vscode.window.showErrorMessage('Please resolve merge conflicts before saving.');
@@ -53,7 +56,8 @@ export class RemoteSyncHandler {
                 return 'continue';
             }
 
-            analytics.trackRemoteSync();
+            analytics.trackRemoteSync(diagramType);
+            conflictShown = true;
 
             // Show non-modal notification at bottom right
             const result = await vscode.window.showInformationMessage(
@@ -62,20 +66,65 @@ export class RemoteSyncHandler {
                 'Force Push Local Changes'
             );
 
+            // Force push / apply local immediately → conflictResolved + keepLocal
+            if (result === 'Force Push Local Changes') {
+                updateDiagramInCache(diagramId, currentContent);
+                analytics.trackConflictResolved({
+                    conflictResolution: 'keepLocal',
+                    diagramType,
+                    status: 'success',
+                });
+                return 'continue';
+            }
+
+            // Pull / open diffs → wait until markers are resolved, then conflictResolved
             if (result === 'Pull Remote Changes') {
                 const canSaveFile = await this.insertMergeConflictMarkers(document, remoteVersion.code);
-                
-                // If conflict markers were added, show diagram previews
+
                 if (!canSaveFile) {
-                    this.showDiagramPreviews(document, currentContent, remoteVersion.code, diagramId);
+                    this.showDiagramPreviews(
+                        document,
+                        currentContent,
+                        remoteVersion.code,
+                        diagramId,
+                        diagramType,
+                    );
+                    return 'abort';
                 }
-                
-                return canSaveFile ? 'continue' : 'abort'; // Abort to prevent immediate save
-            } else if (result === 'Force Push Local Changes') {
-                updateDiagramInCache(diagramId, currentContent);
+
+                // Pull succeeded with no markers (already aligned) → kept remote
+                analytics.trackConflictResolved({
+                    conflictResolution: 'keepRemote',
+                    diagramType,
+                    status: 'success',
+                });
                 return 'continue';
-            }return 'abort';
+            }
+
+            // Dismissed the notification
+            analytics.trackConflictResolved({
+                conflictResolution: 'cancelled',
+                diagramType,
+                status: 'cancelled',
+            });
+            return 'abort';
         } catch (error) {
+            if (conflictShown) {
+                analytics.trackConflictResolved({
+                    conflictResolution: 'cancelled',
+                    diagramType,
+                    status: 'error',
+                    errorType: 'networkError',
+                });
+            } else {
+                analytics.trackDiagramSynced({
+                    syncAction: 'pull',
+                    trigger: 'remoteChange',
+                    diagramType,
+                    status: 'error',
+                    errorType: 'networkError',
+                });
+            }
             vscode.window.showErrorMessage(
                 `Failed to check remote changes: ${error instanceof Error ? error.message : 'Unknown error'}`
             );
@@ -209,7 +258,13 @@ export class RemoteSyncHandler {
         return -1;
     }
 
-    private showDiagramPreviews(document: vscode.TextDocument, localContent: string, remoteContent: string, diagramId: string): void {
+    private showDiagramPreviews(
+        document: vscode.TextDocument,
+        localContent: string,
+        remoteContent: string,
+        diagramId: string,
+        diagramType?: string,
+    ): void {
         try {
             // Dispose any previously open preview panels before opening new ones
             this.disposeDiffPanels?.();
@@ -218,27 +273,66 @@ export class RemoteSyncHandler {
             this.disposeDiffPanels = openDiagramDiffWebviews(localContent, remoteContent, {
                 currentRepairDocumentUri: document.uri,
                 incomingRepairDocumentUri: document.uri,
+                skipSyncAnalytics: true,
             });
             this.openDiffPreviews.add(diagramId);
 
             const docUri = document.uri.toString();
             let cleaned = false;
+            let resolutionTracked = false;
 
-            const cleanup = () => {
-                if (cleaned) { return; }
+            const normalize = (text: string) => text.replace(/\r\n/g, '\n').trimEnd();
+            const remoteNorm = normalize(remoteContent);
+
+            const trackResolution = (
+                conflictResolution: 'keepLocal' | 'keepRemote' | 'cancelled',
+            ) => {
+                if (resolutionTracked) {
+                    return;
+                }
+                resolutionTracked = true;
+
+                analytics.trackConflictResolved({
+                    conflictResolution,
+                    diagramType,
+                    status: conflictResolution === 'cancelled' ? 'cancelled' : 'success',
+                });
+            };
+
+            const resolveFromContent = (finalContent: string): 'keepLocal' | 'keepRemote' => {
+                const finalNorm = normalize(finalContent);
+                // Pull opened diffs: remote match → keepRemote; anything else (local or mixed) → keepLocal
+                return finalNorm === remoteNorm ? 'keepRemote' : 'keepLocal';
+            };
+
+            const cleanup = (
+                reason: 'resolved' | 'cancelled',
+                finalContent?: string,
+            ) => {
+                if (cleaned) {
+                    return;
+                }
                 cleaned = true;
-                this.disposeDiffPanels?.();
-                this.disposeDiffPanels = undefined;
+
+                if (reason === 'cancelled') {
+                    trackResolution('cancelled');
+                } else {
+                    trackResolution(resolveFromContent(finalContent ?? document.getText()));
+                }
+
+                // Clear watcher before disposing panels so dispose() cannot re-enter as cancelled
+                this.diffPanelCloseWatcher = undefined;
                 onConflictResolvedDisposable.dispose();
                 onTabCloseDisposable.dispose();
-                this.diffPanelCloseWatcher = undefined;
+                this.disposeDiffPanels?.();
+                this.disposeDiffPanels = undefined;
                 this.openDiffPreviews.delete(diagramId);
             };
 
             // Trigger 1: user accepted current/incoming change — conflict markers removed from document
             const onConflictResolvedDisposable = vscode.workspace.onDidChangeTextDocument((e) => {
                 if (e.document.uri.toString() === docUri && !this.hasUnresolvedConflicts(e.document.getText())) {
-                    cleanup();
+                    cleanup('resolved', e.document.getText());
                 }
             });
 
@@ -247,19 +341,32 @@ export class RemoteSyncHandler {
                 for (const tab of closed) {
                     if (tab.input instanceof vscode.TabInputText &&
                         tab.input.uri.toString() === docUri) {
-                        cleanup();
+                        const openDoc = vscode.workspace.textDocuments.find(
+                            (d) => d.uri.toString() === docUri,
+                        );
+                        if (openDoc && !this.hasUnresolvedConflicts(openDoc.getText())) {
+                            cleanup('resolved', openDoc.getText());
+                        } else {
+                            cleanup('cancelled');
+                        }
                         return;
                     }
                 }
             });
 
             // Store a single disposable so dispose() on the class cleans up both listeners
-            this.diffPanelCloseWatcher = { dispose: cleanup };
+            this.diffPanelCloseWatcher = { dispose: () => cleanup('cancelled') };
 
             vscode.window.showInformationMessage("Conflict detected. Diagram previews opened to help resolve differences. Edit the document to resolve conflicts, then save.");
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             console.error('[Remote Sync Handler] Failed to open diagram diff previews:', err);
+            analytics.trackConflictResolved({
+                conflictResolution: 'cancelled',
+                diagramType,
+                status: 'error',
+                errorType: 'unknown',
+            });
             vscode.window.showErrorMessage(`Could not open diagram previews: ${msg}`);
         }
     }
@@ -269,4 +376,4 @@ export class RemoteSyncHandler {
         this.diffPanelCloseWatcher?.dispose();
         this.openDiffPreviews.clear();
     }
-} 
+}

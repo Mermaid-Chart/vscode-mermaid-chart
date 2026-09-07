@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid",
   "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.7.6",
+  "version": "2.7.7",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -580,12 +580,12 @@
       }
     ],
     "configuration": {
-      "title": "Mermaid Chart",
+      "title": "Mermaid",
       "properties": {
         "mermaidChart.baseUrl": {
           "type": "string",
           "default": "https://mermaid.ai",
-          "description": "Base URL for Mermaid Chart"
+          "description": "Base URL for Mermaid"
         },
         "mermaid.vscode.dark": {
           "type": "string",
@@ -695,7 +695,7 @@
       "activitybar": [
         {
           "id": "mermaidActivityBar",
-          "title": "Mermaid Chart",
+          "title": "Mermaid",
           "icon": "images/mermaid-icon-32-preview.svg"
         }
       ]
@@ -704,7 +704,7 @@
       "mermaidActivityBar": [
         {
           "id": "mermaidChart",
-          "name": "Mermaid Chart",
+          "name": "Mermaid",
           "contextualOnly": true,
           "when": "mermaid.showChart && mermaidChart:sidebarView == home"
         },
@@ -728,7 +728,7 @@
         },
         {
           "id": "mermaidWebview",
-          "name": "Mermaid Chart",
+          "name": "Mermaid",
           "type": "webview",
           "contextualOnly": true,
           "when": "mermaid.showWebview"
@@ -809,6 +809,10 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "mermaidChart.previewFromContextMenu",
+          "when": "false"
+        },
         {
           "command": "mermaidChart.openHomeActive",
           "when": "false"
@@ -902,7 +906,7 @@
       ],
       "editor/context": [
         {
-          "command": "mermaidChart.preview",
+          "command": "mermaidChart.previewFromContextMenu",
           "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/",
           "group": "navigation"
         },
@@ -1015,7 +1019,7 @@
       },
       {
         "command": "mermaidChart.editDiagramInMermaidChart",
-        "title": "Edit in Mermaid Chart"
+        "title": "Edit in Mermaid"
       },
       {
         "command": "mermaidChart.editDiagramLocally",
@@ -1023,37 +1027,41 @@
       },
       {
         "command": "mermaidChart.syncDiagramWithMermaid",
-        "title": "MermaidChart: Sync Diagram"
+        "title": "Mermaid: Sync Diagram"
       },
       {
         "command": "mermaidChart.preview",
-        "title": "MermaidChart: Preview Diagram"
+        "title": "Mermaid: Preview Diagram"
+      },
+      {
+        "command": "mermaidChart.previewFromContextMenu",
+        "title": "Mermaid: Preview Diagram"
       },
       {
         "command": "mermaidChart.improveDiagram",
-        "title": "MermaidChart: Improve Diagram",
+        "title": "Mermaid: Improve Diagram",
         "icon": "$(lightbulb)"
       },
       {
         "command": "mermaidChart.repairDiagram",
-        "title": "MermaidChart: Repair Diagram",
+        "title": "Mermaid: Repair Diagram",
         "icon": "$(wrench)"
       },
       {
         "command": "mermaidChart.logout",
-        "title": "MermaidChart: Logout"
+        "title": "Mermaid: Logout"
       },
       {
         "command": "mermaidChart.login",
-        "title": "MermaidChart: Login"
+        "title": "Mermaid: Login"
       },
       {
         "command": "mermaidChart.createMermaidFile",
-        "title": "MermaidChart: Create Diagram"
+        "title": "Mermaid: Create Diagram"
       },
       {
         "command": "mermaidChart.focus",
-        "title": "Mermaid Charts: Focus on View",
+        "title": "Mermaid: Focus on View",
         "icon": "images/mermaid-icon.svg"
       },
       {
@@ -1062,7 +1070,7 @@
       },
       {
         "command": "mermaidChart.connectDiagramToMermaidChart",
-        "title": "MermaidChart: Connect Diagram"
+        "title": "Mermaid: Connect Diagram"
       },
       {
         "command": "mermaidChart.addDiagram",
@@ -1090,39 +1098,39 @@
       },
       {
         "command": "mermaidChart.openCopilotChat",
-        "title": "MermaidChart: Open AI Chat"
+        "title": "Mermaid: Open AI Chat"
       },
       {
         "command": "mermaidChart.installAiSkills",
-        "title": "MermaidChart: Install AI Skills for GitHub Copilot"
+        "title": "Mermaid: Install AI Skills for GitHub Copilot"
       },
       {
         "command": "mermaidChart.generateCloudDiagram",
-        "title": "MermaidChart: Generate Cloud Diagram"
+        "title": "Mermaid: Generate Cloud Diagram"
       },
       {
         "command": "mermaidChart.generateERDiagram",
-        "title": "MermaidChart: Generate ER Diagram"
+        "title": "Mermaid: Generate ER Diagram"
       },
       {
         "command": "mermaidChart.generateDockerDiagram",
-        "title": "MermaidChart: Generate Docker Diagram"
+        "title": "Mermaid: Generate Docker Diagram"
       },
       {
         "command": "mermaidChart.generateDiagramFromCode",
-        "title": "MermaidChart: Generate Diagram from Code"
+        "title": "Mermaid: Generate Diagram from Code"
       },
       {
         "command": "mermaidChart.openDiagramDiffWebviews",
-        "title": "MermaidChart: Open Diagram Diff (Current vs Updated)"
+        "title": "Mermaid: Open Diagram Diff (Current vs Updated)"
       },
       {
         "command": "mermaidChart.regenerateDiagramWithMermaidAI",
-        "title": "MermaidChart: Regenerate with Mermaid AI"
+        "title": "Mermaid: Regenerate with Mermaid AI"
       },
       {
         "command": "mermaidChart.reviewAppCommits",
-        "title": "MermaidChart: Review Mermaid Sync"
+        "title": "Mermaid: Review Mermaid Sync"
       },
       {
         "command": "mermaidChart.reviewSyncOpenChanges",
@@ -1146,23 +1154,23 @@
       },
       {
         "command": "mermaidChart.showAppSyncInfo",
-        "title": "MermaidChart: Show App Sync Info"
+        "title": "Mermaid: Show App Sync Info"
       },
       {
         "command": "mermaidChart.showAppReviewStatus",
-        "title": "MermaidChart: Show App Review Status"
+        "title": "Mermaid: Show App Review Status"
       },
       {
         "command": "mermaidChart.commitAppReview",
-        "title": "MermaidChart: Commit App Review"
+        "title": "Mermaid: Commit App Review"
       },
       {
         "command": "mermaidChart.acceptModifiedChanges",
-        "title": "MermaidChart: Accept Modified App Review"
+        "title": "Mermaid: Accept Modified App Review"
       },
       {
         "command": "mermaidChart.appReviewBackToPending",
-        "title": "MermaidChart: App Review — Back to Pending (restore app proposal)"
+        "title": "Mermaid: App Review — Back to Pending (restore app proposal)"
       },
       {
         "command": "mermaidChart.closeAppReview",
@@ -1171,11 +1179,11 @@
       },
       {
         "command": "mermaidChart.openAppReview",
-        "title": "MermaidChart: Open App Review"
+        "title": "Mermaid: Open App Review"
       },
       {
         "command": "mermaidChart.openReviewFileDiff",
-        "title": "MermaidChart: Open Review File Diff"
+        "title": "Mermaid: Open Review File Diff"
       },
       {
         "command": "mermaidChart.appReviewAccept",
@@ -1189,11 +1197,11 @@
       },
       {
         "command": "mermaidChart.connectGitHub",
-        "title": "MermaidChart: Connect GitHub for Mermaid Diagram Sync"
+        "title": "Mermaid: Connect GitHub for Mermaid Diagram Sync"
       },
       {
         "command": "mermaidChart.disconnectGitHub",
-        "title": "MermaidChart: Disconnect GitHub for Mermaid Diagram Sync"
+        "title": "Mermaid: Disconnect GitHub for Mermaid Diagram Sync"
       }
     ],
     "chatParticipants": [
@@ -1371,7 +1379,7 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm compile",
-    "precompile": "pnpm --filter ./webview build && webpack --mode=production --config ./build/markdownPreview.webpack.config.js && webpack --mode=production --config ./build/sidebarMermaid.webpack.config.js",
+    "precompile": "pnpm --filter ./webview build && webpack --mode=production --config ./build/markdownPreview.webpack.config.js",
     "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --sourcemap --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --minify",
     "watch": "tsc -p ./ --noEmit --watch",
     "pretest": "pnpm compile && pnpm lint",
@@ -1412,7 +1420,7 @@
     "@iconify-json/logos": "^1.2.4",
     "@iconify-json/mdi": "^1.2.3",
     "@mermaid-chart/icons-gcp": "^1.0.0",
-    "@mermaid-chart/vscode-utils": "1.5.0",
+    "@mermaid-chart/vscode-utils": "1.5.1",
     "@mermaid-chart/layout-elk": "0.1.7-b.2",
     "@mermaidchart/sdk": "0.2.6",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",

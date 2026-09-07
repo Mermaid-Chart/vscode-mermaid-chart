@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { PreviewPanel } from "../panels/previewPanel";
+import type { PreviewEntryPoint } from "../panels/previewPanel";
 import { TempFileCache } from "../cache/tempFileCache";
 import analytics from "../analytics";
 import { normalizeMermaidText } from "../frontmatter";
@@ -59,12 +60,12 @@ export async function createMermaidFile(
     return editor;
   } catch (error) {
     console.error("Error creating Mermaid file:", error);
-    analytics.trackException(error);
+    analytics.trackException(error, 'diagramCreated', 'mermaidChart.createMermaidFile');
     return null;
   }
 }
 
-export function getPreview() {
+export function getPreview(entryPoint: PreviewEntryPoint = "commandPalette") {
   const activeEditor = vscode.window.activeTextEditor;
   
   if (!activeEditor) {
@@ -80,7 +81,7 @@ export function getPreview() {
     vscode.window.showErrorMessage("Mermaid Preview is only available for mermaid files.");
     return;
   }
-  PreviewPanel.createOrShow(document);
+  PreviewPanel.createOrShow(document, entryPoint);
 }
 
 export async function openMermaidPreview(
@@ -95,7 +96,7 @@ export async function openMermaidPreview(
     return await createMermaidFile(context, normalizedCode, false);
   } catch (error) {
     console.error("Error opening Mermaid preview:", error);
-    analytics.trackException(error);
+    analytics.trackException(error, 'diagramPreviewed', 'mermaidChart.openMermaidPreview');
     vscode.window.showErrorMessage("Failed to open Mermaid preview");
     return null;
   }

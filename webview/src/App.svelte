@@ -22,6 +22,8 @@
   let panEnabled = false;
   let hasErrorOccured= false;
   let theme: 'default' | 'base' | 'dark' | 'forest' | 'neutral' | 'neo' | 'neo-dark' | 'redux' | 'redux-dark' | 'redux-color' | 'redux-dark-color' | 'mc' | 'null' = 'redux'; 
+  /** True when the diagram source declares its own config.theme, which overrides mermaid.initialize. */
+  let hasFrontMatterTheme = false;
   $: zoomLevel = 100;
   let maxZoomLevel = 5;
   let maxTextSize = 90000;
@@ -60,9 +62,42 @@
     isExportModalOpen = false;
   }
 
+  /**
+   * Locally rewrite config.theme so we can re-render immediately (same feel as diagrams
+   * without frontmatter theme). The extension still persists the same change to the file.
+   */
+  function patchFrontMatterThemeLocal(code: string, nextTheme: string): string | undefined {
+    const normalized = (code || "").replace(/\r\n/g, "\n");
+    const match = normalized.match(/^(---\n)([\s\S]*?\n)(---(?:\n|$))/);
+    if (!match) {
+      return undefined;
+    }
+    const [, open, body, close] = match;
+    if (!/(^|\n)[ \t]*theme[ \t]*:/m.test(body)) {
+      return undefined;
+    }
+    const newBody = body.replace(
+      /(^|\n)([ \t]*theme[ \t]*:[ \t]*)([^\n]+)/,
+      `$1$2${nextTheme}`,
+    );
+    if (newBody === body) {
+      return undefined;
+    }
+    return `${open}${newBody}${close}${normalized.slice(match[0].length)}`;
+  }
+
   function handleThemeChange(event) {
     const newTheme = event.detail.theme;
     theme = newTheme;
+    if (hasFrontMatterTheme) {
+      const patched = patchFrontMatterThemeLocal(diagramContent, newTheme);
+      if (patched) {
+        diagramContent = patched;
+      }
+      // Persist to the editor; host also calls update() so the buffer and preview stay aligned.
+      vscode.postMessage({ type: "setFrontMatterTheme", theme: newTheme });
+    }
+    // Same path with or without config.theme — render now, do not wait on the file round-trip.
     renderDiagram();
   }
 
@@ -156,8 +191,11 @@
 
     const element = document.getElementById("mermaid-diagram");
     if (element && diagramContent) {
+      let diagramType;
       try {
         const parsed = await mermaid.parse(diagramContent || 'info')
+        diagramType = parsed?.diagram?.type;
+        hasFrontMatterTheme = !!parsed?.config?.theme;
         if (parsed?.config?.theme && 
             ['default', 'base', 'dark' , 'forest' , 'neutral' , 'neo' , 'neo-dark' , 'redux' , 'redux-dark' , 'redux-color' , 'redux-dark-color' , 'mc' , 'null'].includes(parsed.config.theme)) {
           theme = parsed.config.theme;
@@ -254,12 +292,13 @@
           hasErrorOccured = false
         }
         applyDiffHighlights();
-        vscode.postMessage({ type: "diagramRendered" });
+        vscode.postMessage({ type: "diagramRendered", diagramType });
       } catch (error) {
         errorMessage = `Syntax error in text: ${error.message || error}`;
         vscode.postMessage({
           type: "error",
           message: errorMessage,
+          diagramType,
         });
         
         // Always request AI credits when error occurs
@@ -703,7 +742,9 @@
       } else if (content) {
         // Regular rendering flow
         diagramContent = content.replace(/\r\n/g, '\n');
-        if (currentTheme) {
+        // Diagram-owned frontmatter theme wins over the VS Code setting theme. Applying
+        // currentTheme here would flash the toolbar back to redux/redux-dark before parse.
+        if (currentTheme && !hasFrontMatterTheme) {
           const nextTheme = String(currentTheme).includes("%")
             ? decodeURIComponent(String(currentTheme))
             : String(currentTheme);

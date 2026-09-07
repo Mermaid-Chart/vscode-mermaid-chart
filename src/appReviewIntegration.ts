@@ -139,7 +139,12 @@ export class AppReviewIntegration {
         silent,
         clearExisting
       );
-      analytics.trackAppReviewTriggered();
+      analytics.trackReviewAction({
+        reviewAction: "reviewShown",
+        scope: "all",
+        fileCount: relPaths.length,
+        status: "success",
+      });
 
       const message = `Mermaid Sync app updated ${relPaths.length} diagram file(s). See Review Mermaid Sync in the sidebar.`;
       if (silent) {
@@ -443,7 +448,7 @@ export class AppReviewIntegration {
     }
     analytics.trackDisconnectGitHub();
     vscode.window.showInformationMessage(
-      "Disconnected from GitHub. Run \"MermaidChart: Connect GitHub\" to reconnect."
+      "Disconnected from GitHub. Run \"Mermaid: Connect GitHub for Mermaid Diagram Sync\" to reconnect."
     );
   }
 

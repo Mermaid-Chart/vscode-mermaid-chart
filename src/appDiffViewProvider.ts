@@ -124,7 +124,7 @@ export class AppDiffViewProvider {
     const mapping = this.appReviewIntegration.getReviewMapping(fileUri.fsPath);
     if (!mapping) {
       vscode.window.showErrorMessage(
-        "No active Mermaid Sync app review for this file. Run MermaidChart: Review Mermaid Sync from the command palette."
+        "No active Mermaid Sync app review for this file. Run Mermaid: Review Mermaid Sync from the command palette."
       );
       return;
     }
@@ -334,7 +334,12 @@ export class AppDiffViewProvider {
       return;
     }
 
-    analytics.trackOpenCodeDiff();
+    analytics.trackReviewAction({
+      reviewAction: "openFileDiff",
+      scope: "file",
+      fileCount: this.appReviewIntegration.getReviewMappings().size,
+      status: "success",
+    });
 
     const panelSession = this.sessionsByOriginal.get(path.normalize(mapping.originalFilePath));
     const modifiedUri = vscode.Uri.file(mapping.originalFilePath);

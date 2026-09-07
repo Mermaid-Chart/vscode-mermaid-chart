@@ -76,7 +76,12 @@ export class CreateDiagramFromStageService {
         ? fileNames.join(', ')
         : `${fileNames.slice(0, 5).join(', ')} (+${fileNames.length - 5} more)`;
 
-    analytics.trackOnCommitDiagramGenerateShown();
+    const promptCounts = {
+      linkedDiagramCount: 0,
+      stagedFileCount: unlinked.length,
+    };
+
+    analytics.trackOnCommitDiagramGenerateShown(promptCounts);
 
     const pick = await vscode.window.showInformationMessage(
       `New staged code has no Mermaid diagram ("${namePreview}").\n\nVisualize it with Generate Diagram From Code?`,
@@ -86,7 +91,7 @@ export class CreateDiagramFromStageService {
     );
 
     const decision = pick === 'Generate' ? 'accepted' : 'dismissed';
-    analytics.trackOnCommitDiagramGenerationDecision(decision);
+    analytics.trackOnCommitDiagramGenerationDecision(decision, promptCounts);
     await recordInteraction(cooldownOpts);
 
     if (pick !== 'Generate') {

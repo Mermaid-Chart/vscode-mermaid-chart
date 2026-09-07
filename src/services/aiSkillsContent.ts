@@ -20,7 +20,7 @@ VS Code extension tools and commands described below.
 2. Write the diagram to a \`.mmd\` file in the project.
 3. Validate syntax: correct first-line keyword, arrow types, balanced brackets.
 4. Preview via the Mermaid extension — open the \`.mmd\` file (auto-preview) or run
-   **MermaidChart: Preview Diagram** (\`mermaidChart.preview\`).
+   **Mermaid: Preview Diagram** (\`mermaidChart.preview\`).
 
 ## LM Tools — call these for every diagram interaction
 
@@ -46,9 +46,9 @@ Do not invent command IDs. Prefer writing/editing \`.mmd\` files when a command 
 - **Generate Docker Diagram** (\`mermaidChart.generateDockerDiagram\`)
 - **Open AI Chat** (\`mermaidChart.openCopilotChat\`)
 
-### Mermaid Chart cloud
+### Mermaid cloud
 - **Login** (\`mermaidChart.login\`) / **Logout** (\`mermaidChart.logout\`)
-- **Connect Diagram** (\`mermaidChart.connectDiagramToMermaidChart\`) — link a local diagram to Mermaid Chart.
+- **Connect Diagram** (\`mermaidChart.connectDiagramToMermaidChart\`) — link a local diagram to Mermaid.
 - **Sync Diagram** (\`mermaidChart.syncDiagramWithMermaid\`) — only for diagrams already connected (frontmatter has \`id:\`). Example:
   \`\`\`yaml
   ---
@@ -57,13 +57,13 @@ Do not invent command IDs. Prefer writing/editing \`.mmd\` files when a command 
   \`\`\`
 
 ### Review Mermaid Sync
-For diagrams updated by the Mermaid Chart GitHub Sync app (or pre-commit regenerate):
+For diagrams updated by the Mermaid GitHub Sync app (or pre-commit regenerate):
 - **Review Mermaid Sync** (\`mermaidChart.reviewAppCommits\`) — start / open the review flow.
 - **Regenerate with Mermaid AI** (\`mermaidChart.regenerateDiagramWithMermaidAI\`) — regenerate from source references.
 Do not manually rewrite diagrams managed by this workflow. Accept/reject/diff UI actions stay in the extension UI.
 
 ### Install / update this pack
-- **MermaidChart: Install AI Skills…** (\`mermaidChart.installAiSkills\`)
+- **Mermaid: Install AI Skills…** (\`mermaidChart.installAiSkills\`)
 
 ## @mermaid-chart slash commands
 

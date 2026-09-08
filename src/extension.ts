@@ -45,6 +45,7 @@ import {
   showChartSidebarMode,
   toggleChartSidebarMode,
 } from "./panels/feedbackPanel";
+import { MermaidSettingsWebviewProvider } from "./panels/settingsPanel";
 import analytics, { type LoginTrigger, type EntryPoint } from "./analytics";
 import { promptForLogin, registerAuthenticatedCommand, setPendingLoginTrigger } from "./loginTrigger";
 import { showUpgradePrompt } from "./upgradePricing";
@@ -218,6 +219,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const mermaidWebviewProvider = new MermaidWebviewProvider(context);
   const mermaidFeedbackProvider = new MermaidFeedbackWebviewProvider(context);
+  const mermaidSettingsProvider = new MermaidSettingsWebviewProvider(context);
   await setChartSidebarView("home");
 
   const mcAPI = new MermaidChartVSCode();
@@ -293,6 +295,12 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider(
       MermaidFeedbackWebviewProvider.viewType,
       mermaidFeedbackProvider
+    )
+  );
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      MermaidSettingsWebviewProvider.viewType,
+      mermaidSettingsProvider
     )
   );
 
@@ -889,6 +897,10 @@ context.subscriptions.push(
         mermaidFeedbackProvider.refresh();
         return;
       }
+      if (mode === "settings") {
+        await mermaidSettingsProvider.refresh();
+        return;
+      }
       if (mode === "improve") {
         await diagramImprovementPanel.showImproveDiagram();
         return;
@@ -931,6 +943,12 @@ context.subscriptions.push(
     ),
     vscode.commands.registerCommand("mermaidChart.openFeedbackActive", () =>
       toggleChartSidebarMode("feedback")
+    ),
+    vscode.commands.registerCommand("mermaidChart.openSettings", () =>
+      toggleChartSidebarMode("settings")
+    ),
+    vscode.commands.registerCommand("mermaidChart.openSettingsActive", () =>
+      toggleChartSidebarMode("settings")
     )
   );
 

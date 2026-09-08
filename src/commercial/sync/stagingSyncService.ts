@@ -47,6 +47,12 @@ export class StagingSyncService {
       const folderPath = workspaceFolder.uri.fsPath;
       const gitDir = path.join(folderPath, '.git');
 
+      // Avoid leaking a handle if setupWatcher is ever re-run for a folder that's
+      // already watched (re-registration without an intervening dispose).
+      if (StagingSyncService.folderWatchers.has(folderPath)) {
+        return;
+      }
+
       if (!fs.existsSync(gitDir)) {
         // .git doesn't exist yet (folder opened before git init).
         // Poll every 5s; once it appears, set up the real watcher.
@@ -71,11 +77,19 @@ export class StagingSyncService {
         return;
       }
 
-      const nodeWatcher = fs.watch(gitDir, (_eventType, filename) => {
-        if (filename === 'index') {
-          StagingSyncService.onIndexChanged(workspaceFolder, mcAPI);
-        }
-      });
+      let nodeWatcher: fs.FSWatcher;
+      try {
+        nodeWatcher = fs.watch(gitDir, (_eventType, filename) => {
+          if (filename === 'index') {
+            StagingSyncService.onIndexChanged(workspaceFolder, mcAPI);
+          }
+        });
+      } catch (error: unknown) {
+        // e.g. EMFILE when the OS file-watch limit is exhausted — skip this
+        // folder rather than crash activation for every folder.
+        console.error({ folderPath, error }, 'StagingSync: failed to watch .git directory');
+        return;
+      }
 
       StagingSyncService.folderWatchers.set(folderPath, nodeWatcher);
 

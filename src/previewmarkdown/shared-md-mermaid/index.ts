@@ -141,9 +141,13 @@ export function extendMarkdownItWithMermaid(md: MarkdownIt, config: { languageId
 
     const highlight = md.options.highlight;
     md.options.highlight = (code: string, lang: string, attrs: string) => {
-        const reg = new RegExp('\\b(' + config.languageIds().map(escapeRegExp).join('|') + ')\\b', 'i');
-        if (lang && reg.test(lang)) {
-            return `<pre style="all:unset;"><div class="${mermaidChartContainerClass}">${preProcess(code)}</div></pre>`;
+        const ids = config.languageIds();
+        // An empty id list must never match — '\b()\b' matches any word, misclassifying every code block.
+        if (lang && ids.length > 0) {
+            const reg = new RegExp('\\b(' + ids.map(escapeRegExp).join('|') + ')\\b', 'i');
+            if (reg.test(lang)) {
+                return `<pre style="all:unset;"><div class="${mermaidChartContainerClass}">${preProcess(code)}</div></pre>`;
+            }
         }
         return highlight?.(code, lang, attrs) ?? code;
     };

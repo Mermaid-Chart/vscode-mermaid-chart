@@ -300,7 +300,8 @@ class Analytics {
       | 'view'
       | 'editInMermaidChart'
       | 'editLocally'
-      | 'refreshList',
+      | 'refreshList'
+      | 'share',
     entryPoint: EntryPoint = 'sidebar',
     status: EventStatus = 'success',
   ) {
@@ -333,6 +334,15 @@ class Analytics {
 
   public trackEditDiagramLocally() {
     this.trackDiagramManaged('editLocally');
+  }
+
+  public trackDiagramShared(status: EventStatus, errorType?: string) {
+    this.sendEvent('VS Code Commercial Diagram Managed', 'VS_CODE_COMMERCIAL_DIAGRAM_MANAGED', {
+      action: 'share',
+      entryPoint: 'contextMenu',
+      status,
+      errorType,
+    });
   }
 
   // --- Event 6: Diagram Synced ---

@@ -1407,12 +1407,9 @@ context.subscriptions.push(
 return {
   extendMarkdownIt(md: MarkdownIt) {
       extendMarkdownItWithMermaid(md, {
-          languageIds: () => {
-              if (!context.globalState.get<boolean>("isUserLoggedIn", false)) {
-                return [];
-              }
-              return vscode.workspace.getConfiguration(configSection).get<string[]>('languages', ['mermaid']);
-          }
+          // Rendering mermaid blocks in the markdown preview must not require login.
+          languageIds: () =>
+              vscode.workspace.getConfiguration(configSection).get<string[]>('languages', ['mermaid'])
       });
       md.use(injectMermaidTheme);
       trackMarkdownMermaidPreview(md);

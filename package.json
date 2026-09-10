@@ -867,6 +867,11 @@
           "group": "link@04"
         },
         {
+          "command": "mermaidChart.shareDiagram",
+          "when": "viewItem == document",
+          "group": "link@05"
+        },
+        {
           "command": "mermaidChart.addDiagram",
           "when": "viewItem == project",
           "group": "inline@01"
@@ -1024,6 +1029,11 @@
       {
         "command": "mermaidChart.editDiagramLocally",
         "title": "Edit locally"
+      },
+      {
+        "command": "mermaidChart.shareDiagram",
+        "title": "Share diagram",
+        "icon": "$(link)"
       },
       {
         "command": "mermaidChart.syncDiagramWithMermaid",

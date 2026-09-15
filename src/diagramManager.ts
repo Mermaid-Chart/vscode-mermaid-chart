@@ -473,7 +473,7 @@ export class DiagramManager {
     )];
 
     try {
-      const { shareUrl, emailsSent } = await vscode.window.withProgress(
+      const { shareUrl } = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
           title: 'Generating share link...',
@@ -489,9 +489,9 @@ export class DiagramManager {
       analytics.trackDiagramShared('success');
 
       await vscode.env.clipboard.writeText(shareUrl);
-      const inviteSummary = emailsSent?.length
-        ? ` Invited: ${emailsSent.join(', ')}.`
-        : '';
+      // Matches the web Share modal's unconditional "Invites sent." toast (messages.ts:
+      // sendInvites.success) — neither client confirms actual per-recipient delivery.
+      const inviteSummary = emailAddresses.length > 0 ? ' Invites sent.' : '';
       const action = await vscode.window.showInformationMessage(
         `Share link copied to clipboard (${accessPick.description}).${inviteSummary}`,
         'Copy Link',

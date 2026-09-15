@@ -66,7 +66,7 @@ export class PreviewPanel {
     this.diagnosticsCollection = vscode.languages.createDiagnosticCollection("mermaid");
 
 
-    this.update();
+    this.update(true);
     this.setupListeners();
   }
 
@@ -108,7 +108,7 @@ export class PreviewPanel {
     PreviewPanel.currentPanel = new PreviewPanel(panel, document, entryPoint);
   }
 
-  private async update() {
+  private async update(includeConfiguredTheme = false) {
     const extensionPath = vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)?.extensionPath;
     const activeEditor = vscode.window.activeTextEditor;
     
@@ -153,7 +153,7 @@ export class PreviewPanel {
     const message: Record<string, unknown> = {
       type: "update",
       content:this.lastContent,
-      currentTheme,
+      ...(includeConfiguredTheme ? { currentTheme } : {}),
       vscodeThemeName,
       vscodeThemeColors,
       isFileChange: this.isFileChange,
@@ -227,19 +227,21 @@ export class PreviewPanel {
     }, this.disposables);
 
     vscode.window.onDidChangeActiveColorTheme(() => {
-      this.update(); 
+      this.update(true);
   }, this.disposables);
 
     vscode.workspace.onDidChangeConfiguration((event) => {
-      if (
+      const themeChanged =
         event.affectsConfiguration(DARK_THEME_KEY) ||
         event.affectsConfiguration(LIGHT_THEME_KEY) ||
+        event.affectsConfiguration("workbench.colorTheme");
+      if (
+        themeChanged ||
         event.affectsConfiguration(MAX_ZOOM) ||
         event.affectsConfiguration(MAX_CHAR_LENGTH) ||
-        event.affectsConfiguration(MAX_EDGES) ||
-        event.affectsConfiguration("workbench.colorTheme")
+        event.affectsConfiguration(MAX_EDGES)
       ) {
-        this.update();
+        this.update(themeChanged);
       }
     }, this.disposables);
 

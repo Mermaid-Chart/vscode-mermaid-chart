@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid",
   "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.7.7",
+  "version": "2.7.8",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -688,6 +688,11 @@
           "type": "boolean",
           "default": true,
           "description": "Prompt to install Mermaid AI Skills for GitHub Copilot (monthly until the user adds the skills)"
+        },
+        "mermaidChart.enableTelemetry": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow Mermaid to send anonymous usage analytics. Off by default. VS Code's telemetry setting must also be enabled."
         }
       }
     },
@@ -727,6 +732,13 @@
           "when": "mermaid.isLoggedIn && mermaidChart:sidebarView == feedback"
         },
         {
+          "id": "mermaidSettings",
+          "name": "Settings",
+          "type": "webview",
+          "contextualOnly": true,
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView == settings"
+        },
+        {
           "id": "mermaidWebview",
           "name": "Mermaid",
           "type": "webview",
@@ -739,7 +751,7 @@
       "view/title": [
         {
           "command": "mermaidChart.openHome",
-          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback) && mermaidChart:sidebarView != home",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback || view == mermaidSettings) && mermaidChart:sidebarView != home",
           "group": "navigation@1"
         },
         {
@@ -749,7 +761,7 @@
         },
         {
           "command": "mermaidChart.openImprove",
-          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback) && mermaidChart:sidebarView != improve",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback || view == mermaidSettings) && mermaidChart:sidebarView != improve",
           "group": "navigation@2"
         },
         {
@@ -759,7 +771,7 @@
         },
         {
           "command": "mermaidChart.openReview",
-          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback)",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback || view == mermaidSettings)",
           "group": "navigation@3"
         },
         {
@@ -769,7 +781,7 @@
         },
         {
           "command": "mermaidChart.openFeedback",
-          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback) && mermaidChart:sidebarView != feedback",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback || view == mermaidSettings) && mermaidChart:sidebarView != feedback",
           "group": "navigation@4"
         },
         {
@@ -778,14 +790,24 @@
           "group": "navigation@4"
         },
         {
-          "command": "mermaidChart.reloadSidebar",
-          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback)",
+          "command": "mermaidChart.openSettings",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback || view == mermaidSettings) && mermaidChart:sidebarView != settings",
           "group": "navigation@5"
         },
         {
-          "command": "mermaidChart.diagramHelp",
-          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback)",
+          "command": "mermaidChart.openSettingsActive",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView == settings && view == mermaidSettings",
+          "group": "navigation@5"
+        },
+        {
+          "command": "mermaidChart.reloadSidebar",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback || view == mermaidSettings)",
           "group": "navigation@6"
+        },
+        {
+          "command": "mermaidChart.diagramHelp",
+          "when": "mermaid.isLoggedIn && mermaidChart:sidebarView != review && (view == mermaidChart || view == mermaidImproveDiagram || view == mermaidFeedback || view == mermaidSettings)",
+          "group": "navigation@7"
         },
         {
           "command": "mermaidChart.reviewSyncOpenChanges",
@@ -827,6 +849,10 @@
         },
         {
           "command": "mermaidChart.openFeedbackActive",
+          "when": "false"
+        },
+        {
+          "command": "mermaidChart.openSettingsActive",
           "when": "false"
         }
       ],
@@ -1013,6 +1039,19 @@
         "command": "mermaidChart.openFeedbackActive",
         "title": "Send feedback",
         "icon": "images/icons/feedback-active.svg"
+      },
+      {
+        "command": "mermaidChart.openSettings",
+        "title": "Settings",
+        "icon": {
+          "light": "images/icons/settings-light.svg",
+          "dark": "images/icons/settings-dark.svg"
+        }
+      },
+      {
+        "command": "mermaidChart.openSettingsActive",
+        "title": "Settings",
+        "icon": "images/icons/settings-active.svg"
       },
       {
         "command": "mermaidChart.insertUuidIntoEditor",

@@ -1,6 +1,7 @@
 import httpClient from './httpClient';
 import * as vscode from 'vscode';
 import * as packageJson from '../package.json';
+import { isMermaidTelemetryEnabled } from './settings';
 
 export type LoginTrigger = 'mermaid-sidebar' | 'preview-repair' | 'pre-commit' | 'hard-login-gate';
 export type UpgradeFeature =
@@ -82,7 +83,7 @@ export interface PulseEventOptions {
 
 class Analytics {
   public sendEvent(eventName: string, eventID: string, options?: PulseEventOptions) {
-    if (!vscode.env.isTelemetryEnabled) {
+    if (!isMermaidTelemetryEnabled()) {
       return;
     }
     const analyticsID = vscode.env.machineId;

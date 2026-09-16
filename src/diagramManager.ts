@@ -483,6 +483,7 @@ export class DiagramManager {
           this.mcAPI.shareDiagram(item.uuid, {
             access: accessPick.access,
             emailAddresses: emailAddresses.length > 0 ? emailAddresses : undefined,
+            source: 'vscode',
           }),
       );
 

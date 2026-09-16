@@ -429,6 +429,102 @@ export class DiagramManager {
   }
 
   /**
+   * Share a diagram with a colleague: picks an access level, optionally
+   * invites people by email, and copies the generated link to the clipboard.
+   */
+  public async shareDiagram(item: MCTreeItem): Promise<void> {
+    if (!(item instanceof Document)) {
+      vscode.window.showErrorMessage('Only diagrams can be shared.');
+      return;
+    }
+
+    const accessPick = await vscode.window.showQuickPick(
+      [
+        { label: 'Can view', description: 'Recipients can view the diagram', access: 'View' as const },
+        { label: 'Can comment', description: 'Recipients can view and comment', access: 'Comment' as const },
+        { label: 'Can edit', description: 'Recipients can view and edit', access: 'Edit' as const },
+      ],
+      {
+        placeHolder: 'Select access level for the share link',
+        ignoreFocusOut: true,
+      }
+    );
+
+    if (!accessPick) {
+      return; // User cancelled access level selection
+    }
+
+    const emailsInput = await vscode.window.showInputBox({
+      title: 'Invite colleagues (optional)',
+      prompt: 'Enter email addresses to invite, separated by commas. Leave blank to just copy the link.',
+      placeHolder: 'colleague1@example.com, colleague2@example.com',
+      ignoreFocusOut: true,
+    });
+
+    if (emailsInput === undefined) {
+      return; // User cancelled the email prompt
+    }
+
+    const emailAddresses = [...new Set(
+      emailsInput
+        .split(',')
+        .map((email) => email.trim())
+        .filter((email) => email.length > 0),
+    )];
+
+    try {
+      const { shareUrl } = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'Generating share link...',
+          cancellable: false,
+        },
+        () =>
+          this.mcAPI.shareDiagram(item.uuid, {
+            access: accessPick.access,
+            emailAddresses: emailAddresses.length > 0 ? emailAddresses : undefined,
+            source: 'vscode',
+          }),
+      );
+
+      analytics.trackDiagramShared('success');
+
+      await vscode.env.clipboard.writeText(shareUrl);
+      // Matches the web Share modal's unconditional "Invites sent." toast (messages.ts:
+      // sendInvites.success) — neither client confirms actual per-recipient delivery.
+      const inviteSummary = emailAddresses.length > 0 ? ' Invites sent.' : '';
+      const action = await vscode.window.showInformationMessage(
+        `Share link copied to clipboard (${accessPick.description}).${inviteSummary}`,
+        'Copy Link',
+      );
+
+      if (action === 'Copy Link') {
+        await vscode.env.clipboard.writeText(shareUrl);
+      }
+    } catch (error: any) {
+      console.error('Error sharing diagram:', error);
+
+      const status = error?.status || error?.response?.status;
+      let errorMessage = `Failed to share diagram: ${error.message || error}`;
+      let errorType: string | undefined;
+
+      if (status === 404) {
+        errorType = 'notLinked';
+        errorMessage = `Cannot share "${item.title}". This diagram is not connected to Mermaid Chart.`;
+      } else if (status === 403) {
+        errorType = 'noPermission';
+        errorMessage = `You don't have permission to share "${item.title}".`;
+      } else if (!status && error?.message?.toLowerCase().includes('network')) {
+        errorType = 'offline';
+        errorMessage = 'Failed to share diagram: you appear to be offline.';
+      }
+
+      analytics.trackDiagramShared('error', errorType);
+      vscode.window.showErrorMessage(errorMessage);
+    }
+  }
+
+  /**
    * Register the diagram management commands
    */
   public static registerCommands(
@@ -509,5 +605,14 @@ export class DiagramManager {
       }
     );
     context.subscriptions.push(editDiagramLocallyCommand);
+
+    // Register share diagram command
+    const shareDiagramCommand = registerAuthenticatedCommand(
+      'mermaidChart.shareDiagram',
+      async (item: MCTreeItem) => {
+        await diagramManager.shareDiagram(item);
+      }
+    );
+    context.subscriptions.push(shareDiagramCommand);
   }
 }

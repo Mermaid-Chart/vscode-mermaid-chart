@@ -5,7 +5,7 @@ import httpClient from "../httpClient";
 import { generateFeedbackWebviewContent } from "../templates/feedbackTemplate";
 
 export const SIDEBAR_VIEW_CONTEXT_KEY = "mermaidChart:sidebarView";
-export type ChartSidebarView = "home" | "improve" | "review" | "feedback";
+export type ChartSidebarView = "home" | "improve" | "review" | "feedback" | "settings";
 
 let currentSidebarView: ChartSidebarView = "home";
 
@@ -23,6 +23,7 @@ const VIEW_FOCUS_COMMAND: Record<ChartSidebarView, string> = {
   improve: "mermaidImproveDiagram.focus",
   review: "mermaidReviewSync.focus",
   feedback: "mermaidFeedback.focus",
+  settings: "mermaidSettings.focus",
 };
 
 interface FeedbackSubmission {

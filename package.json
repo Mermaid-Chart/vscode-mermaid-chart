@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid",
   "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.7.8",
+  "version": "2.7.9",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -893,6 +893,11 @@
           "group": "link@04"
         },
         {
+          "command": "mermaidChart.shareDiagram",
+          "when": "viewItem == document",
+          "group": "link@05"
+        },
+        {
           "command": "mermaidChart.addDiagram",
           "when": "viewItem == project",
           "group": "inline@01"
@@ -1063,6 +1068,11 @@
       {
         "command": "mermaidChart.editDiagramLocally",
         "title": "Edit locally"
+      },
+      {
+        "command": "mermaidChart.shareDiagram",
+        "title": "Share diagram",
+        "icon": "$(link)"
       },
       {
         "command": "mermaidChart.syncDiagramWithMermaid",
@@ -1461,7 +1471,7 @@
     "@mermaid-chart/icons-gcp": "^1.0.0",
     "@mermaid-chart/vscode-utils": "1.5.1",
     "@mermaid-chart/layout-elk": "0.1.7-b.2",
-    "@mermaidchart/sdk": "0.2.6",
+    "@mermaidchart/sdk": "0.2.8",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",
     "@vscode/prompt-tsx": "^0.3.0-alpha.12",
     "@octokit/rest": "^22.0.0",

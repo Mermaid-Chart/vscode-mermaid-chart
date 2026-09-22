@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { MermaidChart } from "@mermaidchart/sdk";
+import { MermaidChart, type ShareDiagramRequest, type ShareDiagramResponse } from "@mermaidchart/sdk";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
 import { defaultBaseURL } from "./config";
 import { updateViewVisibility } from "./util";
@@ -116,6 +116,13 @@ export class MermaidChartVSCode extends MermaidChart {
 
   public async getAICredits(): Promise<any> {
     return this.handleApiCall(() => super.getAICredits());
+  }
+
+  public async shareDiagram(
+    documentID: string,
+    request?: ShareDiagramRequest,
+  ): Promise<ShareDiagramResponse> {
+    return this.handleApiCall(() => super.shareDiagram(documentID, request));
   }
 
   public async deleteDocument(documentID: string): Promise<any> {

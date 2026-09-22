@@ -50,6 +50,11 @@ To sign in, open the Mermaid icon in the activity bar and use **Sign in**, or **
 
 Once you are signed in, the Mermaid icon in the activity bar gives you your diagrams, Improve Diagram, Mermaid Sync review, and the feedback form. The icons in the sidebar title bar switch between these sections and give you a reload of the panel and diagram help.
 
+### Settings
+A new **Settings** section in the sidebar lets you control your privacy directly from the extension. Toggle **Enable Telemetry** to fully suppress anonymous usage analytics — no events are sent unless this setting (and VS Code's own telemetry setting) are both enabled.
+
+![Mermaid Sidebar Settings](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-settings.png)
+
 ### Home
 Home lists the projects and diagrams from your Mermaid account, so you can open, edit, link and manage them without leaving VS Code. Right-click any diagram for the full set of actions, and use the **+** button at project level to add a new diagram.
 
@@ -412,7 +417,13 @@ Manage your Mermaid diagrams effortlessly with our comprehensive right-click con
 - **Rename**: Change the diagram name with a custom title
 - **Delete**: Remove unwanted diagrams from your workspace
 - **Duplicate**: Create a copy of the diagram for variations or backup
+- **Share**: Generate a share link for the diagram, with a chosen access level and optional email invites
 ![Rigth-Click Context Menu](https://mermaid.ai/docs/img/plugins/vscode-plugin-right-click-list.png)
+
+#### Share diagram with a colleague
+Share any diagram from the sidebar without leaving VS Code. Right-click a diagram → **Share diagram**, choose an access level (**Can view**, **Can comment**, or **Can edit**), optionally enter colleagues' email addresses (comma-separated) to send them an invite, and the share link is copied to your clipboard automatically.
+
+![vscode-plugin-share-diagram](https://mermaid.ai/docs/img/plugins/vscode-plugin-share-diagram.gif)
 
 **Quick Add Diagram Feature:**
 Use the **+** button at the project level to quickly add new diagrams to your workspace.
@@ -643,6 +654,10 @@ This extension contributes the following settings:
 - `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
 
 ## Release Notes
+
+### 2.7.9 - 2026-09-22
+- Added **Share diagram** — share a diagram with a colleague from the sidebar right-click menu: pick an access level (view/comment/edit), optionally invite people by email, and the share link is copied to your clipboard.
+- Added a **`mermaidChart.enableTelemetry`** setting so you can fully suppress anonymous usage analytics — no events are captured unless it (and VS Code's own telemetry setting) are enabled.
 
 ### 2.7.8 - 2026-09-12
 - Fixed a bug Markdown rendering isuse

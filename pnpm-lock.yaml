@@ -45,8 +45,8 @@ importers:
         specifier: 0.0.1-beta.1
         version: 0.0.1-beta.1
       '@mermaidchart/sdk':
-        specifier: 0.2.6
-        version: 0.2.6
+        specifier: 0.2.8
+        version: 0.2.8
       '@octokit/rest':
         specifier: ^22.0.0
         version: 22.0.1
@@ -676,8 +676,8 @@ packages:
   '@mermaid-js/parser@1.2.0':
     resolution: {integrity: sha512-oYPyv8A4As1yH5Bx+04iQEQxXuIQDe0GKCNSRgao6z8AM9jixXIfP0vsppRLvGf+nKIOb9/LdpWA4YuJiVvESA==}
 
-  '@mermaidchart/sdk@0.2.6':
-    resolution: {integrity: sha512-/UjNL/Zk+soleYhaVjbAkJpcLtc5n3r0q0YvnNxGAzdA4eSmRNNBpDfz16ulQma98d98IX2+DECoY5G3NnxXVQ==}
+  '@mermaidchart/sdk@0.2.8':
+    resolution: {integrity: sha512-cPRhHlMMijPA/1lpPx4rJyCxaQ/zNv07JlpvUXu3oL3XT1Zg0e1WYhQw4oL+96WpxTP/G70aKd7Jbf6JLfYlVw==}
     engines: {node: ^18.18.0 || >= 20.0.0}
 
   '@nodelib/fs.scandir@2.1.5':
@@ -4014,7 +4014,7 @@ snapshots:
     dependencies:
       '@chevrotain/types': 11.1.2
 
-  '@mermaidchart/sdk@0.2.6':
+  '@mermaidchart/sdk@0.2.8':
     dependencies:
       '@badgateway/oauth2-client': 2.4.2
       axios: 1.10.0

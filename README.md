@@ -656,7 +656,7 @@ This extension contributes the following settings:
 ## Release Notes
 
 ### 2.8.0 - 2026-09-23
-- UI instruciton fixed
+- UI instruction fixed
 
 ### 2.7.9 - 2026-09-22
 - Added **Share diagram** — share a diagram with a colleague from the sidebar right-click menu: pick an access level (view/comment/edit), optionally invite people by email, and the share link is copied to your clipboard.

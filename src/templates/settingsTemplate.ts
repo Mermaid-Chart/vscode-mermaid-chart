@@ -149,9 +149,9 @@ export function generateSettingsWebviewContent(
     <div class="setting-row">
         <div>
             <p class="setting-label">Share usage analytics</p>
-            <p id="telemetryDescription" class="setting-description">Off by default. Helps us fix bugs.</p>
+            <p id="telemetryDescription" class="setting-description">On by default. Helps us fix bugs.</p>
         </div>
-        <button id="telemetryToggle" class="toggle" role="switch" aria-checked="false" aria-label="Share usage analytics"></button>
+        <button id="telemetryToggle" class="toggle" role="switch" aria-checked="true" aria-label="Share usage analytics"></button>
     </div>
 
     <a id="openSettings" class="settings-link">Open VS code Mermaid settings <span class="arrow">&#10132;</span></a>
@@ -176,7 +176,7 @@ export function generateSettingsWebviewContent(
                 telemetryToggle.setAttribute('aria-checked', String(event.data.enableTelemetry));
                 document.getElementById('telemetryDescription').textContent =
                     event.data.vscodeTelemetryEnabled
-                        ? 'Off by default. Helps us fix bugs.'
+                        ? 'on by default. Helps us fix bugs.'
                         : 'Disabled by VS Code telemetry settings.';
             }
         });

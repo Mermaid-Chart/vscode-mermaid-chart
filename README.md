@@ -51,7 +51,7 @@ To sign in, open the Mermaid icon in the activity bar and use **Sign in**, or **
 Once you are signed in, the Mermaid icon in the activity bar gives you your diagrams, Improve Diagram, Mermaid Sync review, and the feedback form. The icons in the sidebar title bar switch between these sections and give you a reload of the panel and diagram help.
 
 ### Settings
-A new **Settings** section in the sidebar lets you control your privacy directly from the extension. Toggle **Enable Telemetry** to fully suppress anonymous usage analytics — no events are sent unless this setting (and VS Code's own telemetry setting) are both enabled.
+A new **Settings** section in the sidebar lets you control your privacy directly from the extension. **Enable Telemetry** is on by default and sends usage analytics that help us find and fix bugs faster — turn it off anytime if you'd rather not share data (VS Code's own telemetry setting must also be enabled for events to be sent).
 
 ![Mermaid Sidebar Settings](https://mermaid.ai/docs/img/plugins/vscode-plugin-sidebar-settings.png)
 
@@ -655,9 +655,12 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 2.8.0 - 2026-09-23
+- UI instruciton fixed
+
 ### 2.7.9 - 2026-09-22
 - Added **Share diagram** — share a diagram with a colleague from the sidebar right-click menu: pick an access level (view/comment/edit), optionally invite people by email, and the share link is copied to your clipboard.
-- Added a **`mermaidChart.enableTelemetry`** setting so you can fully suppress anonymous usage analytics — no events are captured unless it (and VS Code's own telemetry setting) are enabled.
+- Added a **`mermaidChart.enableTelemetry`** setting, on by default, which sends usage analytics to help us fix bugs and improve the extension faster — turn it off anytime if you'd rather not share data.
 
 ### 2.7.8 - 2026-09-12
 - Fixed a bug Markdown rendering isuse

@@ -5,7 +5,7 @@ import { enableTelemetrySetting, updateTelemetrySetting } from "../settings";
 
 const EXTENSION_ID = `${packageJson.publisher}.${packageJson.name}`;
 
-/** Settings webview for sidebar mode `settings`. Telemetry toggle is off by default. */
+/** Settings webview for sidebar mode `settings`. Telemetry toggle is on by default. */
 export class MermaidSettingsWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "mermaidSettings";
 
@@ -56,7 +56,7 @@ export class MermaidSettingsWebviewProvider implements vscode.WebviewViewProvide
     if (!this._view) {
       return;
     }
-    // Reloading the settings view restores the telemetry toggle to its (off) default.
+    // Reloading the settings view restores the telemetry toggle to its (on) default.
     await updateTelemetrySetting(undefined);
     this.updateWebviewContent();
     this.postSettings();
@@ -75,7 +75,7 @@ export class MermaidSettingsWebviewProvider implements vscode.WebviewViewProvide
     const configuration = vscode.workspace.getConfiguration("mermaidChart");
     this._view?.webview.postMessage({
       command: "settingsChanged",
-      enableTelemetry: configuration.get<boolean>("enableTelemetry", false),
+      enableTelemetry: configuration.get<boolean>("enableTelemetry", true),
       vscodeTelemetryEnabled: vscode.env.isTelemetryEnabled,
     });
   }

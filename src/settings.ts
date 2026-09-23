@@ -4,11 +4,11 @@ const configSection = "mermaidChart";
 
 export const enableTelemetrySetting = `${configSection}.enableTelemetry`;
 
-/** Off by default; requires both this setting and VS Code's own telemetry level to be enabled. */
+/** On by default; requires both this setting and VS Code's own telemetry level to be enabled. */
 export function isMermaidTelemetryEnabled(): boolean {
   return (
     vscode.env.isTelemetryEnabled &&
-    vscode.workspace.getConfiguration(configSection).get<boolean>("enableTelemetry", false)
+    vscode.workspace.getConfiguration(configSection).get<boolean>("enableTelemetry", true)
   );
 }
 

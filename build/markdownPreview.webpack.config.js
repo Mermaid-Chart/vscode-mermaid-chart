@@ -24,10 +24,6 @@ module.exports = {
       "os": false
     },
     mainFields: ['module', 'main'],
-    alias: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      '@mermaid-chart/layout-elk': path.resolve(__dirname, '../node_modules/@mermaid-chart/layout-elk/dist/mermaid-layout-elk.core.mjs')
-    }
   },
   experiments: {
     topLevelAwait: true

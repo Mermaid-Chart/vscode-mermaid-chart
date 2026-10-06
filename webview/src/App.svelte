@@ -2,7 +2,6 @@
   import mermaid from '@mermaid-chart/mermaid';
   import Panzoom from '@panzoom/panzoom';
   import { onMount } from 'svelte';
-  import layouts from '@mermaid-chart/layout-elk';
   import { vscode } from './utility/vscode'
   import ErrorMessage from './ErrorMessage.svelte';
   import Sidebar from './Sidebar.svelte';
@@ -11,6 +10,7 @@
   import type { HighlightInstruction } from '../../src/commercial/sync/diagramDiffHighlighter';
   import { getThemeColors, getIconColor, type ThemeColors } from './themes/themeConfig';
   import { diagramContent as defaultDiagramContent } from './diagramData';
+  import { getMermaidRenderHost } from '../../src/previewmarkdown/shared-mermaid/renderHost';
 
   /** Matches extension postMessage payload from diagramDiffHighlighter (applyHighlights). */
   type DiffHighlightChangeType = HighlightInstruction['changeType'];
@@ -125,7 +125,6 @@
 
     async function initializeMermaid() {
       try {
-        mermaid.registerLayoutLoaders(layouts);
         mermaid.registerIconPacks([
           {
             name: 'fa',
@@ -185,6 +184,7 @@
   }
 
   let wheelHandler = null;
+  let renderSeq = 0;
 
   async function renderDiagram() {
       await initializeMermaid();
@@ -202,7 +202,9 @@
         }
         errorMessage = "";
         
-        const { svg } = await mermaid.render("diagram-graph", diagramContent);
+        // Unique id + off-screen host: ELK layout yields to paint mid-render, so mermaid must not
+        // remove the on-screen SVG (same id) or paint its temp div in the body's flex flow.
+        const { svg } = await mermaid.render(`diagram-graph-${++renderSeq}`, diagramContent, getMermaidRenderHost());
         element.innerHTML = svg;
         if (theme?.includes("dark")) {
           element.style.backgroundColor= "#1e1e1e"

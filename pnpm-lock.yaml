@@ -36,8 +36,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       '@mermaid-chart/mermaid':
-        specifier: 12.1.0-b.0
-        version: 12.1.0-b.0
+        specifier: 12.1.0-b.1
+        version: 12.1.0-b.1
       '@mermaid-chart/vscode-utils':
         specifier: 1.5.1
         version: 1.5.1(vscode@1.1.37)
@@ -163,8 +163,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       '@mermaid-chart/mermaid':
-        specifier: 12.1.0-b.0
-        version: 12.1.0-b.0
+        specifier: 12.1.0-b.1
+        version: 12.1.0-b.1
       '@panzoom/panzoom':
         specifier: ^4.5.1
         version: 4.6.0
@@ -668,8 +668,8 @@ packages:
   '@mermaid-chart/icons-gcp@1.0.0':
     resolution: {integrity: sha512-6fa2BlFQ69jKj1xyYpFlitEABTgLC8LrJhomKOo1hqfajrb77y6H+/fyN5FH3B+Gnk152IVJtr5GS1y10MTIMA==, tarball: https://npm.pkg.github.com/download/@mermaid-chart/icons-gcp/1.0.0/2b28f187affb77d80830309bae01d59af4f1e80a}
 
-  '@mermaid-chart/mermaid@12.1.0-b.0':
-    resolution: {integrity: sha512-FypsIt4uPPkqNE9z9OzhMfXbVK/uUULwN4LGSb+mjKUewfaNndC/EfXzifjjW6pePrD2TWrS66vUgQQXObhYuA==, tarball: https://npm.pkg.github.com/download/@mermaid-chart/mermaid/12.1.0-b.0/91cdb4d21dad11dd6354d3291c8eb9fb2f21c1ad}
+  '@mermaid-chart/mermaid@12.1.0-b.1':
+    resolution: {integrity: sha512-2wf8KrKzekFySTc1tHCKByN4UrjPWbJ7DyWxgZEwaxKcWBtLMMknp9+afT6ISWbop3wyvoBt9iZwtP7EhBX25Q==, tarball: https://npm.pkg.github.com/download/@mermaid-chart/mermaid/12.1.0-b.1/12ab2d6a5869af0549c5ea85d530b230bb36cbab}
     engines: {node: '>=22.12.0'}
 
   '@mermaid-chart/vscode-utils@1.5.1':
@@ -3992,7 +3992,7 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
-  '@mermaid-chart/mermaid@12.1.0-b.0':
+  '@mermaid-chart/mermaid@12.1.0-b.1':
     dependencies:
       '@braintree/sanitize-url': 7.1.2
       '@iconify/utils': 3.0.2

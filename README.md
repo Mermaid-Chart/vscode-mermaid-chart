@@ -1,13 +1,42 @@
 # Mermaid extension for Visual Studio Code
 
-The official Mermaid extension for Visual Studio Code enables developers to seamlessly create, edit, preview and integrate mermaid diagrams from within the VS Code.
+The official Mermaid extension for Visual Studio Code enables developers to seamlessly create, edit, preview and integrate mermaid diagrams from within the VS Code. It's built by the team behind [Mermaid.js](https://mermaid.js.org).
 
+Diagrams tend to go stale — the code moves on, and the diagram stays where someone left it. This extension generates diagrams from your code, fixes them when the syntax breaks, and offers to regenerate them when the code they describe changes, so your diagrams keep up with your code.
+
+## Which extension is right for you?
+
+There are two Mermaid extensions for VS Code, and they do two different jobs:
+
+- **Mermaid** (this extension): generate diagrams from your code, repair and improve them with AI, keep them in sync as your code changes, and share them with your team. Sign in with a free Mermaid account to get started.
+- **[Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview)**: our open-source previewer for diagrams you write by hand — live preview, export, and syntax highlighting. No account needed.
+
+| Feature | Mermaid | Mermaid Preview |
+|---|---|---|
+| Account | Free Mermaid account | Not needed |
+| Live preview with pan and zoom | ✓ | ✓ |
+| PNG and SVG export | ✓ | ✓ |
+| Syntax highlighting and snippets | ✓ | ✓ |
+| Mermaid rendering in Markdown preview | ✓ | ✓ |
+| Generate diagrams from code with AI | ✓ | |
+| Repair and improve diagrams with AI | ✓ | |
+| Regenerate diagrams when your code changes | ✓ | |
+| Review diagram updates from Mermaid Diagram Sync | ✓ | |
+| Cloud sync and sharing | ✓ | |
+| Theme selector and custom export backgrounds | ✓ | |
 
 ## Getting Started 🚀
 
-1. Install [Mermaid](https://marketplace.visualstudio.com/items?itemName=MermaidChart.vscode-mermaid-chart) from Marketplace
-2. Sign in with your Mermaid account, or [create a free account](https://mermaid.ai/app/sign-up) — an account is required to use this extension
-3. Want to preview Mermaid diagrams without an account? Use [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) instead
+1. Install [Mermaid](https://marketplace.visualstudio.com/items?itemName=MermaidChart.vscode-mermaid-chart) from Marketplace.
+2. Open the Mermaid icon in the activity bar and click **Sign in**. No account yet? Click **Create a free account** to sign up at [mermaid.ai](https://mermaid.ai/app/sign-up), then come back to the editor.
+3. Open a `.mmd` or `.mermaid` file, add a ```` ```mermaid ```` code block to any Markdown file, or mention `@mermaid-chart` in GitHub Copilot Chat and describe the diagram you want.
+
+### Signing in
+
+OAuth is the default: click **Sign in** and finish in your browser. If you're in a remote environment, a different IDE, or a network where OAuth is blocked, use a token instead — generate one in your [Mermaid account settings](https://mermaid.ai/app/user/settings) and paste it into the extension.
+
+> **Note**<br/>
+> Diagram generation and `@mermaid-chart` run in [GitHub Copilot Chat](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat). Improve Diagram uses the VS Code Language Model API, so it works with any supported chat extension (for example, GitHub Copilot Chat or Cursor). Repair Diagram and diagram regeneration use AI credits from your Mermaid account.
   
 ## Now with AI-Powered Diagramming! ✨
 
@@ -121,9 +150,9 @@ when:
 
 **Your Control**
 
-Currently, analytics collection cannot be disabled within the extension settings. If you have privacy concerns, you may choose not to install or use this extension.
+You can turn analytics off anytime in the sidebar's **Settings** section, or with the `mermaidChart.enableTelemetry` setting. If VS Code's own telemetry is off, ours is off too.
 
-For questions about data collection or privacy practices, contact us at [info@mermaidchart.com](mailto:privacy@mermaidchart.com).
+For questions about data collection or privacy practices, contact us at [info@mermaidchart.com](mailto:info@mermaidchart.com).
 
 
 ## Features
@@ -149,7 +178,6 @@ Currently supported diagrams and charts:
 - Quadrant
 - Requirement
 - User Journey
-- Sankey
 - XY chart
 - Kanban
 - Architecture
@@ -630,6 +658,12 @@ Once the skills are in your repo, Copilot can use Mermaid extension capabilities
 | **Mermaid: Preview Diagram** | Opens a preview of the selected Mermaid diagram within the editor. |
 | **Mermaid: Improve Diagram** | Opens the Improve diagram sidebar and generates two AI layout/styling variants for the active `.mmd` / `.mermaid` file (also available via CodeLens). |
 | **Mermaid: Repair Diagram** | Repairs Mermaid syntax errors in the active diagram using Mermaid AI (also available via CodeLens). |
+| **Mermaid: Connect Diagram** | Connects a local diagram file to your Mermaid account. |
+| **Mermaid: Generate Cloud Diagram** | Generates a cloud architecture diagram from files you select. |
+| **Mermaid: Generate ER Diagram** | Generates an entity relationship diagram from files you select. |
+| **Mermaid: Generate Docker Diagram** | Generates a Docker architecture diagram from files you select. |
+| **Mermaid: Regenerate with Mermaid AI** | Regenerates the active diagram from its linked source files. |
+| **Mermaid: Open AI Chat** | Opens Copilot Chat with `@mermaid-chart` ready to use. |
 | **Mermaid: Review Mermaid Sync** | Scans the current branch PR for [Mermaid Diagram Sync](https://github.com/marketplace/mermaid-diagram-sync) app commits and registers diagram files for review. |
 | **Mermaid: Connect GitHub for Mermaid Diagram Sync** | Signs in to GitHub (repo scope) to load PR base/head content for app review. |
 | **Mermaid: Disconnect GitHub for Mermaid Diagram Sync** | Clears this extension’s GitHub connection for app review (does not sign you out of GitHub in VS Code). |
@@ -642,18 +676,24 @@ Once the skills are in your repo, Copilot can use Mermaid extension capabilities
 ### Extension Settings
 
 This extension contributes the following settings:
-- `mermaidChart.baseUrl`: This points to the Mermaid service instance you are using; for the public service this is `https://mermaid.ai/`.
+- `mermaidChart.baseUrl`: The Mermaid service instance you connect to (default: `https://mermaid.ai`).
+- `mermaidChart.enableTelemetry`: Sends usage analytics that help us find and fix bugs faster (default: `true`). VS Code's own telemetry setting must also be enabled for events to be sent.
 - `mermaidChart.showGenerateDiagramCodeLens`: Show "Generate Mermaid Diagram" and "Open Chat @mermaid-chart" CodeLens at the bottom of supported code files (default: `true`). Set to `false` to hide CodeLens
+- `mermaidChart.preCommitSync.enabled`: Offers to regenerate diagrams when you stage source files they reference (default: `true`).
+- `mermaidChart.createDiagramFromStage.enabled`: Offers to generate a diagram for staged code that doesn't have one yet (default: `true`).
 - `mermaidChart.aiSkills.enabled`: Enable the Mermaid AI Skills Pack for GitHub Copilot (default: `true`)
 - `mermaidChart.aiSkills.promptOnDetect`: Prompt to install Mermaid AI Skills for GitHub Copilot (monthly until you add the skills)
-- `mermaid.vscode.dark`: Defines the theme used for Mermaid diagrams when VS Code is in dark mode.
-- `mermaid.vscode.light`: Defines the theme used for Mermaid diagrams when VS Code is in light mode.
-- `mermaid.vscode.maxZoom`: Sets the maximum zoom level for diagram preview (default: 10).
-- `mermaid.vscode.maxCharLength`: Sets the maximum text size limit for diagrams.
-- `mermaid.vscode.maxEdges`: Sets the maximum number of edges allowed in a diagram.
-- `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram.
+- `mermaid.vscode.dark`: Defines the theme used for Mermaid diagrams when VS Code is in dark mode (default: `redux-dark`).
+- `mermaid.vscode.light`: Defines the theme used for Mermaid diagrams when VS Code is in light mode (default: `redux`).
+- `mermaid.vscode.maxZoom`: Sets the maximum zoom level for diagram preview (default: `5`).
+- `mermaid.vscode.maxCharLength`: Sets the maximum text size limit for diagrams (default: `90000`).
+- `mermaid.vscode.maxEdges`: Sets the maximum number of edges allowed in a diagram(default: `1000`).
+- `mermaid.vscode.aiExportName`: Determines whether to use GitHub Copilot to generate a name for the exported diagram(default:`false`).
 
 ## Release Notes
+
+### 2.8.2 - 2026-10-12
+- Updated to Mermaid library version `12.1.0`
 
 ### 2.8.1 - 2026-09-23
 - Updated instruction and documents

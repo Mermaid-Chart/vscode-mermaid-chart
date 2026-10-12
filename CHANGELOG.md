@@ -1,5 +1,8 @@
 # Change Log
 
+### 2.8.2 - 2026-10-12
+- Updated to Mermaid library version `12.1.0`
+
 ### 2.8.1 - 2026-09-23
 - Updated instruction and documents
 - Suppressed an unnecessary VS Code startup warning about an unsupported API proposal 

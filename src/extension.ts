@@ -47,7 +47,13 @@ import {
 } from "./panels/feedbackPanel";
 import { MermaidSettingsWebviewProvider } from "./panels/settingsPanel";
 import analytics, { type LoginTrigger, type EntryPoint } from "./analytics";
-import { promptForLogin, registerAuthenticatedCommand, setPendingLoginTrigger } from "./loginTrigger";
+import {
+  MERMAID_PREVIEW_EXTENSION_ID,
+  promptForLogin,
+  registerAuthenticatedCommand,
+  registerPreviewCommand,
+  setPendingLoginTrigger,
+} from "./loginTrigger";
 import { showUpgradePrompt } from "./upgradePricing";
 import { RemoteSyncHandler } from "./remoteSyncHandler";
 import { registerRegenerateCommand } from './commercial/sync/regenerateCommand';
@@ -85,7 +91,6 @@ import {
 
 
 const pluginID = packageJson.name === "vscode-mermaid-chart" ?  "MERMAIDCHART_VS_CODE_PLUGIN" : "MERMAID_PREVIEW_VS_CODE_PLUGIN";
-const MERMAID_PREVIEW_EXTENSION_ID = "vstirbu.vscode-mermaid-preview";
 let diagramMappings: { [key: string]: string[] } = require('../src/diagramTypeWords.json');
 let isExtensionStarted = false;
 let appReviewFeatureInstance: AppReviewFeature | undefined;
@@ -322,15 +327,18 @@ export async function activate(context: vscode.ExtensionContext) {
   updateViewVisibility(isUserLoggedIn, mermaidWebviewProvider, mermaidChartProvider);
 
   context.subscriptions.push(
-    registerAuthenticatedCommand(
+    registerPreviewCommand(
       'mermaidChart.preview',
+      'preview.mermaidChart.preview',
       (entryPoint?: 'codeLens' | 'commandPalette') =>
         getPreview(entryPoint === 'codeLens' ? 'codeLens' : 'commandPalette'),
     ),
     // VS Code does not tell a handler which menu invoked it, so the editor context menu
     // gets its own command id to keep entry points apart in analytics.
-    registerAuthenticatedCommand('mermaidChart.previewFromContextMenu', () =>
-      getPreview("contextMenu"),
+    registerPreviewCommand(
+      'mermaidChart.previewFromContextMenu',
+      'preview.mermaidChart.previewFromContextMenu',
+      () => getPreview("contextMenu"),
     ),
   );
 
@@ -408,7 +416,17 @@ export async function activate(context: vscode.ExtensionContext) {
       if (e.affectsConfiguration("mermaidChart.showGenerateDiagramCodeLens")) {
         codeLensProvider?.refresh();
       }
-    })
+    }),
+    vscode.authentication.onDidChangeSessions((e) => {
+      if (e.provider.id === "mermaidchart") {
+        codeLensProvider?.refresh();
+      }
+    }),
+    vscode.extensions.onDidChange(() => {
+      const loggedIn = context.globalState.get<boolean>("isUserLoggedIn", false);
+      updateViewVisibility(loggedIn, mermaidWebviewProvider, mermaidChartProvider);
+      codeLensProvider?.refresh();
+    }),
   );
 
   function updateMermaidChartTokenHighlighting() {

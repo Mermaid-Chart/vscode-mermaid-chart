@@ -31,7 +31,7 @@ export class ReviewMermaidSyncTreeProvider
 
   async focusView(): Promise<void> {
     this.refresh();
-    await vscode.commands.executeCommand("workbench.view.extension.mermaidActivityBar");
+    await vscode.commands.executeCommand("workbench.view.extension.mermaidChartActivityBar");
     // The review tree is only visible in the "review" sidebar mode (GitHub icon),
     // so switch modes instead of focusing a hidden view.
     await showChartSidebarMode("review");

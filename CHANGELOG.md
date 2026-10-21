@@ -1,5 +1,8 @@
 # Change Log
 
+### 2.8.3
+- Fixed a conflict so Mermaid and Mermaid Preview can be installed together and work without overlapping commands or UI.
+
 ### 2.8.2 - 2026-10-12
 - Updated to Mermaid library version `12.1.0`
 

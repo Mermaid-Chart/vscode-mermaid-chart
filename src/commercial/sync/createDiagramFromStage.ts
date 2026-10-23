@@ -6,7 +6,7 @@ import {
   recordInteraction,
   shouldShowPrompt,
 } from './interactionCooldown';
-import { isCodingSourceFile } from './gitStageHelpers';
+import { findMermaidDiagramUris, isCodingSourceFile } from './gitStageHelpers';
 
 /** Set to false before release — when true, toast shows every time (no globalState). */
 const createDiagramFromStageAlwaysShowForTesting = false;
@@ -31,6 +31,7 @@ export class CreateDiagramFromStageService {
   static async maybeOffer(
     workspaceFolder: vscode.WorkspaceFolder,
     stagedSourcePaths: string[],
+    token?: vscode.CancellationToken,
   ): Promise<void> {
     const context = CreateDiagramFromStageService.extensionContext;
     if (!context) {
@@ -60,9 +61,17 @@ export class CreateDiagramFromStageService {
       return;
     }
 
+    if (token?.isCancellationRequested) {
+      return;
+    }
+
     const referencedPaths = await CreateDiagramFromStageService.collectReferencedSourcePaths(
       workspaceFolder,
+      token,
     );
+    if (token?.isCancellationRequested) {
+      return;
+    }
     const unlinked = codingStaged.filter(
       (p) => !referencedPaths.has(path.normalize(p)),
     );
@@ -108,13 +117,15 @@ export class CreateDiagramFromStageService {
   /** Absolute paths referenced by any .mmd/.mermaid frontmatter in the workspace. */
   private static async collectReferencedSourcePaths(
     workspaceFolder: vscode.WorkspaceFolder,
+    token?: vscode.CancellationToken,
   ): Promise<Set<string>> {
     const referenced = new Set<string>();
-    const mmdUris = await vscode.workspace.findFiles(
-      new vscode.RelativePattern(workspaceFolder, '**/*.{mmd,mermaid}'),
-    );
+    const mmdUris = await findMermaidDiagramUris(workspaceFolder, token);
 
     for (const mmdUri of mmdUris) {
+      if (token?.isCancellationRequested) {
+        return new Set();
+      }
       try {
         const bytes = await vscode.workspace.fs.readFile(mmdUri);
         const text = Buffer.from(bytes).toString('utf-8');

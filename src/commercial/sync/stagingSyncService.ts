@@ -9,6 +9,7 @@ import analytics from '../../analytics';
 import { CreateDiagramFromStageService } from './createDiagramFromStage';
 import {
   buildSourceFileContext,
+  findMermaidDiagramUris,
   getStagedPaths,
   isMermaidFile,
   readFileAsAddedContext,
@@ -33,6 +34,17 @@ export class StagingSyncService {
   private static debounceTimers = new Map<string, NodeJS.Timeout>();
   private static folderWatchers = new Map<string, fs.FSWatcher>();
   private static retryIntervals = new Map<string, NodeJS.Timeout>();
+  private static scanCancellations = new Map<string, vscode.CancellationTokenSource>();
+
+  private static cancelScan(folderPath: string): void {
+    const cts = StagingSyncService.scanCancellations.get(folderPath);
+    if (!cts) {
+      return;
+    }
+    cts.cancel();
+    cts.dispose();
+    StagingSyncService.scanCancellations.delete(folderPath);
+  }
 
   static register(context: vscode.ExtensionContext, mcAPI: MermaidChartVSCode): void {
     CreateDiagramFromStageService.register(context);
@@ -108,6 +120,7 @@ export class StagingSyncService {
             clearTimeout(timer);
             StagingSyncService.debounceTimers.delete(folderPath);
           }
+          StagingSyncService.cancelScan(folderPath);
         },
       });
     };
@@ -129,6 +142,7 @@ export class StagingSyncService {
         clearInterval(retryInterval);
         StagingSyncService.retryIntervals.delete(folderPath);
       }
+      StagingSyncService.cancelScan(folderPath);
     };
 
     (vscode.workspace.workspaceFolders ?? []).forEach(setupWatcher);
@@ -145,6 +159,7 @@ export class StagingSyncService {
     mcAPI: MermaidChartVSCode,
   ): void {
     const key = workspaceFolder.uri.fsPath;
+    StagingSyncService.cancelScan(key);
     const existing = StagingSyncService.debounceTimers.get(key);
     if (existing) clearTimeout(existing);
 
@@ -160,35 +175,59 @@ export class StagingSyncService {
     mcAPI: MermaidChartVSCode,
   ): Promise<void> {
     const repoRoot = workspaceFolder.uri.fsPath;
+    const key = repoRoot;
+    StagingSyncService.cancelScan(key);
+    const cts = new vscode.CancellationTokenSource();
+    StagingSyncService.scanCancellations.set(key, cts);
+    const token = cts.token;
 
-    const stagedPaths = await getStagedPaths(repoRoot);
-    if (stagedPaths === null) {
-      console.error({ repoRoot }, 'StagingSync: failed to get staged files');
-      return;
-    }
+    try {
+      const stagedPaths = await getStagedPaths(repoRoot);
+      if (token.isCancellationRequested) {
+        return;
+      }
+      if (stagedPaths === null) {
+        console.error({ repoRoot }, 'StagingSync: failed to get staged files');
+        return;
+      }
 
-    // Staging events that only contain .mmd/.mermaid files aren't source changes
-    // that drive diagram work.
-    const sourceStagedPaths = stagedPaths.filter((p) => !isMermaidFile(p));
-    if (sourceStagedPaths.length === 0) {
-      return;
-    }
+      // Staging events that only contain .mmd/.mermaid files aren't source changes
+      // that drive diagram work.
+      const sourceStagedPaths = stagedPaths.filter((p) => !isMermaidFile(p));
+      if (sourceStagedPaths.length === 0) {
+        return;
+      }
 
-    // Path 1 — regenerate existing linked diagrams (preCommitSync.enabled)
-    const regenerateEnabled = vscode.workspace
-      .getConfiguration('mermaidChart')
-      .get<boolean>('preCommitSync.enabled', true);
-    if (regenerateEnabled) {
-      await StagingSyncService.handleRegeneratePath(
+      // Path 1 — regenerate existing linked diagrams (preCommitSync.enabled)
+      const regenerateEnabled = vscode.workspace
+        .getConfiguration('mermaidChart')
+        .get<boolean>('preCommitSync.enabled', true);
+      if (regenerateEnabled) {
+        await StagingSyncService.handleRegeneratePath(
+          workspaceFolder,
+          sourceStagedPaths,
+          stagedPaths.filter(isMermaidFile),
+          mcAPI,
+          token,
+        );
+      }
+
+      if (token.isCancellationRequested) {
+        return;
+      }
+
+      // Path 2 — create diagram from stage for unlinked staged coding files
+      await CreateDiagramFromStageService.maybeOffer(
         workspaceFolder,
         sourceStagedPaths,
-        stagedPaths.filter(isMermaidFile),
-        mcAPI,
+        token,
       );
+    } finally {
+      if (StagingSyncService.scanCancellations.get(key) === cts) {
+        StagingSyncService.scanCancellations.delete(key);
+      }
+      cts.dispose();
     }
-
-    // Path 2 — create diagram from stage for unlinked staged coding files
-    await CreateDiagramFromStageService.maybeOffer(workspaceFolder, sourceStagedPaths);
   }
 
   private static async handleRegeneratePath(
@@ -196,15 +235,19 @@ export class StagingSyncService {
     sourceStagedPaths: string[],
     stagedMmdFiles: string[],
     mcAPI: MermaidChartVSCode,
+    token: vscode.CancellationToken,
   ): Promise<void> {
     const repoRoot = workspaceFolder.uri.fsPath;
+    if (token.isCancellationRequested) {
+      return;
+    }
 
     // A review session is already open — accepting/rejecting/reverting a diagram moves the
     // git index, and re-prompting mid-review would regenerate on top of the open review.
     const reviewCount = await vscode.commands.executeCommand<number>(
       'mermaidChart.diagramReviewCount',
     );
-    if (reviewCount) {
+    if (reviewCount || token.isCancellationRequested) {
       return;
     }
 
@@ -233,25 +276,38 @@ export class StagingSyncService {
       {
         location: vscode.ProgressLocation.Notification,
         title: 'Mermaid: Scanning staged files for diagram sync...',
-        cancellable: false,
+        cancellable: true,
       },
-      async () => {
-        affected = await StagingSyncService.findAffectedDiagrams(
-          workspaceFolder,
-          sourceStagedPaths,
-          stagedMmdPaths,
-        );
-        if (affected.length === 0) return;
+      async (_progress, progressToken) => {
+        const cancelFromUi = progressToken.onCancellationRequested(() => {
+          StagingSyncService.cancelScan(repoRoot);
+        });
+        try {
+          if (token.isCancellationRequested) {
+            return;
+          }
+          affected = await StagingSyncService.findAffectedDiagrams(
+            workspaceFolder,
+            sourceStagedPaths,
+            stagedMmdPaths,
+            token,
+          );
+          if (affected.length === 0 || token.isCancellationRequested) {
+            return;
+          }
 
-        sourceFilesContext = await StagingSyncService.buildSourceFilesContext(
-          repoRoot,
-          affected,
-        );
+          sourceFilesContext = await StagingSyncService.buildSourceFilesContext(
+            repoRoot,
+            affected,
+          );
+        } finally {
+          cancelFromUi.dispose();
+        }
       },
     );
 
     // Phase 2: show the info toast only after the scanning notification is gone.
-    if (affected.length > 0) {
+    if (affected.length > 0 && !token.isCancellationRequested) {
       await StagingSyncService.showSyncPopup(affected, sourceFilesContext, mcAPI);
     }
   }
@@ -264,13 +320,15 @@ export class StagingSyncService {
     workspaceFolder: vscode.WorkspaceFolder,
     stagedPaths: string[],
     stagedMmdPaths: Set<string>,
+    token: vscode.CancellationToken,
   ): Promise<AffectedDiagram[]> {
-    const mmdUris = await vscode.workspace.findFiles(
-      new vscode.RelativePattern(workspaceFolder, '**/*.{mmd,mermaid}'),
-    );
+    const mmdUris = await findMermaidDiagramUris(workspaceFolder, token);
     const affected: AffectedDiagram[] = [];
 
     for (const mmdUri of mmdUris) {
+      if (token.isCancellationRequested) {
+        return [];
+      }
       // If the diagram file itself is already staged, it was already updated — skip.
       if (stagedMmdPaths.has(mmdUri.fsPath)) continue;
 

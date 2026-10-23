@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import * as vscode from 'vscode';
 
 const execFileAsync = promisify(execFile);
 const GIT_TIMEOUT_MS = 5000;
@@ -31,6 +32,43 @@ export function isCodingSourceFile(filePath: string): boolean {
 
 export function isMermaidFile(filePath: string): boolean {
   return filePath.endsWith('.mmd') || filePath.endsWith('.mermaid');
+}
+
+/** Always skip node_modules; also honor files.exclude and search.exclude. */
+export function mermaidDiagramScanExclude(): string {
+  const patterns = new Set<string>(['**/node_modules/**', '**/.git/**']);
+  const filesExclude =
+    vscode.workspace.getConfiguration('files').get<Record<string, unknown>>('exclude') ?? {};
+  const searchExclude =
+    vscode.workspace.getConfiguration('search').get<Record<string, unknown>>('exclude') ?? {};
+  for (const [pattern, enabled] of Object.entries({ ...filesExclude, ...searchExclude })) {
+    if (enabled) {
+      patterns.add(pattern);
+    }
+  }
+  return `{${[...patterns].join(',')}}`;
+}
+
+export async function findMermaidDiagramUris(
+  workspaceFolder: vscode.WorkspaceFolder,
+  token?: vscode.CancellationToken,
+): Promise<vscode.Uri[]> {
+  if (token?.isCancellationRequested) {
+    return [];
+  }
+  try {
+    return await vscode.workspace.findFiles(
+      new vscode.RelativePattern(workspaceFolder, '**/*.{mmd,mermaid}'),
+      mermaidDiagramScanExclude(),
+      undefined,
+      token,
+    );
+  } catch (error) {
+    if (token?.isCancellationRequested || error instanceof vscode.CancellationError) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 /** Run a git command asynchronously. Returns stdout/stderr or null on failure. */

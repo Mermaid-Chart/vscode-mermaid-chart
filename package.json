@@ -590,10 +590,19 @@
         "mermaid.vscode.dark": {
           "type": "string",
           "enum": [
+            "mc",
+            "neo",
             "neo-dark",
+            "default",
+            "forest",
+            "base",
+            "dark",
+            "neutral",
+            "null",
+            "redux",
             "redux-dark",
-            "redux-dark-color",
-            "dark"
+            "redux-color",
+            "redux-dark-color"
           ],
           "default": "redux-dark",
           "description": "Default mermaid theme used for dark theme"
@@ -601,15 +610,19 @@
         "mermaid.vscode.light": {
           "type": "string",
           "enum": [
+            "mc",
             "neo",
-            "redux",
-            "null",
+            "neo-dark",
             "default",
-            "base",
             "forest",
+            "base",
+            "dark",
             "neutral",
+            "null",
+            "redux",
+            "redux-dark",
             "redux-color",
-            "mc"
+            "redux-dark-color"
           ],
           "default": "redux",
           "description": "Default mermaid theme used for light theme"

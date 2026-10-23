@@ -11,6 +11,7 @@
   import { getThemeColors, getIconColor, type ThemeColors } from './themes/themeConfig';
   import { diagramContent as defaultDiagramContent } from './diagramData';
   import { getMermaidRenderHost } from '../../src/previewmarkdown/shared-mermaid/renderHost';
+  import { prepareLogosIcons } from '../../src/previewmarkdown/shared-mermaid/prepareLogosIcons';
 
   /** Matches extension postMessage payload from diagramDiffHighlighter (applyHighlights). */
   type DiffHighlightChangeType = HighlightInstruction['changeType'];
@@ -144,7 +145,7 @@
           },
           {
             name: 'logos',
-            loader: () => import('@iconify-json/logos').then((module) => module.icons),
+            loader: () => import('@iconify-json/logos').then((module) => prepareLogosIcons(module.icons)),
           },
           {
             name: 'mdi',

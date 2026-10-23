@@ -348,10 +348,24 @@ export async function insertMermaidChartToken(
 }
 
 
+export function isMermaidPreviewExtensionInstalled(): boolean {
+  return !!vscode.extensions.getExtension("vstirbu.vscode-mermaid-preview");
+}
+
+/**
+ * PLUG-145: activity-bar icons stay visible for both extensions.
+ * When Chart is signed out and Preview is installed, preferPreview steers
+ * menus/CodeLens to Preview; Chart sidebar still shows the login webview.
+ */
 export function updateViewVisibility(isLoggedIn: boolean,webviewProvider?: MermaidWebviewProvider,mermaidChartProvider?: MermaidChartProvider) {
-  vscode.commands.executeCommand("setContext", "mermaid.showChart", isLoggedIn);
-  vscode.commands.executeCommand("setContext", "mermaid.showWebview", !isLoggedIn);
-  vscode.commands.executeCommand("setContext", "mermaid.isLoggedIn", isLoggedIn);
+  const previewInstalled = isMermaidPreviewExtensionInstalled();
+  const preferPreview = previewInstalled && !isLoggedIn;
+
+  void vscode.commands.executeCommand("setContext", "mermaid.previewInstalled", previewInstalled);
+  void vscode.commands.executeCommand("setContext", "mermaid.preferPreview", preferPreview);
+  void vscode.commands.executeCommand("setContext", "mermaid.showChart", isLoggedIn);
+  void vscode.commands.executeCommand("setContext", "mermaid.showWebview", !isLoggedIn);
+  void vscode.commands.executeCommand("setContext", "mermaid.isLoggedIn", isLoggedIn);
   // Leave feedback webview only while logged in; collapse back to tree/home.
   void setChartSidebarView("home");
   if (isLoggedIn) {

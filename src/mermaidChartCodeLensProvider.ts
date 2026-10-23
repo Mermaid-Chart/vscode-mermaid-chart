@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as vscode from "vscode";
-import {  applyGutterIconDecoration, isAuxFile, MermaidChartToken } from "./util";
+import { applyGutterIconDecoration, isAuxFile, isMermaidPreviewExtensionInstalled, MermaidChartToken } from "./util";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
 import { extractIdFromCode, extractMetadataFromCode, checkReferencedFiles, findDiagramContentStartPosition } from "./frontmatter";
 
@@ -12,6 +12,7 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
 
   setMermaidChartTokens(mermaidChartTokens: MermaidChartToken[]) {
     this.mermaidChartTokens = mermaidChartTokens;
+    this._onDidChangeCodeLenses.fire();
   }
 
   refresh(): void {
@@ -29,6 +30,11 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
       [],
       { silent: true }
     );
+
+    // Preview owns CodeLens UI while Chart is installed but the user is signed out.
+    if (!session && isMermaidPreviewExtensionInstalled()) {
+      return [];
+    }
 
     if (document.languageId.startsWith("mermaid")) {
       this.provideCodeLensesForMermaid(document, codeLenses, session);

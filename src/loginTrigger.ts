@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import analytics, { type LoginTrigger } from './analytics';
 
+/** Marketplace id for the open Mermaid Preview extension (PLUG-145 handoff). */
+export const MERMAID_PREVIEW_EXTENSION_ID = 'vstirbu.vscode-mermaid-preview';
+
 let pendingLoginTrigger: LoginTrigger | undefined;
 
 export function setPendingLoginTrigger(trigger: LoginTrigger): void {
@@ -67,5 +70,41 @@ export function registerAuthenticatedCommand(
       return;
     }
     return callback(...args);
+  });
+}
+
+/**
+ * Preview entry points: signed-in users stay on Chart; signed-out users with
+ * Mermaid Preview installed are handed off so Preview works without login (PLUG-145).
+ */
+export function registerPreviewCommand(
+  command: string,
+  previewFallbackCommand: string,
+  callback: (...args: any[]) => any,
+): vscode.Disposable {
+  return vscode.commands.registerCommand(command, async (...args: any[]) => {
+    if (await isSignedIn()) {
+      return callback(...args);
+    }
+
+    const previewExt = vscode.extensions.getExtension(MERMAID_PREVIEW_EXTENSION_ID);
+    if (previewExt) {
+      try {
+        if (!previewExt.isActive) {
+          await previewExt.activate();
+        }
+        return await vscode.commands.executeCommand(previewFallbackCommand);
+      } catch (error) {
+        console.log(
+          { error, previewFallbackCommand },
+          'PLUG-145: Preview handoff failed; falling back to login prompt',
+        );
+      }
+    }
+
+    await promptForLogin(
+      'hard-login-gate',
+      'Sign in to Mermaid to use this functionality. Use Mermaid Preview if you want to continue without an account.',
+    );
   });
 }

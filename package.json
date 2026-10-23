@@ -3,7 +3,7 @@
   "publisher": "MermaidChart",
   "displayName": "Mermaid",
   "description": "The official Mermaid Editor plugin by the Mermaid open source team, now with AI-powered diagramming! Create, edit and preview diagrams seamlessly within VS Code",
-  "version": "2.8.2",
+  "version": "2.8.3",
   "icon": "images/mermaid-chart.png",
   "repository": "github:Mermaid-Chart/vscode-mermaid-chart",
   "engines": {
@@ -712,14 +712,14 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "mermaidActivityBar",
+          "id": "mermaidChartActivityBar",
           "title": "Mermaid",
           "icon": "images/mermaid-icon-32-preview.svg"
         }
       ]
     },
     "views": {
-      "mermaidActivityBar": [
+      "mermaidChartActivityBar": [
         {
           "id": "mermaidChart",
           "name": "Mermaid",
@@ -845,6 +845,30 @@
       ],
       "commandPalette": [
         {
+          "command": "mermaidChart.preview",
+          "when": "!mermaid.preferPreview"
+        },
+        {
+          "command": "mermaidChart.connectDiagramToMermaidChart",
+          "when": "!mermaid.preferPreview"
+        },
+        {
+          "command": "mermaidChart.createMermaidFile",
+          "when": "!mermaid.preferPreview"
+        },
+        {
+          "command": "mermaidChart.improveDiagram",
+          "when": "!mermaid.preferPreview"
+        },
+        {
+          "command": "mermaidChart.repairDiagram",
+          "when": "!mermaid.preferPreview"
+        },
+        {
+          "command": "mermaidChart.syncDiagramWithMermaid",
+          "when": "!mermaid.preferPreview"
+        },
+        {
           "command": "mermaidChart.previewFromContextMenu",
           "when": "false"
         },
@@ -951,17 +975,17 @@
       "editor/context": [
         {
           "command": "mermaidChart.previewFromContextMenu",
-          "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/",
+          "when": "(resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/) && !mermaid.preferPreview",
           "group": "navigation"
         },
         {
           "command": "mermaidChart.connectDiagramToMermaidChart",
-          "when": "(resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/) && !mermaid.hasId",
+          "when": "(resourceExtname =~ /^\\.(mmd|mermaid)$/ || resourceLangId =~ /^mermaid/) && !mermaid.hasId && !mermaid.preferPreview",
           "group": "navigation"
         },
         {
           "command": "mermaidChart.reviewAppCommits",
-          "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/",
+          "when": "resourceExtname =~ /^\\.(mmd|mermaid)$/ && !mermaid.preferPreview",
           "group": "appReview"
         }
       ]

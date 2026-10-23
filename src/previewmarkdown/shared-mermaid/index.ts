@@ -1,6 +1,7 @@
 import mermaid, { MermaidConfig } from '@mermaid-chart/mermaid';
 import { mermaidChartContainerSelector } from "../shared-md-mermaid";
 import { getMermaidRenderHost } from "./renderHost";
+import { prepareLogosIcons } from "./prepareLogosIcons";
 
 
 interface RenderedDiagram {
@@ -132,7 +133,7 @@ export async function registerMermaidAddons() {
         },
         {
             name: 'logos',
-            loader: () => import('@iconify-json/logos').then((module) => module.icons),
+            loader: () => import('@iconify-json/logos').then((module) => prepareLogosIcons(module.icons)),
           },
           {
             name: 'mdi',

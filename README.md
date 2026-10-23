@@ -474,11 +474,11 @@ When a  user modifies an existing diagram, before saving it to Mermaid, it smart
 ### Pre-commit Diagram Regeneration
 Keep your Mermaid diagrams in sync with your code — automatically, before every commit.
 
-- **Automatic Staging Detection**: Whenever you run `git add`, the extension watches for staged source files that are referenced by any `.mmd` or `.mermaid` diagram in your workspace. No manual trigger needed.<br>
+- **Automatic Staging Detection**: The extension watches `.git/index` (updated by `git add`, `git status`, `git diff`, and similar). When staged source files are referenced by any `.mmd` or `.mermaid` diagram in your workspace, it offers to regenerate those diagrams. No manual trigger needed.<br>
 - **Smart Notification Popup**: As soon as relevant staged files are detected, a VS Code notification appears listing the affected diagrams and asking whether you want to regenerate them using Mermaid AI — right before you commit, so your diagrams never lag behind your code.<br>
 - **Powered by Mermaid AI**: Clicking **Regenerate** calls the Mermaid AI regeneration API. Updated diagrams are written to disk and opened in **Review Mermaid Sync** so you can Accept, Reject, or review each change before you commit. AI credits are deducted the same way as in the [Mermaid Diagram Sync GitHub App](https://github.com/marketplace/mermaid-diagram-sync).<br>
 - **Login Prompt**: If you are not signed in to Mermaid, the popup offers a quick login link instead of regenerating.<br>
-- **Opt-out Anytime**: Can be turned off via Settings → **Mermaid: Pre Commit Sync Enabled**.<br>
+- **Opt-out Anytime**: Turn off via Settings → **Mermaid: Pre Commit Sync Enabled** (`mermaidChart.preCommitSync.enabled`).<br>
 
 #### Review regenerated diagrams
 After regenerate, each affected diagram appears in the **Review Mermaid Sync** sidebar (same list UI used for GitHub Sync review):
@@ -498,11 +498,11 @@ Visualize code you're about to commit — even before a diagram exists for it.
 
 When you stage source files that are not yet referenced by any `.mmd` or `.mermaid` diagram in your workspace, the extension detects them and offers to generate a brand-new diagram using Generate Diagram From Code — without blocking your commit.
 
-- **Automatic Detection**: Every time you run `git add`, the extension checks your staged coding files (TypeScript, Python, Java, Go,....) against all Mermaid diagrams in the workspace. If any staged file has no linked diagram, a soft notification appears.<br>
+- **Automatic Detection**: On `.git/index` writes (including `git add`), the extension checks your staged coding files (TypeScript, Python, Java, Go,....) against all Mermaid diagrams in the workspace. If any staged file has no linked diagram, a soft notification appears.<br>
 - **One-Click Generation**: Click **Generate** in the notification and the extension automatically opens the Copilot chat with `@mermaid-chart /generate_diagram_from_code`, pre-seeding all the unlinked staged file paths as references — no manual file selection needed.<br>
 - **Choose Your Diagram Type**: Once the chat opens, you can pick the diagram type (flowchart, class diagram, sequence diagram, and more) and the AI generates the appropriate Mermaid syntax instantly.<br>
 - **Smart Frequency Limit**: The popup shows up to 2 times across interactions. After that, it enters a quiet period of approximately one month — whether you clicked Generate or dismissed it — so it never becomes intrusive.<br>
-- **Opt-out Anytime**: Can be turned off permanently via Settings → **Mermaid: Create Diagram From Stage Enabled**.<br>
+- **Opt-out Anytime**: Turn off permanently via Settings → **Mermaid: Create Diagram From Stage Enabled** (`mermaidChart.createDiagramFromStage.enabled`).<br>
 - **Never Blocks Commit**: This is a soft, non-modal notification only. Your staging and commit flow is never interrupted regardless of your choice.<br>
 
 ![vscode-plugin-create-diagram-from-stage](https://mermaid.ai/docs/img/plugins/vscode-plugin-create-diagram-from-stage.gif)

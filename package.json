@@ -964,11 +964,6 @@
         "command": "mermaidChart.syncDiagramWithMermaid",
         "when": "editorLangId =~ /^mermaid/",
         "mac": "cmd+s"
-      },
-      {
-        "command": "mermaidChart.showCompletions",
-        "key": "ctrl+shift+k",
-        "when": "editorLangId =~ /^mermaid/"
       }
     ],
     "commands": [
@@ -1140,10 +1135,6 @@
         "command": "mermaidChart.deleteDiagram",
         "title": "Delete",
         "icon": "$(trash)"
-      },
-      {
-        "command": "mermaidChart.showCompletions",
-        "title": "Trigger Mermaid Completions"
       },
       {
         "command": "mermaidChart.openCopilotChat",

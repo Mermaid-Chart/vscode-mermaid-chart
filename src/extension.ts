@@ -1033,18 +1033,6 @@ context.subscriptions.push(
   );
   context.subscriptions.push(provider);
 
-  // const triggerCompletions = vscode.commands.registerCommand(
-  //   'mermaidChart.showCompletions',
-  //   () => {
-  //       const editor = vscode.window.activeTextEditor;
-  //       if (editor) {
-  //           vscode.commands.executeCommand('editor.action.triggerSuggest');
-  //       }
-  //   }
-  // );
-
-  // context.subscriptions.push(provider, triggerCompletions);
-
   console.log("Mermaid Charts view registered");
 
   context.subscriptions.push(

@@ -692,8 +692,12 @@ This extension contributes the following settings:
 
 ## Release Notes
 
-### 2.8.3
+### 2.8.3 - 2026-10-26
 - Fixed a conflict so Mermaid and Mermaid Preview can be installed together and work without overlapping commands or UI.
+- Preview theme settings (`mermaid.vscode.dark` / `mermaid.vscode.light`) now accept any Mermaid theme, so you can use a light preview while VS Code is dark (and the reverse).
+- Architecture diagrams now render `logos:google-cloud-functions` and `logos:nextjs-icon` instead of blank icons.
+- Staging sync no longer walks `node_modules` and cancels overlapping scans, so `git add` on large repos does not peg the CPU.
+- Copilot cloud architecture, Docker architecture, and ER diagram file pickers no longer stop at 99 files.
 
 ### 2.8.2 - 2026-10-12
 - Updated to Mermaid library version `12.1.0`

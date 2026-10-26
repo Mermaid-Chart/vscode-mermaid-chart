@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { generateWebviewContent } from "../templates/loginTemplate";
 import { generateAuthOptionsContent } from "../templates/authOptionsTemplate";
 import analytics from "../analytics";
-import { setPendingLoginTrigger } from "../loginTrigger";
+import { isPreviewExtensionInstalled, setPendingLoginTrigger } from "../loginTrigger";
 import { getBaseUrl } from "../mermaidChartVSCode";
 import { utmSource } from "../mermaidChartAuthenticationProvider";
 
@@ -84,7 +84,11 @@ export class MermaidWebviewProvider implements vscode.WebviewViewProvider {
     if (this._view) {
       switch (this.currentState) {
         case 'login':
-          this._view.webview.html = generateWebviewContent(this._view.webview, this.context.extensionUri);
+          this._view.webview.html = generateWebviewContent(
+            this._view.webview,
+            this.context.extensionUri,
+            isPreviewExtensionInstalled(),
+          );
           break;
         case 'authOptions':
           this._view.webview.html = generateAuthOptionsContent(this._view.webview, this.context.extensionUri);

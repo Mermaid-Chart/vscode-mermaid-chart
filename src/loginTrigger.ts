@@ -5,9 +5,37 @@ import analytics, { type LoginTrigger } from './analytics';
 export const MERMAID_PREVIEW_EXTENSION_ID = 'vstirbu.vscode-mermaid-preview';
 
 let pendingLoginTrigger: LoginTrigger | undefined;
+let signedInCache = false;
+const signedInChangeEmitter = new vscode.EventEmitter<boolean>();
+
+/** Fired after the signed-in flag is updated, so Preview can re-evaluate ownership. */
+export const onDidChangeSignIn = signedInChangeEmitter.event;
 
 export function setPendingLoginTrigger(trigger: LoginTrigger): void {
   pendingLoginTrigger = trigger;
+}
+
+export function setSignedInCache(value: boolean): void {
+  signedInCache = value;
+  signedInChangeEmitter.fire(value);
+}
+
+export function disposeSignedInEmitter(): void {
+  signedInChangeEmitter.dispose();
+}
+
+/** Sync snapshot for markdown-it plugins (those callbacks cannot await getSession). */
+export function getSignedInSync(): boolean {
+  return signedInCache;
+}
+
+export function isPreviewExtensionInstalled(): boolean {
+  return !!vscode.extensions.getExtension(MERMAID_PREVIEW_EXTENSION_ID);
+}
+
+/** Chart renders markdown when signed in, or when Preview is not installed. */
+export function shouldChartHandleMarkdownPreview(): boolean {
+  return signedInCache || !isPreviewExtensionInstalled();
 }
 
 export function getPendingLoginTrigger(): LoginTrigger {
@@ -38,12 +66,10 @@ export async function promptForLogin(
   }
 
   analytics.trackHardLoginPromptShown(trigger);
-  const selection = await vscode.window.showInformationMessage(
-    message,
-    'Show more',
-    'Get the extension',
-    'Discard',
-  );
+  const actions = isPreviewExtensionInstalled()
+    ? (['Show more', 'Discard'] as const)
+    : (['Show more', 'Get the extension', 'Discard'] as const);
+  const selection = await vscode.window.showInformationMessage(message, ...actions);
 
   if (selection === 'Show more') {
     analytics.trackShowMoreClick();

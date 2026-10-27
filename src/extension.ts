@@ -49,10 +49,14 @@ import { MermaidSettingsWebviewProvider } from "./panels/settingsPanel";
 import analytics, { type LoginTrigger, type EntryPoint } from "./analytics";
 import {
   MERMAID_PREVIEW_EXTENSION_ID,
+  disposeSignedInEmitter,
+  getSignedInSync,
+  onDidChangeSignIn,
   promptForLogin,
   registerAuthenticatedCommand,
   registerPreviewCommand,
   setPendingLoginTrigger,
+  shouldChartHandleMarkdownPreview,
 } from "./loginTrigger";
 import { showUpgradePrompt } from "./upgradePricing";
 import { RemoteSyncHandler } from "./remoteSyncHandler";
@@ -1429,11 +1433,14 @@ context.subscriptions.push(
 );
 
 return {
+  isSignedIn: getSignedInSync,
+  onDidChangeSignIn,
   extendMarkdownIt(md: MarkdownIt) {
       extendMarkdownItWithMermaid(md, {
           // Rendering mermaid blocks in the markdown preview must not require login.
           languageIds: () =>
-              vscode.workspace.getConfiguration(configSection).get<string[]>('languages', ['mermaid'])
+              vscode.workspace.getConfiguration(configSection).get<string[]>('languages', ['mermaid']),
+          shouldHandle: shouldChartHandleMarkdownPreview,
       });
       md.use(injectMermaidTheme);
       trackMarkdownMermaidPreview(md);
@@ -1446,6 +1453,7 @@ return {
 export function deactivate() {
   clearTmLanguageCache();
   clearDiagramImprovementCache();
+  disposeSignedInEmitter();
   aiToolsRegistered = false;
   appReviewFeatureInstance = undefined;
 }

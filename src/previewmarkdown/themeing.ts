@@ -1,5 +1,6 @@
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
+import { shouldChartHandleMarkdownPreview } from '../loginTrigger';
 import { configSection } from '../util';
 import { prepareMermaidChartHtml } from './shared-md-mermaid';
 
@@ -28,6 +29,9 @@ export function injectMermaidTheme(md: MarkdownIt) {
     const render = md.renderer.render;
 
     md.renderer.render = function (...args) {
+        if (!shouldChartHandleMarkdownPreview()) {
+            return render.apply(md.renderer, args);
+        }
         const config = vscode.workspace.getConfiguration(configSection);
         const darkModeTheme = sanitizeMermaidTheme(config.get<string>('vscode.dark'));
         const lightModeTheme = sanitizeMermaidTheme(config.get<string>('vscode.light'));

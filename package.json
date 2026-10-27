@@ -993,14 +993,9 @@
     "keybindings": [
       {
         "key": "ctrl+s",
+        "mac": "cmd+s",
         "command": "mermaidChart.syncDiagramWithMermaid",
-        "when": "editorLangId =~ /^mermaid/"
-      },
-      {
-        "key": "cmd+s",
-        "command": "mermaidChart.syncDiagramWithMermaid",
-        "when": "editorLangId =~ /^mermaid/",
-        "mac": "cmd+s"
+        "when": "editorLangId =~ /^mermaid/ && mermaid.isLoggedIn"
       }
     ],
     "commands": [
@@ -1497,7 +1492,7 @@
     "@iconify-json/logos": "^1.2.4",
     "@iconify-json/mdi": "^1.2.3",
     "@mermaid-chart/icons-gcp": "^1.0.0",
-    "@mermaid-chart/vscode-utils": "1.5.1",
+    "@mermaid-chart/vscode-utils": "1.5.2",
     "@mermaidchart/sdk": "0.2.8",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",
     "@vscode/prompt-tsx": "^0.3.0-alpha.12",

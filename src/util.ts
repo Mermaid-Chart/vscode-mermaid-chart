@@ -16,6 +16,7 @@ const activeListeners = new Map<string, vscode.Disposable>();
 const REOPEN_CHECK_DELAY_MS = 500; // Delay before checking if temp file is reopened
 import { MermaidWebviewProvider } from "./panels/loginPanel";
 import { setChartSidebarView } from "./panels/feedbackPanel";
+import { setSignedInCache } from "./loginTrigger";
 import { getSampleDiagrams } from "./constants/diagramTemplates";
 const DARK_BACKGROUND = "rgba(176, 19, 74, 0.5)"; // #B0134A with 50% opacity
 const LIGHT_BACKGROUND = "#FDE0EE";
@@ -358,6 +359,7 @@ export function isMermaidPreviewExtensionInstalled(): boolean {
  * menus/CodeLens to Preview; Chart sidebar still shows the login webview.
  */
 export function updateViewVisibility(isLoggedIn: boolean,webviewProvider?: MermaidWebviewProvider,mermaidChartProvider?: MermaidChartProvider) {
+  setSignedInCache(isLoggedIn);
   const previewInstalled = isMermaidPreviewExtensionInstalled();
   const preferPreview = previewInstalled && !isLoggedIn;
 

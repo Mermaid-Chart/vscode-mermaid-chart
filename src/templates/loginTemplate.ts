@@ -2,7 +2,8 @@ import * as vscode from "vscode";
 
 export function generateWebviewContent(
   webview: vscode.Webview,
-  extensionUri: vscode.Uri
+  extensionUri: vscode.Uri,
+  previewInstalled = false,
 ): string {
   const logoSrc = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, "images", "panel.svg")
@@ -215,8 +216,10 @@ export function generateWebviewContent(
         </section>
 
         <p class="preview-alternative">
-          Just want preview?<br>
-          <a class="preview-link" id="getPreviewExtension">Get Mermaid Preview extension →</a>
+          ${previewInstalled
+            ? 'Mermaid Preview is already installed. Use it to preview diagrams without signing in.'
+            : `Just want preview?<br>
+          <a class="preview-link" id="getPreviewExtension">Get Mermaid Preview extension →</a>`}
         </p>
     </div>
     <script>
@@ -230,7 +233,7 @@ export function generateWebviewContent(
             vscode.postMessage({ command: 'signIn' });
         });
 
-        document.getElementById('getPreviewExtension').addEventListener('click', () => {
+        document.getElementById('getPreviewExtension')?.addEventListener('click', () => {
             vscode.postMessage({ command: 'getPreviewExtension' });
         });
     </script>

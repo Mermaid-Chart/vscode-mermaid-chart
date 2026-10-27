@@ -1,5 +1,8 @@
+import "./httpSetup";
 import * as vscode from "vscode";
 import * as path from "path";
+import { applyAxiosNetworkConfig, configureExtensionHttp } from "./httpSetup";
+import httpClient from "./httpClient";
 import type MarkdownIt from 'markdown-it';
 import { MermaidChartProvider, MCTreeItem, getAllTreeViewProjectsCache, getProjectIdForDocument, Document, getDiagramFromCache, updateDiagramInCache } from "./mermaidChartProvider";
 import { MermaidChartVSCode } from "./mermaidChartVSCode";
@@ -182,6 +185,15 @@ function registerAppReviewFeatureOnce(context: vscode.ExtensionContext): void {
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("Activating Mermaid Chart extension");
+  configureExtensionHttp();
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("http")) {
+        configureExtensionHttp();
+        applyAxiosNetworkConfig(httpClient);
+      }
+    }),
+  );
   setReviewDiagramExtensionPath(context.extensionUri.fsPath);
 
   initializePlugin(pluginID);
@@ -232,6 +244,15 @@ export async function activate(context: vscode.ExtensionContext) {
   await setChartSidebarView("home");
 
   const mcAPI = new MermaidChartVSCode();
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("http")) {
+        applyAxiosNetworkConfig(
+          (mcAPI as unknown as { axios?: import("axios").AxiosInstance }).axios,
+        );
+      }
+    }),
+  );
   
   // Set the API instance for PreviewPanel to use for repair functionality
   PreviewPanel.setMcAPI(mcAPI);

@@ -250,6 +250,24 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mermaidChart.toggleMarkdownPreview', async () => {
+      const config = vscode.workspace.getConfiguration('mermaidChart');
+      const enabled = config.get<boolean>('markdownPreview.enabled', true);
+      await config.update(
+        'markdownPreview.enabled',
+        !enabled,
+        vscode.ConfigurationTarget.Global,
+      );
+      void vscode.window.showInformationMessage(
+        !enabled
+          ? 'Mermaid will render diagrams in Markdown preview. Reopen the preview to apply.'
+          : 'Mermaid Markdown rendering is off. VS Code can render mermaid fences instead.',
+      );
+      await vscode.commands.executeCommand('markdown.preview.refresh');
+    })
+  );
+
   // Add manual token validation command
   context.subscriptions.push(
     vscode.commands.registerCommand('mermaidChart.validateManualToken', async (token: string) => {

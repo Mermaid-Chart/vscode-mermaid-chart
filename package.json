@@ -706,6 +706,11 @@
           "type": "boolean",
           "default": true,
           "description": "Allow Mermaid to send anonymous usage analytics. On by default. VS Code's telemetry setting must also be enabled."
+        },
+        "mermaidChart.markdownPreview.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Render Mermaid diagrams in VS Code's Markdown preview. Turn off to use VS Code's built-in Mermaid renderer (1.121+) instead."
         }
       }
     },
@@ -1274,6 +1279,10 @@
       {
         "command": "mermaidChart.disconnectGitHub",
         "title": "Mermaid: Disconnect GitHub for Mermaid Diagram Sync"
+      },
+      {
+        "command": "mermaidChart.toggleMarkdownPreview",
+        "title": "Mermaid: Toggle Markdown Preview Rendering"
       }
     ],
     "chatParticipants": [
@@ -1462,6 +1471,7 @@
   },
   "devDependencies": {
     "@types/axios": "^0.14.4",
+    "@types/express": "^5.0.0",
     "@types/glob": "^8.1.0",
     "@types/markdown-it": "^14.1.2",
     "@types/mocha": "^10.0.1",
@@ -1480,30 +1490,30 @@
     "ts-loader": "^9.5.2",
     "typescript": "^4.9.5",
     "webpack": "^5.99.5",
-    "webpack-cli": "^6.0.1",
-    "@types/express": "^5.0.0"
+    "webpack-cli": "^6.0.1"
   },
   "dependencies": {
     "@fontsource-variable/recursive": "^5.1.1",
     "@fontsource/recursive": "^5.1.1",
     "@iconify-json/fa6-regular": "^1.2.0",
-    "@mermaid-chart/icons-aws": "^1.0.1",
-    "@mermaid-chart/icons-azure": "^1.0.0",
     "@iconify-json/logos": "^1.2.4",
     "@iconify-json/mdi": "^1.2.3",
+    "@mermaid-chart/icons-aws": "^1.0.1",
+    "@mermaid-chart/icons-azure": "^1.0.0",
     "@mermaid-chart/icons-gcp": "^1.0.0",
+    "@mermaid-chart/mermaid": "12.1.0-b.1",
     "@mermaid-chart/vscode-utils": "1.5.2",
+    "@mermaid-js/examples": "0.0.1-beta.1",
     "@mermaidchart/sdk": "0.2.8",
+    "@octokit/rest": "^22.0.0",
+    "@panzoom/panzoom": "^4.5.1",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.1",
     "@vscode/prompt-tsx": "^0.3.0-alpha.12",
-    "@octokit/rest": "^22.0.0",
     "axios": "^1.7.9",
     "markdown-it": "^14.1.0",
-    "@mermaid-chart/mermaid": "12.1.0-b.1",
-    "@mermaid-js/examples": "0.0.1-beta.1",
+    "puppeteer": "^23.11.1",
     "uuid": "^9.0.0",
-    "yaml": "^2.7.0",
-    "puppeteer": "^23.11.1"
+    "yaml": "^2.7.0"
   },
   "packageManager": "pnpm@9.7.1+sha512.faf344af2d6ca65c4c5c8c2224ea77a81a5e8859cbc4e06b1511ddce2f0151512431dd19e6aff31f2c6a8f5f2aced9bd2273e1fed7dd4de1868984059d2c4247",
   "enabledApiProposals": [

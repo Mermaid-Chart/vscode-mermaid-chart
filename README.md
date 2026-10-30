@@ -408,7 +408,14 @@ This gives a unique opportunity for the users, they can now preview and edit the
 ![Auto-Detect Mermaid diagrams in Markdown files](https://mermaid.ai/docs/img/plugins/vscode-plugin-markdown-view.png)
 
 ### Mermaid Diagram Preview in Markdown File
-This extension enables **live preview of Mermaid diagrams** directly within the **Markdown preview** in VS Code. No need to leave your editor!
+Mermaid fences in a `.md` file render in VS Code's Markdown preview. Hover a diagram to use the same controls as the diagram preview:
+
+- **Theme** and **Export** (SVG or PNG) 
+- **Pan**, **Zoom in**, **Zoom out**, and **Fit** 
+
+The diagram box background follows the theme: dark themes use a dark background, and the others use white. A syntax error replaces the diagram with the error message. 
+
+Turn this renderer off with **Mermaid: Toggle Markdown Preview Rendering**, or with **Mermaid: Markdown Preview Enabled** (`mermaidChart.markdownPreview.enabled`). When it is off, VS Code's built-in Mermaid renderer is used instead. The command and the setting stay in sync.
 ![Markdown Preview](https://mermaid.ai/docs/img/plugins/vscode-plugin-markdown-mermaid-preview.png)
 
 ### Support .mmd file extension as Mermaid Markdown file
@@ -671,6 +678,7 @@ Once the skills are in your repo, Copilot can use Mermaid extension capabilities
 | **Mermaid: Accept App Review** / **Reject App Review** | Accept or reject the app proposal for the file under review (also available via CodeLens). |
 | **Mermaid: Generate Diagram from Code** | Opens GitHub Copilot Chat and runs `@mermaid-chart /generate_diagram_from_code` to generate a Mermaid diagram from the active code file. |
 | **Mermaid: Install AI Skills for GitHub Copilot** | Adds Mermaid AI Skills to the workspace so GitHub Copilot can use extension commands and LM tools for diagram workflows. |
+| **Mermaid: Toggle Markdown Preview Rendering** | Turns Mermaid rendering in the Markdown preview on or off. Off leaves rendering to VS Code's built-in Mermaid preview. |
 
 
 ### Extension Settings
@@ -683,6 +691,7 @@ This extension contributes the following settings:
 - `mermaidChart.createDiagramFromStage.enabled`: Offers to generate a diagram for staged code that doesn't have one yet (default: `true`).
 - `mermaidChart.aiSkills.enabled`: Enable the Mermaid AI Skills Pack for GitHub Copilot (default: `true`)
 - `mermaidChart.aiSkills.promptOnDetect`: Prompt to install Mermaid AI Skills for GitHub Copilot (monthly until you add the skills)
+- `mermaidChart.markdownPreview.enabled`: Renders Mermaid diagrams in VS Code's Markdown preview (default: `true`). Turn off to use VS Code's built-in Mermaid renderer instead. The command **Mermaid: Toggle Markdown Preview Rendering** changes this setting.
 - `mermaid.vscode.dark`: Defines the Mermaid theme used when VS Code is in dark mode (default: `redux-dark`). Any Mermaid theme can be selected, including light themes.
 - `mermaid.vscode.light`: Defines the Mermaid theme used when VS Code is in light mode (default: `redux`). Any Mermaid theme can be selected, including dark themes.
 - `mermaid.vscode.maxZoom`: Sets the maximum zoom level for diagram preview (default: `5`).

@@ -1,119 +1,69 @@
 import mermaid, { MermaidConfig } from '@mermaid-chart/mermaid';
-import { mermaidChartContainerSelector } from "../shared-md-mermaid";
 import { getMermaidRenderHost } from "./renderHost";
 import { prepareLogosIcons } from "./prepareLogosIcons";
 
 
-interface RenderedDiagram {
+export interface RenderedDiagram {
     svg: string;
     bindFunctions?: (element: Element) => void;
 }
 
-/** Last successful render per (theme, source), so unchanged diagrams are restored synchronously. */
-let renderCache = new Map<string, RenderedDiagram>();
-/** Last SVG per diagram position, kept on screen while an edited diagram re-renders. */
-let lastSvgByIndex: string[] = [];
+let mermaidRenderLock: Promise<void> = Promise.resolve();
+let mermaidRenderSeq = 0;
 
-function readSource(mermaidContainer: HTMLElement): string {
-    // Ignore a previous render (svg / error) that may still be inside the container.
-    return Array.from(mermaidContainer.childNodes)
-        .filter((n) => !(n instanceof SVGElement) && !(n instanceof HTMLElement && n.classList.contains('mermaid-error')))
-        .map((n) => n.textContent ?? '')
-        .join('');
+function isMissingSvgAttrError(error: unknown): boolean {
+    return error instanceof Error && error.message.includes('getAttribute');
 }
 
-function renderMermaidElement(
-    mermaidContainer: HTMLElement,
-    index: number,
-    nextCache: Map<string, RenderedDiagram>,
-    writeOut: (mermaidContainer: HTMLElement, content: string) => void,
-): {
-    containerId: string;
-    p: Promise<void>;
-} {
-    const containerId = `mermaid-container-${crypto.randomUUID()}`;
-    const diagramId = `mermaid-${crypto.randomUUID()}`;
+function isAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === 'AbortError'
+        || error instanceof Error && error.name === 'AbortError';
+}
 
-    const source = readSource(mermaidContainer);
-    const cacheKey = `${mermaid.mermaidAPI.getConfig().theme ?? ''}\n${source}`;
-    mermaidContainer.id = containerId;
+function nextDiagramId(): string {
+    return `mcmd${++mermaidRenderSeq}`;
+}
 
-    const cached = renderCache.get(cacheKey);
-    if (cached) {
-        nextCache.set(cacheKey, cached);
-        writeOut(mermaidContainer, cached.svg);
-        cached.bindFunctions?.(mermaidContainer);
-        return { containerId, p: Promise.resolve() };
-    }
-
-    // Layout (ELK) can span several frames: keep the previous diagram visible instead of a blank box.
-    const existingSvg = mermaidContainer.querySelector(':scope > svg');
-    if (existingSvg) {
-        mermaidContainer.replaceChildren(existingSvg);
-    } else if (lastSvgByIndex[index]) {
-        writeOut(mermaidContainer, lastSvgByIndex[index]);
-    } else {
-        mermaidContainer.innerHTML = '';
-    }
-
-    return {
-        containerId,
-        p: (async () => {
-            try {
-                // Catch any parsing errors
-                await mermaid.parse(source);
-
-                //  Render the diagram off-screen, then swap it in
-                const renderResult = await mermaid.render(diagramId, source, getMermaidRenderHost());
-                nextCache.set(cacheKey, { svg: renderResult.svg, bindFunctions: renderResult.bindFunctions });
-                lastSvgByIndex[index] = renderResult.svg;
-                writeOut(mermaidContainer, renderResult.svg);
-                renderResult.bindFunctions?.(mermaidContainer);
-            } catch (error) {
-                if (error instanceof Error) {
-                    const errorMessageNode = document.createElement('pre');
-                    errorMessageNode.className = 'mermaid-error';
-                    errorMessageNode.innerText = error.message;
-                    writeOut(mermaidContainer, errorMessageNode.outerHTML);
-                }
-
+/** One mermaid.render at a time, same host as the .mmd preview. Retry the first-load getAttribute miss. */
+export async function renderMermaidSource(source: string, signal?: AbortSignal): Promise<RenderedDiagram> {
+    const run = async (): Promise<RenderedDiagram> => {
+        if (signal?.aborted) {
+            throw new DOMException('Aborted', 'AbortError');
+        }
+        const host = getMermaidRenderHost();
+        const attempt = async () => mermaid.render(nextDiagramId(), source, host);
+        try {
+            const result = await attempt();
+            if (signal?.aborted) {
+                throw new DOMException('Aborted', 'AbortError');
+            }
+            return { svg: result.svg, bindFunctions: result.bindFunctions };
+        } catch (error) {
+            if (isAbortError(error) || !isMissingSvgAttrError(error)) {
                 throw error;
             }
-        })()
+            await new Promise<void>((resolve) => {
+                requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+            });
+            if (signal?.aborted) {
+                throw new DOMException('Aborted', 'AbortError');
+            }
+            const result = await attempt();
+            return { svg: result.svg, bindFunctions: result.bindFunctions };
+        }
     };
+    const done = mermaidRenderLock.then(run, run);
+    mermaidRenderLock = done.then(() => undefined, () => undefined);
+    return done;
 }
 
-export async function renderMermaidBlocksInElement(root: HTMLElement, writeOut: (mermaidContainer: HTMLElement, content: string) => void): Promise<void> {
-    for (const svg of Array.from(root.querySelectorAll('svg'))) {
-        if (svg.parentElement?.id.startsWith('dmermaid')) {
-            svg.parentElement.remove();
-        }
-    }
-
-    const containers = Array.from(root.querySelectorAll<HTMLElement>(mermaidChartContainerSelector));
-    const nextCache = new Map<string, RenderedDiagram>();
-    lastSvgByIndex = lastSvgByIndex.slice(0, containers.length);
-
-    // We need to generate all the container ids sync, but then do the actual rendering async
-    const renderPromises: Array<Promise<void>> = [];
-    containers.forEach((mermaidContainer, index) => {
-        renderPromises.push(renderMermaidElement(mermaidContainer, index, nextCache, writeOut).p);
-    });
-
-    try {
-        for (const p of renderPromises) {
-            await p;
-        }
-    } finally {
-        // Only keep entries for diagrams still in the document.
-        renderCache = nextCache;
-    }
-}
-
-
+let addonsRegistered = false;
 
 export async function registerMermaidAddons() {
- 
+    if (addonsRegistered) {
+        return;
+    }
+    addonsRegistered = true;
     mermaid.registerIconPacks([
         {
           name: 'fa',

@@ -33,8 +33,14 @@ export function isPreviewExtensionInstalled(): boolean {
   return !!vscode.extensions.getExtension(MERMAID_PREVIEW_EXTENSION_ID);
 }
 
-/** Chart renders markdown when signed in, or when Preview is not installed. */
+/** Chart renders markdown when the setting is on, and (signed in or Preview is not installed). */
 export function shouldChartHandleMarkdownPreview(): boolean {
+  const enabled = vscode.workspace
+    .getConfiguration('mermaidChart')
+    .get<boolean>('markdownPreview.enabled', true);
+  if (!enabled) {
+    return false;
+  }
   return signedInCache || !isPreviewExtensionInstalled();
 }
 

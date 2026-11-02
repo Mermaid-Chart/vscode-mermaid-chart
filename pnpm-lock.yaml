@@ -50,6 +50,9 @@ importers:
       '@octokit/rest':
         specifier: ^22.0.0
         version: 22.0.1
+      '@panzoom/panzoom':
+        specifier: ^4.5.1
+        version: 4.6.0
       '@vscode/chat-extension-utils':
         specifier: ^0.0.0-alpha.1
         version: 0.0.0-alpha.5

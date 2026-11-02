@@ -65,7 +65,6 @@ export function applyAxiosNetworkConfig(instance?: AxiosInstance): void {
 
 export function configureExtensionHttp(): void {
   applyAxiosNetworkConfig();
-  configureFetchDispatcher();
 }
 
 export function wrapNetworkError(error: unknown): unknown {
@@ -122,46 +121,6 @@ function configureAxiosInstance(
   } else if (tlsOpts.ca) {
     instance.defaults.httpAgent = new http.Agent(tlsOpts);
     instance.defaults.httpsAgent = new https.Agent(tlsOpts);
-  }
-}
-
-function configureFetchDispatcher(): void {
-  const settings = resolveNetworkSettings();
-  const tlsOpts = buildTlsOptions(settings);
-  try {
-    // Node 18+ (recent VS Code). Ignore on older extension hosts.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const undici = require("node:undici") as {
-      setGlobalDispatcher: (dispatcher: unknown) => void;
-      ProxyAgent: new (opts: unknown) => unknown;
-      Agent: new (opts: unknown) => unknown;
-    };
-    if (settings.proxy) {
-      undici.setGlobalDispatcher(
-        new undici.ProxyAgent({
-          uri: settings.proxy,
-          requestTls: {
-            rejectUnauthorized: settings.strictSSL,
-            ca: tlsOpts.ca,
-          },
-          connect: {
-            rejectUnauthorized: settings.strictSSL,
-            ca: tlsOpts.ca,
-          },
-        }),
-      );
-    } else if (tlsOpts.ca) {
-      undici.setGlobalDispatcher(
-        new undici.Agent({
-          connect: {
-            rejectUnauthorized: settings.strictSSL,
-            ca: tlsOpts.ca,
-          },
-        }),
-      );
-    }
-  } catch {
-    // fetch dispatcher is best-effort; axios still covers REST calls.
   }
 }
 

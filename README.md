@@ -701,11 +701,12 @@ This extension contributes the following settings:
 
 ## Release Notes
 
-### 2.8.4 - 2026-10-27
-- Updated the Alana Mermaid library
-- Login, diagram sync, and AI features now honor VS Code's `http.proxy` setting and the `HTTPS_PROXY` / `HTTP_PROXY` environment variables, so they work behind a corporate proxy.
-- Custom TLS inspection CAs are loaded from `NODE_EXTRA_CA_CERTS`.
-- Proxy and certificate failures now show a clear error instead of failing silently.
+### 2.8.4 - 2026-11-02
+- Login, diagram sync, and AI features now follow VS Code's `http.proxy` (and `HTTPS_PROXY` / `HTTP_PROXY`). Failures show a clear error instead of failing silently.
+- Markdown preview diagrams now have the diagram preview controls: theme, SVG and PNG export, pan, zoom in, zoom out, and fit.
+- The diagram box background follows the selected theme.
+- A syntax error is shown in the diagram, replacing the last render.
+- Added **Mermaid: Toggle Markdown Preview Rendering** and `mermaidChart.markdownPreview.enabled` (on by default). Turn it off to use VS Code's built-in Mermaid renderer instead.
 
 ### 2.8.3 - 2026-10-26
 - Fixed a conflict so Mermaid and Mermaid Preview can be installed together and work without overlapping commands or UI.

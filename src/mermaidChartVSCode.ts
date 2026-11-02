@@ -1,5 +1,8 @@
+import "./httpSetup";
 import * as vscode from "vscode";
 import { MermaidChart, type ShareDiagramRequest, type ShareDiagramResponse } from "@mermaidchart/sdk";
+import type { AxiosInstance } from "axios";
+import { applyAxiosNetworkConfig, wrapNetworkError } from "./httpSetup";
 import { MermaidChartAuthenticationProvider } from "./mermaidChartAuthenticationProvider";
 import { defaultBaseURL } from "./config";
 import { updateViewVisibility } from "./util";
@@ -22,6 +25,7 @@ export class MermaidChartVSCode extends MermaidChart {
       clientID,
       requestTimeout,
     });
+    applyAxiosNetworkConfig(sdkAxios(this));
   }
 
   public async initialize(context: vscode.ExtensionContext, mermaidWebviewProvider?: MermaidWebviewProvider, mermaidChartProvider?: MermaidChartProvider) {
@@ -43,7 +47,7 @@ export class MermaidChartVSCode extends MermaidChart {
         await this.handleUnauthorizedError();
         throw error;
       }
-      throw error;
+      throw wrapNetworkError(error);
     }
   }
 
@@ -86,6 +90,14 @@ export class MermaidChartVSCode extends MermaidChart {
   }
 
   // Override API methods with error handling
+  public async getUser(): Promise<any> {
+    return this.handleApiCall(() => super.getUser());
+  }
+
+  public async getRawDocument(document: any, theme: "dark" | "light"): Promise<any> {
+    return this.handleApiCall(() => super.getRawDocument(document, theme));
+  }
+
   public async getProjects(): Promise<any> {
     return this.handleApiCall(() => super.getProjects());
   }
@@ -116,6 +128,10 @@ export class MermaidChartVSCode extends MermaidChart {
 
   public async getAICredits(): Promise<any> {
     return this.handleApiCall(() => super.getAICredits());
+  }
+
+  public async handleAuthorizationResponse(url: string): Promise<void> {
+    return this.handleApiCall(() => super.handleAuthorizationResponse(url));
   }
 
   public async shareDiagram(
@@ -259,13 +275,19 @@ export class MermaidChartVSCode extends MermaidChart {
   private async refreshBaseURL() {
     const baseURL = getBaseUrl();
     this.setBaseURL(baseURL);
+    applyAxiosNetworkConfig(sdkAxios(this));
     if (baseURL) {
       httpClient.defaults.baseURL = baseURL.replace(/\/$/, '');
+      applyAxiosNetworkConfig(httpClient);
       setHttpClientBaseUrl(baseURL);
     }
   }
 }
 
+
+function sdkAxios(api: MermaidChart): AxiosInstance | undefined {
+  return (api as unknown as { axios?: AxiosInstance }).axios;
+}
 
 export function getBaseUrl(): string | undefined {
   const config = vscode.workspace.getConfiguration("mermaidChart");

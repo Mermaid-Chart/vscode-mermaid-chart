@@ -299,6 +299,10 @@ export class MermaidChartProvider
         MermaidChartProvider.isSyncing = false;
         return projects;
       });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      void vscode.window.showErrorMessage(message);
+      throw error;
     } finally {
       MermaidChartProvider.isSyncing = false;
       console.log('ending MermaidChartProvider.isSyncing', MermaidChartProvider.isSyncing);

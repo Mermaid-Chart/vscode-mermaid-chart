@@ -1,5 +1,11 @@
 # Change Log
 
+### 2.8.4 - 2026-10-27
+- Updated the Alana Mermaid library
+- Login, diagram sync, and AI features now honor VS Code's `http.proxy` setting and the `HTTPS_PROXY` / `HTTP_PROXY` environment variables, so they work behind a corporate proxy.
+- Custom TLS inspection CAs are loaded from `NODE_EXTRA_CA_CERTS`.
+- Proxy and certificate failures now show a clear error instead of failing silently.
+
 ### 2.8.3 - 2026-10-26
 - Fixed a conflict so Mermaid and Mermaid Preview can be installed together and work without overlapping commands or UI.
 - Preview theme settings (`mermaid.vscode.dark` / `mermaid.vscode.light`) now accept any Mermaid theme, so you can use a light preview while VS Code is dark (and the reverse).

@@ -24,7 +24,7 @@
     "@mermaid-chart/icons-aws": "^1.0.1",
     "@mermaid-chart/icons-azure": "^1.0.0",
     "@mermaid-chart/icons-gcp": "^1.0.0",
-    "@mermaid-chart/mermaid": "12.1.0-b.1",
+    "@mermaid-chart/mermaid": "12.2.0-b.1",
     "@panzoom/panzoom": "^4.5.1",
     "js-base64": "^3.7.5",
     "vscode": "^1.1.37"

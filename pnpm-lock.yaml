@@ -36,8 +36,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       '@mermaid-chart/mermaid':
-        specifier: 12.1.0-b.1
-        version: 12.1.0-b.1
+        specifier: 12.2.0-b.1
+        version: 12.2.0-b.1
       '@mermaid-chart/vscode-utils':
         specifier: 1.5.2
         version: 1.5.2(vscode@1.1.37)
@@ -59,6 +59,12 @@ importers:
       axios:
         specifier: ^1.7.9
         version: 1.10.0
+      http-proxy-agent:
+        specifier: '7'
+        version: 7.0.2
+      https-proxy-agent:
+        specifier: '7'
+        version: 7.0.6
       markdown-it:
         specifier: ^14.1.0
         version: 14.1.0
@@ -163,8 +169,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       '@mermaid-chart/mermaid':
-        specifier: 12.1.0-b.1
-        version: 12.1.0-b.1
+        specifier: 12.2.0-b.1
+        version: 12.2.0-b.1
       '@panzoom/panzoom':
         specifier: ^4.5.1
         version: 4.6.0
@@ -668,8 +674,8 @@ packages:
   '@mermaid-chart/icons-gcp@1.0.0':
     resolution: {integrity: sha512-6fa2BlFQ69jKj1xyYpFlitEABTgLC8LrJhomKOo1hqfajrb77y6H+/fyN5FH3B+Gnk152IVJtr5GS1y10MTIMA==, tarball: https://npm.pkg.github.com/download/@mermaid-chart/icons-gcp/1.0.0/2b28f187affb77d80830309bae01d59af4f1e80a}
 
-  '@mermaid-chart/mermaid@12.1.0-b.1':
-    resolution: {integrity: sha512-2wf8KrKzekFySTc1tHCKByN4UrjPWbJ7DyWxgZEwaxKcWBtLMMknp9+afT6ISWbop3wyvoBt9iZwtP7EhBX25Q==, tarball: https://npm.pkg.github.com/download/@mermaid-chart/mermaid/12.1.0-b.1/12ab2d6a5869af0549c5ea85d530b230bb36cbab}
+  '@mermaid-chart/mermaid@12.2.0-b.1':
+    resolution: {integrity: sha512-/v3+gsJXoF8A8sMXKoKrdCEBUfEv6mp+/J2So4Qgi93nzcoYk8x9LMmsWRT5UjkjFusaWGhYICy4iTTOkryk+g==, tarball: https://npm.pkg.github.com/download/@mermaid-chart/mermaid/12.2.0-b.1/dfdf7e7bef93d7d9961265472c012601e4cd9349}
     engines: {node: '>=22.12.0'}
 
   '@mermaid-chart/vscode-utils@1.5.2':
@@ -1581,6 +1587,10 @@ packages:
     resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
     engines: {node: '>=18'}
 
+  commander@15.0.0:
+    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+    engines: {node: '>=22.12.0'}
+
   commander@2.15.1:
     resolution: {integrity: sha512-VlfT9F3V0v+jr4yxPc5gg9s62/fIVWsd2Bk2iD435um1NlGMYdVCq+MjcXnhYq2icNOizHr1kK+5TI6H0Hy0ag==}
 
@@ -1594,10 +1604,6 @@ packages:
   commander@7.2.0:
     resolution: {integrity: sha512-QrWXB+ZQSVPmIWIhtEO9H+gwHaMGYiF5ChvoJ+K9ZGHG/sVsa6yiesAD1GC/x46sET00Xlwo1u49RVVVzvcSkw==}
     engines: {node: '>= 10'}
-
-  commander@8.3.0:
-    resolution: {integrity: sha512-OkTL9umf+He2DZkUq8f8J9of7yL6RJKI24dVITBmNfZBmri9zYZQrKkuXiKhyfPSu8tUhnVBB1iKXevvnlR4Ww==}
-    engines: {node: '>= 12'}
 
   concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
@@ -1651,8 +1657,8 @@ packages:
     peerDependencies:
       cytoscape: ^3.2.0
 
-  cytoscape@3.34.0:
-    resolution: {integrity: sha512-62rNSrioXw93uliKFBwjukeQyeWwH2PqDrTac31r2P6464u3AUvTk0xS4LVvT251g7IgkFunrI48ZEZGjywSOg==}
+  cytoscape@3.34.4:
+    resolution: {integrity: sha512-msY99tMY8iWTg+sIPGfSqDcPNOt4xcj+v/K/7qUFaCUxxlqnMkUYLBjRUzn9W5CU/R2hrmtJa5+UtovrEM2ctg==}
     engines: {node: '>=0.10'}
 
   d3-array@2.12.1:
@@ -2501,8 +2507,8 @@ packages:
   jws@3.2.2:
     resolution: {integrity: sha512-YHlZCB6lMTllWDtSPHz/ZXTsi8S00usEV6v1tjq8tOUZzw7DpSDWVXjXDre6ed1w/pd495ODpHZYSdkRTsa0HA==}
 
-  katex@0.16.47:
-    resolution: {integrity: sha512-Eeo8Ys1doU1z+x8AZsPpQu+p/QcZBI5PeOo7QGQdy2x2m0MU/hYagBbGOmXwr5KVbEfVuWv9LpnQWeehogurjg==}
+  katex@0.18.10:
+    resolution: {integrity: sha512-/B6p9eY9DX7aHBfpkHdpirDTZ5QH9xTwL9y837PWuzuv41O5jFdqNQwVQEQsimY0/iVNkwBY4+4hMfhQ7d4Dbw==}
     hasBin: true
 
   keytar@7.9.0:
@@ -3998,7 +4004,7 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
-  '@mermaid-chart/mermaid@12.1.0-b.1':
+  '@mermaid-chart/mermaid@12.2.0-b.1':
     dependencies:
       '@braintree/sanitize-url': 7.1.2
       '@iconify/utils': 3.0.2
@@ -4007,9 +4013,9 @@ snapshots:
       '@upsetjs/venn.js': 2.0.0
       antlr4ng: 3.0.16
       chevrotain: 13.2.0
-      cytoscape: 3.34.0
-      cytoscape-cose-bilkent: 4.1.0(cytoscape@3.34.0)
-      cytoscape-fcose: 2.2.0(cytoscape@3.34.0)
+      cytoscape: 3.34.4
+      cytoscape-cose-bilkent: 4.1.0(cytoscape@3.34.4)
+      cytoscape-fcose: 2.2.0(cytoscape@3.34.4)
       d3: 7.9.0
       d3-sankey: 0.12.3
       dagre-d3-es: 7.0.14
@@ -4017,7 +4023,7 @@ snapshots:
       dompurify: 3.4.16
       elkjs: 0.9.3
       es-toolkit: 1.49.0
-      katex: 0.16.47
+      katex: 0.18.10
       khroma: 2.1.0
       marked: 16.3.0
       roughjs: 4.6.6
@@ -5040,6 +5046,8 @@ snapshots:
 
   commander@12.1.0: {}
 
+  commander@15.0.0: {}
+
   commander@2.15.1: {}
 
   commander@2.20.3: {}
@@ -5047,8 +5055,6 @@ snapshots:
   commander@6.2.1: {}
 
   commander@7.2.0: {}
-
-  commander@8.3.0: {}
 
   concat-map@0.0.1: {}
 
@@ -5093,17 +5099,17 @@ snapshots:
 
   css-what@6.2.2: {}
 
-  cytoscape-cose-bilkent@4.1.0(cytoscape@3.34.0):
+  cytoscape-cose-bilkent@4.1.0(cytoscape@3.34.4):
     dependencies:
       cose-base: 1.0.3
-      cytoscape: 3.34.0
+      cytoscape: 3.34.4
 
-  cytoscape-fcose@2.2.0(cytoscape@3.34.0):
+  cytoscape-fcose@2.2.0(cytoscape@3.34.4):
     dependencies:
       cose-base: 2.2.0
-      cytoscape: 3.34.0
+      cytoscape: 3.34.4
 
-  cytoscape@3.34.0: {}
+  cytoscape@3.34.4: {}
 
   d3-array@2.12.1:
     dependencies:
@@ -6020,9 +6026,9 @@ snapshots:
       jwa: 1.4.2
       safe-buffer: 5.2.1
 
-  katex@0.16.47:
+  katex@0.18.10:
     dependencies:
-      commander: 8.3.0
+      commander: 15.0.0
 
   keytar@7.9.0:
     dependencies:

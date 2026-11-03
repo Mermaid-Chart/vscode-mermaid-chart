@@ -125,8 +125,8 @@ export class PreviewPanel {
     console.log(`VS Code theme: ${vscodeThemeName} (${isDarkTheme ? "dark" : "light"})`);
 
     // Get the theme settings from configuration
-    const darkTheme = config.get<string>(DARK_THEME_KEY, "redux-dark");
-    const lightTheme = config.get<string>(LIGHT_THEME_KEY, "redux");
+    const darkTheme = config.get<string>(DARK_THEME_KEY, "redux-dark-color");
+    const lightTheme = config.get<string>(LIGHT_THEME_KEY, "redux-color");
     const maxZoom = config.get<number>(MAX_ZOOM, 5);
     const maxCharLength = config.get<number>(MAX_CHAR_LENGTH, 90000);
     const maxEdges = config.get<number>(MAX_EDGES, 1000);

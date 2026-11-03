@@ -21,8 +21,8 @@ function readPreviewOptions() {
     extensionPath: vscode.extensions.getExtension(`${packageJson.publisher}.${packageJson.name}`)
       ?.extensionPath,
     currentTheme: isDarkTheme
-      ? config.get<string>("mermaid.vscode.dark", "redux-dark")
-      : config.get<string>("mermaid.vscode.light", "redux"),
+      ? config.get<string>("mermaid.vscode.dark", "redux-dark-color")
+      : config.get<string>("mermaid.vscode.light", "redux-color"),
     vscodeThemeName,
     vscodeThemeColors: getThemeColors(vscodeThemeName),
     maxZoom: config.get<number>("mermaid.vscode.maxZoom", 5),

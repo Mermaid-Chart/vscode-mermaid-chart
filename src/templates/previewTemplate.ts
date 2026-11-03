@@ -611,7 +611,7 @@ export function getWebviewHTML(
 
 function buildReviewDiagramHeader(ctx: ReviewDiagramPreviewContext): string {
     const summary = renderSummaryChips(ctx.counts);
-    const theme = renderThemeSelect(ctx.currentTheme ?? "redux-dark", ctx.vscodeThemeName);
+    const theme = renderThemeSelect(ctx.currentTheme ?? "redux-dark-color", ctx.vscodeThemeName);
     const actions = renderHeaderActionButtons();
     return `<header class="mc-review-header-bar mc-review-chrome"><div id="mc-review-summary-chips">${summary}</div><div class="mc-header-actions mc-review-chrome">${theme}${actions}</div></header>`;
 }

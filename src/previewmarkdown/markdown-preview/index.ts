@@ -47,7 +47,7 @@ interface Slot {
 }
 
 let slots: Slot[] = [];
-let previewTheme = "redux";
+let previewTheme = "redux-color";
 let themeOverride: string | undefined;
 let maxZoomLevel = 5;
 let maxTextSize = 50000;
@@ -203,8 +203,8 @@ function readConfig(): void {
     maxEdges = configSpan?.dataset.maxEdges ? Number(configSpan.dataset.maxEdges) : 1000;
     maxZoomLevel = Number(configSpan?.dataset.maxZoom) || 5;
     previewTheme = themeOverride ?? (document.body.classList.contains("vscode-dark") || document.body.classList.contains("vscode-high-contrast")
-        ? darkModeTheme ?? "dark"
-        : lightModeTheme ?? "default");
+        ? darkModeTheme ?? "redux-dark-color"
+        : lightModeTheme ?? "redux-color");
 }
 
 function fitSvg(container: HTMLElement): void {

@@ -462,8 +462,8 @@ export async function openReviewDiagramPreview(
 
     const isDarkTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
     const config = vscode.workspace.getConfiguration();
-    const darkTheme = config.get<string>("mermaid.vscode.dark", "redux-dark");
-    const lightTheme = config.get<string>("mermaid.vscode.light", "redux");
+    const darkTheme = config.get<string>("mermaid.vscode.dark", "redux-dark-color");
+    const lightTheme = config.get<string>("mermaid.vscode.light", "redux-color");
     const theme = isDarkTheme ? darkTheme : lightTheme;
     const vscodeThemeName = config.get<string>("workbench.colorTheme", "Default Light+");
     const vscodeThemeColors = getThemeColors(vscodeThemeName);

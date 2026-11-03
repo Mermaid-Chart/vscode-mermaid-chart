@@ -101,7 +101,7 @@ export function loadMermaidConfig(): MermaidConfig {
     return {
         startOnLoad: false,
         theme: (document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
-            ? darkModeTheme ?? 'dark'
-            : lightModeTheme ?? 'default') as MermaidConfig['theme'],
+            ? darkModeTheme ?? 'redux-dark-color'
+            : lightModeTheme ?? 'redux-color') as MermaidConfig['theme'],
     };
 }

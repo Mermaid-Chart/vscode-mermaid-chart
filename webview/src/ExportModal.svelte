@@ -86,12 +86,12 @@
   function getPreviewTheme(selected: string, current: string): string {
     switch (selected) {
       case 'light':
-        return 'redux'; // Light theme
+        return 'redux-color'; // Light theme
       case 'dark':
-        return 'redux-dark'; // Dark theme
+        return 'redux-dark-color'; // Dark theme
       case 'custom':
         // For custom, use light theme with custom background
-        return 'redux';
+        return 'redux-color';
       case 'transparent':
       default:
         return current; // Use current VS Code theme

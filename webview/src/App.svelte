@@ -22,7 +22,7 @@
   let panzoomInstance: ReturnType<typeof Panzoom> | null = null;
   let panEnabled = false;
   let hasErrorOccured= false;
-  let theme: 'default' | 'base' | 'dark' | 'forest' | 'neutral' | 'neo' | 'neo-dark' | 'redux' | 'redux-dark' | 'redux-color' | 'redux-dark-color' | 'mc' | 'null' = 'redux'; 
+  let theme: 'default' | 'base' | 'dark' | 'forest' | 'neutral' | 'neo' | 'neo-dark' | 'redux' | 'redux-dark' | 'redux-color' | 'redux-dark-color' | 'mc' | 'null' = 'redux-color'; 
   /** True when the diagram source declares its own config.theme, which overrides mermaid.initialize. */
   let hasFrontMatterTheme = false;
   $: zoomLevel = 100;
@@ -746,7 +746,7 @@
         // Regular rendering flow
         diagramContent = content.replace(/\r\n/g, '\n');
         // Diagram-owned frontmatter theme wins over the VS Code setting theme. Applying
-        // currentTheme here would flash the toolbar back to redux/redux-dark before parse.
+        // currentTheme here would flash the toolbar back to redux-color/redux-dark-color before parse.
         if (currentTheme && !hasFrontMatterTheme) {
           const nextTheme = String(currentTheme).includes("%")
             ? decodeURIComponent(String(currentTheme))

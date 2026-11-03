@@ -692,8 +692,8 @@ This extension contributes the following settings:
 - `mermaidChart.aiSkills.enabled`: Enable the Mermaid AI Skills Pack for GitHub Copilot (default: `true`)
 - `mermaidChart.aiSkills.promptOnDetect`: Prompt to install Mermaid AI Skills for GitHub Copilot (monthly until you add the skills)
 - `mermaidChart.markdownPreview.enabled`: Renders Mermaid diagrams in VS Code's Markdown preview (default: `true`). Turn off to use VS Code's built-in Mermaid renderer instead. The command **Mermaid: Toggle Markdown Preview Rendering** changes this setting.
-- `mermaid.vscode.dark`: Defines the Mermaid theme used when VS Code is in dark mode (default: `redux-dark`). Any Mermaid theme can be selected, including light themes.
-- `mermaid.vscode.light`: Defines the Mermaid theme used when VS Code is in light mode (default: `redux`). Any Mermaid theme can be selected, including dark themes.
+- `mermaid.vscode.dark`: Defines the Mermaid theme used when VS Code is in dark mode (default: `redux-dark-color`). Any Mermaid theme can be selected, including light themes.
+- `mermaid.vscode.light`: Defines the Mermaid theme used when VS Code is in light mode (default: `redux-color`). Any Mermaid theme can be selected, including dark themes.
 - `mermaid.vscode.maxZoom`: Sets the maximum zoom level for diagram preview (default: `5`).
 - `mermaid.vscode.maxCharLength`: Sets the maximum text size limit for diagrams (default: `90000`).
 - `mermaid.vscode.maxEdges`: Sets the maximum number of edges allowed in a diagram(default: `1000`).

@@ -253,7 +253,8 @@ function exportSvg(viewport: HTMLElement): void {
     if (!svg) {
         return;
     }
-    downloadBlob("diagram.svg", new Blob([svg.outerHTML], { type: "image/svg+xml;charset=utf-8" }));
+    const xml = new XMLSerializer().serializeToString(svg);
+    downloadBlob("diagram.svg", new Blob([xml], { type: "image/svg+xml;charset=utf-8" }));
 }
 
 function exportPng(viewport: HTMLElement): void {
